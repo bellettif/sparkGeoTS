@@ -25,8 +25,14 @@ case class Rasterizer[LocType, AttribType: ClassTag, MergeType](
     .combineByKey(aggregator.initializer, aggregator.valueMerger, aggregator.valueCombiner)
     .map(postMapper)
 
+  def persist() = rasters.persist()
+
   def getValueAtLoc(loc: LocType): Seq[AttribType] ={
     rasters.lookup(grid(loc))
   }
+
+  def collectRasters() = rasters.collect()
+
+  def collectAsMap() = rasters.collectAsMap()
 
 }
