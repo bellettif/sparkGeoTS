@@ -1,4 +1,4 @@
-package GeoTsRDD
+package geoTsRDD
 
 import scala.reflect.ClassTag
 

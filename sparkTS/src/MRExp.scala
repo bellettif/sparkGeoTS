@@ -2,166 +2,132 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import GeoTsRDD.LocEvent
-import GeoTsRDD.Rasterizer
-import GeoTsRDD.Aggregator
-
 import scala.math._
 
 import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 
-import com.github.nscala_time.time.Imports._
-import java.text.SimpleDateFormat
-import java.sql.Timestamp
-
 import org.apache.spark.sql.{DataFrame, SQLContext, Row}
-import org.apache.spark.sql.types._
 
-import scala.reflect._
+import com.github.nscala_time.time.Imports._
+import org.joda.time.DateTime
 
-import breeze.linalg._
 import breeze.plot._
+
+import geoTsRDD.Rasterizer
+import geoTsRDD.Aggregator
+import geoTsRDD.SpatialUtils._
+
+import ioTools.Csv_io
+
 
 object MRExp {
   def main(args: Array[String]): Unit ={
 
-    val conf      = new SparkConf().setAppName("Counter").setMaster("local[*]")
-    val sc        = new SparkContext(conf)
+    // Parameters of query
+    val format = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+    val start_date_str: String = "2013-01-01 00:00:00"
+    val start_date: DateTime   = new DateTime(format.parseDateTime(start_date_str))
+    val end_date_str: String   = "2013-01-02 00:00:00"
+    val end_date: DateTime     = new DateTime(format.parseDateTime(end_date_str))
+
+    val maximumTripTimeInSecs = 2210.26
+
+    val tMin: Long = 1356998497 * 1000
+    val tMax: Long = 1357112436 * 1000
+
+    val xMin: Double = -74.010376
+    val xMax: Double = -73.782036
+
+    val yMin: Double = 40.639046
+    val yMax: Double = 40.81926
+
+    val gridResX: Long = 200
+    val gridResY: Long = 200
+    val gridResT: Long = 24 * 12
+
+    // Initialize spark context
+        val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
+    val sc    = new SparkContext(conf)
 
     val sqlContext = new SQLContext(sc)
 
     val tripDataFile = "/users/cusgadmin/traffic_data/new_york_taxi_data/trip_data_1.csv"
     val fareDataFile = "/users/cusgadmin/traffic_data/new_york_taxi_data/trip_fare_1.csv"
 
-    val tripDataDf: DataFrame = sqlContext.load("com.databricks.spark.csv", Map("path" -> tripDataFile, "header" -> "true"))
-    val fareDataDf: DataFrame = sqlContext.load("com.databricks.spark.csv", Map("path" -> fareDataFile, "header" -> "true"))
+    // Load and filter data
+    val tripDataDF: DataFrame = Csv_io.loadFromCsv(tripDataFile, sqlContext, true)
 
-    /*
-    val smallTripDataDf = tripDataDf.sample(false, 0.01)
-    val smallFareDataDf = fareDataDf.sample(false, 0.01)
-
-    val df = smallTripDataDf.
-      join(smallFareDataDf)
-      .where(smallTripDataDf
-                .col("medallion")
-                .equalTo(smallFareDataDf.col("medallion")) &&
-              smallTripDataDf
-                .col("hack_license")
-                .equalTo(smallTripDataDf.col("hack_license")))
-    */
-
-    val df = tripDataDf
+    val df = tripDataDF
       .select("pickup_longitude", "pickup_latitude", "pickup_datetime",
               "trip_time_in_secs", "trip_distance")
+      .filter("trip_time_in_secs <=" + maximumTripTimeInSecs.toString)
+      .filter("trip_time_in_secs >= 0")
+      .filter("pickup_longitude >= " + xMin.toString)
+      .filter("pickup_longitude < " + xMax.toString)
+      .filter("pickup_latitude >= " + yMin.toString)
+      .filter("pickup_latitude < " + yMax.toString)
 
-    df.show()
-    df.printSchema()
+    val rdd = df.map(row => convertRowToEvent(row, 0, 1, 2, 3, "yyyy-MM-dd HH:mm:ss"))
 
-    val format = sc.broadcast(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"))
-
-    def convertRowToEvent(row: Row, xIdx: Int, yIdx: Int, tIdx: Int, attribIdx: Int):
-      Option[LocEvent[(Double, Double, DateTime), Double]] ={
-      try {
-        val parsedEvent = new LocEvent[(Double, Double, DateTime), Double](
-          (row.getAs[String](xIdx).toDouble,
-              row.getAs[String](yIdx).toDouble,
-              new DateTime(format.value.parse(row.getAs[String](tIdx)))),
-          row.getAs[String](attribIdx).toDouble
-        )
-        Some(parsedEvent)
-      }catch{
-        case _ => None
-      }
-    }
-
-    val rdd = df.map(row => convertRowToEvent(row, 0, 1, 2, 3))
-
-    val filtered_rdd = rdd.filter(!_.isEmpty).map(_.get)
+    val filtered_rdd = rdd
+      .filter(_.getLoc()._3 >= start_date)
+      .filter(_.getLoc()._3 < end_date)
 
     println(filtered_rdd.count() + " samples are going to be processed")
+    println(filtered_rdd.map(_.getAttrib()).reduce(_ + _) + " total travel time")
 
-    /*
-    val x_min: Double = filtered_rdd.map(_.getLoc()._1).min()
-    val x_max: Double = filtered_rdd.map(_.getLoc()._1).max()
-    val y_min: Double = filtered_rdd.map(_.getLoc()._2).min()
-    val y_max: Double = filtered_rdd.map(_.getLoc()._2).max()
-    */
+    // Compute grid and rasters
+    val deltaX = (xMax - xMin) / gridResX.toDouble
+    val deltaY = (yMax - yMin) / gridResY.toDouble
+    val deltaT = (tMax - tMin).toDouble / gridResT.toDouble
 
-    val x_max = -73.95
-    val x_min = -73.92
-    val y_max = 41.0
-    val y_min = 40.5
-    val t_min = filtered_rdd.map(_.getLoc()._3).min().getMillis
-    val t_max = filtered_rdd.map(_.getLoc()._3).max().getMillis
-
-    val grid_res = (40, 40, 400)
-    val span_x  = x_max - x_min
-    val span_y  = y_max - y_min
-    val span_t  = t_max - t_min
-    val delta_x = span_x / grid_res._1.toDouble
-    val delta_y = span_y / grid_res._2.toDouble
-    val delta_t = span_t / grid_res._3.toDouble
-
-    def spaceTimeGrid(loc: (Double, Double, DateTime)): Long={
-      val x_idx: Long = floor((loc._1 - x_min) / delta_x).toLong
-      val y_idx: Long = floor((loc._2 - y_min) / delta_y).toLong
-      val t_idx: Long = floor((loc._3.getMillis() - t_min) / delta_t).toLong
-      x_idx * grid_res._1 * grid_res._2 + y_idx * grid_res._1 + t_idx
+    def spaceTimeGrid(loc: (Double, Double, DateTime)): (Long, Long, Long) = {
+      val xIdx: Long = floor((loc._1 - xMin) / deltaX).toLong
+      val yIdx: Long = floor((loc._2 - yMin) / deltaY).toLong
+      val tIdx: Long = floor((loc._3.getMillis() - tMin) / deltaT).toLong
+      (xIdx, yIdx, tIdx)
     }
 
     def meanAggregator = new Aggregator[Double,(Double, Long)](
-      x=>(x,1),
+      x=>(x, 1),
       {case ((x, n), y) => (x + y, n + 1)},
       {case ((x, n), (y, m)) => (x + y, n + m)}
     )
 
-    def idMapper(pair:Pair[Long, Pair[Double, Long]]) = (pair._1, pair._2._1 / pair._2._2)
-
-    val start_create = java.lang.System.currentTimeMillis()
+    def idMapper(pair:Pair[(Long, Long, Long), Pair[Double, Long]]) = (
+      pair._1,
+      pair._2._1 / pair._2._2.toDouble)
 
     val rasterizer = new Rasterizer[
       (Double, Double, DateTime),
+      (Long, Long, Long),
       Double,
       (Double, Long)](spaceTimeGrid, meanAggregator, idMapper, filtered_rdd)
 
-    val stop_create = java.lang.System.currentTimeMillis() - start_create
+    // Convert rasters to time series
+    val timeIdxDf: DataFrame = toTimeIndexedDf[Double](gridResX.toInt,
+      gridResY.toInt,
+      0.0,
+      rasterizer.rasters,
+      sqlContext)
 
-    println("Finished creating rasters, took " + stop_create + " milliseconds")
+    // Collect and plot a snapshot
+    val spaceKeys = extractSpatialHeaders(timeIdxDf)
 
-    /*
-    val collected = rasterizer.collectRasters()
-    println(collected)
-    println(rasterizer.getValueAtLoc((-73.937523, 40.758148, new DateTime())))
-    */
+    println("Sum of DF = " + sumOfDF(timeIdxDf, true).toString)
 
-    val x_values = linspace(x_min, x_max, grid_res._1)
-    val y_values = linspace(y_min, y_max, grid_res._2)
-    val t_values = linspace(t_min, t_max, grid_res._3)
+    val collected: Array[Row] = timeIdxDf
+      .sort("time")
+      .filter("time = " + timeIdxDf.select("time").head.getAs[String](0))
+      .collect()
 
-    val values = (0 to grid_res._3).map(x => DenseMatrix.zeros[Double](grid_res._1, grid_res._2))
-
-    val value_map = rasterizer.collectAsMap()
-
-    val startPixels = java.lang.System.currentTimeMillis()
-
-    for(i <- 0 to grid_res._1 - 1){
-      for(j <- 0 to grid_res._2 - 1){
-        for(k <- 0 to grid_res._3 - 1){
-          values(k)(i, j) = value_map.getOrElse(spaceTimeGrid((x_values(i), y_values(j), new DateTime(t_values(k).toLong))), 0.0)
-        }
-      }
-    }
-
-    val stopPixels = java.lang.System.currentTimeMillis() - startPixels
-
-    println("Finished creating pixels, took " + stop_create + " milliseconds")
+    val values = pictFromRow(gridResY.toInt, gridResX.toInt, collected(0),
+      spaceKeys.map({case (x, y) => "Loc_" + x.toString + "_" + y.toString}).toSeq)
 
     val f2 = Figure()
-    f2.subplot(0) += image(values(0))
-    f2.subplot(2,1,1) += image(values(1))
-    f2.subplot(2,1,1).title = filtered_rdd.count() + " samples were processed"
+    f2.subplot(0) += image(values)
     f2.saveas("image.png")
 
   }
