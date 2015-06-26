@@ -18,10 +18,11 @@ import geoTsRDD.Rasterizer
 import geoTsRDD.Aggregator
 import geoTsRDD.SpatialUtils._
 
-import ioTools.Csv_io
+import ioTools.CsvIo
 
 
-object MRExp {
+object ComputeRastersNY {
+
   def main(args: Array[String]): Unit ={
 
     // Parameters of query
@@ -48,16 +49,15 @@ object MRExp {
     val gridResT: Long = 24 * 12
 
     // Initialize spark context
-        val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
+    val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
-
     val sqlContext = new SQLContext(sc)
 
     val tripDataFile = "/users/cusgadmin/traffic_data/new_york_taxi_data/trip_data_1.csv"
     val fareDataFile = "/users/cusgadmin/traffic_data/new_york_taxi_data/trip_fare_1.csv"
 
     // Load and filter data
-    val tripDataDF: DataFrame = Csv_io.loadFromCsv(tripDataFile, sqlContext, true)
+    val tripDataDF: DataFrame = CsvIo.loadFromCsv(tripDataFile, sqlContext, true)
 
     val df = tripDataDF
       .select("pickup_longitude", "pickup_latitude", "pickup_datetime",

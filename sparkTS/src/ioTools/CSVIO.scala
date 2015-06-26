@@ -10,7 +10,7 @@ import org.apache.spark.sql.DataFrame
 /**
  * Created by Francois Belletti on 6/22/15.
  */
-object Csv_io {
+object CsvIo {
 
   def loadFromCsv(filePath: String, sqlContext: SQLContext, header: Boolean): DataFrame ={
     val headerString = if (header) "true" else "false"
