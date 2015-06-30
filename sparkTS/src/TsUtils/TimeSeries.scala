@@ -43,9 +43,11 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   val partitioner = new TSPartitioner(nPartitions.value)
 
   def stitchAndTranspose(kVPairs: Iterator[((Int, Long), Array[RecordType])]): Iterator[Array[RecordType]] ={
-    def col(i: Int) = for (kVPair <- kVPairs) yield kVPair._2.apply(i)
-    val range: Range = (0 until nCols.value)
-    for (i <- range.iterator) yield Array(col(i).toSeq: _*)
+    kVPairs.toSeq.map(_._2).transpose.map(x => Array(x: _*)).iterator
+  }
+
+  def extractTimeIndex(kVPairs: Iterator[((Int, Long), Array[RecordType])]): Iterator[Long] ={
+    kVPairs.toSeq.map(_._1._2).iterator
   }
 
   val augmentedIndexRDD = timeRDD
@@ -57,9 +59,32 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
         Nil
     else
       ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::Nil
-  }).partitionBy(partitioner)
-  .mapPartitions(stitchAndTranspose, true)
+    })
+    .partitionBy(partitioner)
 
+    val rotatedData = augmentedIndexRDD
+      .mapPartitions(stitchAndTranspose, true)
 
+    val timeIndex = augmentedIndexRDD
+      .mapPartitions(extractTimeIndex, true)
+
+  def computeCrossFold[ResultType: ClassTag](cross: (RecordType, RecordType) => ResultType,
+                                       fold: (ResultType, ResultType) => ResultType,
+                                       cLeft: Int, cRight: Int, lag: Int,
+                                       zero: ResultType): ResultType ={
+
+    def computeCrossFoldArray(data: Array[Array[RecordType]]): ResultType ={
+      // TODO: Improve that !!!
+      val leftCol: Array[RecordType]  = data.apply(cLeft)
+      val rightCol: Array[RecordType] = data.apply(cRight)
+      var result: ResultType = zero
+      for(rowIdx <- 0 until (leftCol.size - lag)){
+        result = fold(result, cross(leftCol.apply(rowIdx + lag), rightCol.apply(rowIdx)))
+      }
+      result
+    }
+
+    rotatedData.glom().map(computeCrossFoldArray).fold(zero)(fold(_,_))
+  }
 
 }

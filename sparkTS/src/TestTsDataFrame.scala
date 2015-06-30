@@ -37,9 +37,10 @@ object TestTsDataFrame {
     val timeSeries = new TimeSeries[Array[Any], Double](rawTSRDD,
       x => (x.head.asInstanceOf[DateTime].getMillis, x.drop(1).map(_.asInstanceOf[Double])),
       sc,
-      Some(10)
+      Some(20)
     )
 
+    /*
     timeSeries.timeRDD.take(100).foreach(println)
     println(timeSeries.timeRDD.count())
 
@@ -48,21 +49,19 @@ object TestTsDataFrame {
 
     timeSeries.augmentedIndexRDD.take(100).foreach(println)
     println(timeSeries.augmentedIndexRDD.count())
+    */
 
-    val temp = timeSeries.augmentedIndexRDD.glom().collect
+    val data = timeSeries.rotatedData
+      .glom()
+      .collect
+
+    val time = timeSeries.timeIndex
+      .glom()
+      .collect
+
+    println(timeSeries.computeCrossFold[Double](_*_, _+_, 0, 1, 3, 0))
 
     println("Done")
-
-    /*
-    timeSeries.preP`artitionedRDD.take(100).foreach(println)
-    println(timeSeries.prePartitionedRDD.count())
-
-    timeSeries.prePartitionedForwardedRDD.take(100).foreach(println)
-    println(timeSeries.prePartitionedForwardedRDD.count())
-
-    timeSeries.joinedRDD.take(100).foreach(println)
-    println(timeSeries.joinedRDD.count())
-    */
 
   }
 }
