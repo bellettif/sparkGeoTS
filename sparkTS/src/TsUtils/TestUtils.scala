@@ -26,10 +26,30 @@ object TestUtils {
     new TsDataFrame(rawDataFrame, "Time")
   }
 
+  def getJodaRandomTsRDD(nColumns: Int, nSamples: Int,
+                       sc: SparkContext) = {
+    val meanValue = DenseVector.ones[Double](nColumns) * 0.5
+    val rawData = (0 until nSamples)
+      .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+    sc.parallelize(rawData)
+  }
+
+
   def getRandomRawTsRDD(nColumns: Int, nSamples: Int,
                         sc: SparkContext) = {
+    val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
-      .map(x => x +: DenseVector.rand[Double](nColumns).toArray)
+      .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+    sc.parallelize(rawData)
+  }
+
+  def getOnesRawTsRDD(nColumns: Int, nSamples: Int,
+                      sc: SparkContext) = {
+    val oneValue = DenseVector.ones[Double](nColumns)
+    val rawData = (0 until nSamples)
+      .map(x => x +: oneValue.toArray)
       .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
     sc.parallelize(rawData)
   }
