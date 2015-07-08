@@ -74,10 +74,16 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     .flatMap({case (t, v) =>
     if (((t - minTS.value) % partitionLength.value <= effectiveLag.value) &&
       (floor((t - minTS.value) / partitionLength.value).toInt > 0))
+
+      // Create the overlap
+      // ((partition, timestamp), record)
       ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::
         ((floor((t - minTS.value) / partitionLength.value).toInt - 1, t), v)::
         Nil
+
     else
+
+      // Outside the overlapping region
       ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::Nil
   })
     .partitionBy(partitioner)
