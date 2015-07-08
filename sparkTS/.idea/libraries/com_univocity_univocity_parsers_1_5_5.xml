@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="com.univocity:univocity-parsers:1.5.5" type="repository">
+    <properties maven-id="com.univocity:univocity-parsers:1.5.5" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/univocity/univocity-parsers/1.5.5/univocity-parsers-1.5.5.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/univocity/univocity-parsers/1.5.5/univocity-parsers-1.5.5-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>
