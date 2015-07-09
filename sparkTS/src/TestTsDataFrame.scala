@@ -19,7 +19,7 @@ object TestTsDataFrame {
   def main(args: Array[String]): Unit ={
 
     val nColumns = 10
-    val nSamples = 1000000
+    val nSamples = 100000
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
@@ -40,10 +40,14 @@ object TestTsDataFrame {
       t1.secondOfDay() != t2.secondOfDay()
     }
 
-    timeSeries.applyBy(secondSlicer)
+    def f(ts: Seq[Array[Double]]): Iterator[Double] = {
+      // Return a column based average of the table
+      ts.map(x => x.reduce(_+_) / x.size.toDouble).toIterator
+    }
+
+    val temp2 = timeSeries.applyBy(f, secondSlicer).collect
 
     println("Done")
-
 
   }
 }

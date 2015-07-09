@@ -1,7 +1,5 @@
 package TsUtils
 
-import Utils.WindowedIterator
-
 import scala.reflect._
 
 import org.apache.spark._
@@ -75,15 +73,15 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     if (((t - minTS.value) % partitionLength.value <= effectiveLag.value) &&
       (floor((t - minTS.value) / partitionLength.value).toInt > 0))
 
-      // Create the overlap
-      // ((partition, timestamp), record)
+    // Create the overlap
+    // ((partition, timestamp), record)
       ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::
         ((floor((t - minTS.value) / partitionLength.value).toInt - 1, t), v)::
         Nil
 
     else
 
-      // Outside the overlapping region
+    // Outside the overlapping region
       ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::Nil
   })
     .partitionBy(partitioner)
@@ -144,8 +142,8 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   f takes several columns and returns a result (for example linear regression)
   slicer returns true if two timestamps do not belong to the same window
    */
-  def applyBy[ResultType: ClassTag](//f: Iterator[Array[RecordType]] => ResultType,
-                                     slicer: (DateTime, DateTime) => Boolean) ={
+  def applyBy[ResultType: ClassTag](f: Seq[Array[RecordType]] => ResultType,
+                                    slicer: (DateTime, DateTime) => Boolean)={//: RDD[(Interval, ResultType)] = {
 
     def windowEndPoints(tsGroup: Iterator[(Int, (Long, DateTime))]): Iterator[((Int, Int), (Long, DateTime))] = {
       val (it1, it2) = tsGroup.duplicate
@@ -161,25 +159,29 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     val endPoints = timeStamps
       .mapPartitions(windowEndPoints, true)
 
-    def applyByArray(f: Iterator[Array[RecordType]] => ResultType)(
-                    values: WindowedIterator[((Int, Long), RecordType)],
-                    cutIdxs: Iterator[((Int, Int), (Long, DateTime))])// = Iterator[(Interval, ResultType)]
-    {
-      val (it1, it2) = cutIdxs.duplicate
-      val intervals = (it1 zip it1.drop(1)).map(x => new Interval(x._1._2._2, x._2._2._2))
-      val windowIdxs = (it2 zip it2.drop(1)).map(x => (x._1._1._2, x._2._1._2))
 
-      val windowValues = values.map(_._2).windows(windowIdxs).map()
+    /*
+     * Serialization issue
+     */
+    def applyByWindow(g: Seq[Array[RecordType]] => ResultType)(
+                        values: Iterator[Array[RecordType]],
+                        cutIdxs: Iterator[((Int, Int), (Long, DateTime))]) = {//:Iterator[(Interval, ResultType)] = {
 
+      val valueArray = values.toArray
+      val cutIdxArray = cutIdxs.toArray
+
+      // Sliding could be used here but case matching will not work later on
+      val intervals = (cutIdxArray zip cutIdxArray.drop(1)).map(x => new Interval(x._1._2._2, x._2._2._2))
+      val windowIdxs = (cutIdxArray zip cutIdxArray.drop(1)).map(x => (x._1._1._2, x._2._1._2))
+
+      val valueWindows = windowIdxs
+        .map({case (startIdx, stopIdx) => valueArray.map(_.slice(startIdx, stopIdx))})
+
+      (intervals zip valueWindows).map({case(interval, valueWindow) => (interval, g(valueWindow))}).toIterator
     }
 
-    //val zippedRDDs = tiles.zipPartitions(endPoints, true)()
-
-
+    tiles.zipPartitions(endPoints, true)(applyByWindow(f))
 
   }
-
-
-
 
 }
