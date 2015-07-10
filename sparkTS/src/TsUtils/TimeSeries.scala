@@ -51,7 +51,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   val maxTS = sc.broadcast(timeRDD.max()._1)
   val nTS   = sc.broadcast(maxTS.value - minTS.value)
   val nCols = sc.broadcast(10)
-  val partitionLength = sc.broadcast(10000)
+  val partitionLength = sc.broadcast(100)
   val nPartitions     = sc.broadcast(floor(nTS.value / partitionLength.value).toInt + 1)
 
   val partitioner = new TSPartitioner(nPartitions.value)
@@ -69,20 +69,21 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
    */
 
   val augmentedIndexRDD = timeRDD
-    .flatMap({case (t, v) =>
-    if (((t - minTS.value) % partitionLength.value <= effectiveLag.value) &&
-      (floor((t - minTS.value) / partitionLength.value).toInt > 0))
+    .zipWithIndex()
+    .flatMap({case ((t, v), i) =>
+    if ((i % partitionLength.value <= effectiveLag.value) &&
+      (floor(i / partitionLength.value).toInt > 0))
 
     // Create the overlap
     // ((partition, timestamp), record)
-      ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::
-        ((floor((t - minTS.value) / partitionLength.value).toInt - 1, t), v)::
+      ((floor(i / partitionLength.value).toInt, t), v)::
+        ((floor(i / partitionLength.value).toInt - 1, t), v)::
         Nil
 
     else
 
     // Outside the overlapping region
-      ((floor((t - minTS.value) / partitionLength.value).toInt, t), v)::Nil
+      ((floor(i / partitionLength.value).toInt, t), v)::Nil
   })
     .partitionBy(partitioner)
 
@@ -91,15 +92,17 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
 
   val timeStamps = rawRDD
     .map(x => timeExtract(x)._1)
-    .flatMap(t =>
-    if (((t.getMillis - minTS.value) % partitionLength.value <= effectiveLag.value) &&
-      (floor((t.getMillis - minTS.value) / partitionLength.value).toInt > 0))
-      (floor((t.getMillis - minTS.value) / partitionLength.value).toInt, (t.getMillis, t))::
-        (floor((t.getMillis - minTS.value) / partitionLength.value).toInt - 1, (t.getMillis, t))::
+    .zipWithIndex()
+    .flatMap({ case (t, i) =>
+    if ((i % partitionLength.value <= effectiveLag.value) &&
+      (floor(i / partitionLength.value).toInt > 0))
+      (floor(i / partitionLength.value).toInt, (t.getMillis, t)) ::
+        (floor(i / partitionLength.value).toInt - 1, (t.getMillis, t)) ::
         Nil
     else
-      (floor((t.getMillis - minTS.value) / partitionLength.value).toInt, (t.getMillis, t))::Nil
-    )
+      (floor(i / partitionLength.value).toInt, (t.getMillis, t)) :: Nil
+  }
+  )
     .partitionBy(partitioner)
 
 
@@ -145,14 +148,14 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   def applyBy[ResultType: ClassTag](f: Seq[Array[RecordType]] => ResultType,
                                     slicer: (DateTime, DateTime) => Boolean)={//: RDD[(Interval, ResultType)] = {
 
-    def windowEndPoints(tsGroup: Iterator[(Int, (Long, DateTime))]): Iterator[((Int, Int), (Long, DateTime))] = {
+    def windowEndPoints(tsGroup: Iterator[(Int, (Long, DateTime))]): Iterator[(Int, Long, Long)] = {
       val (it1, it2) = tsGroup.duplicate
-      (it1.zipWithIndex zip it2.drop(1))
+      (it1 zip it2.zipWithIndex.drop(1))
         .filter({
-        case (((pIdx1, (millis1, datet1)), idx1), (pIdx2, (millis2, datet2))) => slicer(datet1, datet2)
+        case ((pIdx1, (millis1, datet1)), ((pIdx2, (millis2, datet2)), idx2)) => slicer(datet1, datet2)
       })
         .map({
-        case (((pIdx, (millis, datet)), idx), _) => ((pIdx, idx), (millis, datet))
+        case ((_, (stopMillis, _)), ((_, (startMillis, _)), startIdx)) => (startIdx, stopMillis, startMillis)
       })
     }
 
@@ -164,15 +167,15 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
      * Serialization issue
      */
     def applyByWindow(g: Seq[Array[RecordType]] => ResultType)(
-                        values: Iterator[Array[RecordType]],
-                        cutIdxs: Iterator[((Int, Int), (Long, DateTime))]) = {//:Iterator[(Interval, ResultType)] = {
+      values: Iterator[Array[RecordType]],
+      cutIdxs: Iterator[(Int, Long, Long)]) = {//:Iterator[(Interval, ResultType)] = {
 
       val valueArray = values.toArray
       val cutIdxArray = cutIdxs.toArray
 
       // Sliding could be used here but case matching will not work later on
-      val intervals = (cutIdxArray zip cutIdxArray.drop(1)).map(x => new Interval(x._1._2._2, x._2._2._2))
-      val windowIdxs = (cutIdxArray zip cutIdxArray.drop(1)).map(x => (x._1._1._2, x._2._1._2))
+      val intervals = (cutIdxArray zip cutIdxArray.drop(1)).map(x => new Interval(x._1._3, x._2._2))
+      val windowIdxs = (cutIdxArray zip cutIdxArray.drop(1)).map(x => (x._1._1, x._2._1))
 
       val valueWindows = windowIdxs
         .map({case (startIdx, stopIdx) => valueArray.map(_.slice(startIdx, stopIdx))})
@@ -181,7 +184,6 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     }
 
     tiles.zipPartitions(endPoints, true)(applyByWindow(f))
-
   }
 
 }

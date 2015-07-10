@@ -31,7 +31,7 @@ object TestUtils {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
       .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 200) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
@@ -41,7 +41,7 @@ object TestUtils {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
       .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 200) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
@@ -50,7 +50,7 @@ object TestUtils {
     val oneValue = DenseVector.ones[Double](nColumns)
     val rawData = (0 until nSamples)
       .map(x => x +: oneValue.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 200) +: x.drop(1))
     sc.parallelize(rawData)
   }
 

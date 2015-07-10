@@ -19,13 +19,13 @@ object TestTsDataFrame {
   def main(args: Array[String]): Unit ={
 
     val nColumns = 10
-    val nSamples = 100000
+    val nSamples = 1000
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
-    val rawTsRDD = TestUtils.getJodaRandomTsRDD(nColumns, nSamples, sc)
+    val rawTsRDD = TestUtils.getOnesRawTsRDD(nColumns, nSamples, sc)
 
     val timeSeries = new TimeSeries[Array[Any], Double](rawTsRDD,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
@@ -42,7 +42,7 @@ object TestTsDataFrame {
 
     def f(ts: Seq[Array[Double]]): Iterator[Double] = {
       // Return a column based average of the table
-      ts.map(x => x.reduce(_+_) / x.size.toDouble).toIterator
+      ts.map(x => x.reduce(_+_)).toIterator
     }
 
     val temp2 = timeSeries.applyBy(f, secondSlicer).collect
