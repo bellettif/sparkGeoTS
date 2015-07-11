@@ -11,7 +11,8 @@ class TSPartitioner(override val numPartitions: Int)
 
   def getPartition(key: Any): Int = key match {
     case (p: Int, t: Long) => p
-    case p:Int => p
+    case i: Int   => i
+    case i: Long  => i.toInt / numPartitions
     case _ => key.hashCode()
   }
 

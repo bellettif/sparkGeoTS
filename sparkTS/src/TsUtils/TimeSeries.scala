@@ -23,8 +23,12 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   Initialization phase
    */
 
-  var effectiveLag = sc.broadcast(if (memory.isDefined) memory.get else 10)
-
+  var effectiveLag    = sc.broadcast(if (memory.isDefined) memory.get else 10)
+  val nCols           = sc.broadcast(10)
+  val nSamples        = sc.broadcast(rawRDD.count())
+  val partitionLength = sc.broadcast(100)
+  val nPartitions     = sc.broadcast(floor(rawRDD.count() / partitionLength.value).toInt)
+  val partitioner     = new TSPartitioner(nPartitions.value)
 
   /*
   Convert the time index to longs
@@ -39,7 +43,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     val tempRDD: RDD[(Long, Array[RecordType])]  = rawRDD
       .map(timeExtract)
       .map({case (t, v) => (t.getMillis, v)})
-    val partitioner: Partitioner = new RangePartitioner(100, tempRDD)
+    val partitioner: Partitioner = new RangePartitioner(nPartitions.value, tempRDD)
     tempRDD.repartitionAndSortWithinPartitions(partitioner)
   }
 
@@ -47,14 +51,6 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   /*
   Figure out the time partitioner
    */
-  val minTS = sc.broadcast(timeRDD.min()._1)
-  val maxTS = sc.broadcast(timeRDD.max()._1)
-  val nTS   = sc.broadcast(maxTS.value - minTS.value)
-  val nCols = sc.broadcast(10)
-  val partitionLength = sc.broadcast(100)
-  val nPartitions     = sc.broadcast(floor(nTS.value / partitionLength.value).toInt + 1)
-
-  val partitioner = new TSPartitioner(nPartitions.value)
 
   def stitchAndTranspose(kVPairs: Iterator[((Int, Long), Array[RecordType])]): Iterator[Array[RecordType]] ={
     kVPairs.toSeq.map(_._2).transpose.map(x => Array(x: _*)).iterator
@@ -73,24 +69,37 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     .flatMap({case ((t, v), i) =>
     if ((i % partitionLength.value <= effectiveLag.value) &&
       (floor(i / partitionLength.value).toInt > 0))
-
     // Create the overlap
     // ((partition, timestamp), record)
       ((floor(i / partitionLength.value).toInt, t), v)::
         ((floor(i / partitionLength.value).toInt - 1, t), v)::
         Nil
-
     else
-
     // Outside the overlapping region
       ((floor(i / partitionLength.value).toInt, t), v)::Nil
   })
     .partitionBy(partitioner)
 
+  val temp1 = augmentedIndexRDD.glom.collect()
+  val temp2 = timeRDD.glom.collect()
+
+  println()
+
+
+
+  /*
+  #############################################
+
+          CONTAINERS IN THEIR FINAL FORM
+
+  #############################################
+   */
+
+
   val tiles = augmentedIndexRDD
     .mapPartitions(stitchAndTranspose, true)
 
-  val timeStamps = rawRDD
+  val timeStamps: RDD[(Int, (Long, DateTime))] = rawRDD
     .map(x => timeExtract(x)._1)
     .zipWithIndex()
     .flatMap({ case (t, i) =>
@@ -105,11 +114,30 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   )
     .partitionBy(partitioner)
 
+  /*
+  ################################################################
+
+  Accessors
+  TODO: modifiy collect once TimeSeries extends RDD in order to remove duplicate keys.
+
+  ################################################################
+  */
+
+  def nColumns = nCols.value
+
+
 
   /*
-  Computational utils. These will not be declared here in the end.ß
+  #################################################################
+
+  Computational utils. These will not be declared here in the end.
+
+  #################################################################
    */
 
+  /*
+  The compute cross fold is typically used to compute cross correlations
+   */
   def computeCrossFold[ResultType: ClassTag](cross: (RecordType, RecordType) => ResultType,
                                              foldOp: (ResultType, ResultType) => ResultType,
                                              cLeft: Int, cRight: Int, lag: Int,
@@ -143,7 +171,10 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
 
   /*
   f takes several columns and returns a result (for example linear regression)
-  slicer returns true if two timestamps do not belong to the same window
+  slicer returns true if two timestamps do not belong to the same window.
+  For now multiple values will be returned for the overlapping windows. These can
+  be unified thanks to a collectAsMap.
+  TODO: Return another timeSeries here
    */
   def applyBy[ResultType: ClassTag](f: Seq[Array[RecordType]] => ResultType,
                                     slicer: (DateTime, DateTime) => Boolean)={//: RDD[(Interval, ResultType)] = {
@@ -162,10 +193,10 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     val endPoints = timeStamps
       .mapPartitions(windowEndPoints, true)
 
+    val monitorEndPoints = endPoints.glom.collect
 
-    /*
-     * Serialization issue
-     */
+    println()
+
     def applyByWindow(g: Seq[Array[RecordType]] => ResultType)(
       values: Iterator[Array[RecordType]],
       cutIdxs: Iterator[(Int, Long, Long)]) = {//:Iterator[(Interval, ResultType)] = {
