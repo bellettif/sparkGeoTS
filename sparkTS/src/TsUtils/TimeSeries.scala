@@ -23,7 +23,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   Initialization phase
    */
 
-  var effectiveLag    = sc.broadcast(if (memory.isDefined) memory.get else 10)
+  var effectiveLag    = sc.broadcast(if (memory.isDefined) memory.get else 100)
   val nCols           = sc.broadcast(10)
   val nSamples        = sc.broadcast(rawRDD.count())
   val partitionLength = sc.broadcast(nSamples.value.toInt / 8)

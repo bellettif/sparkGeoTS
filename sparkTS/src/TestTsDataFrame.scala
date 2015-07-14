@@ -2,7 +2,7 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TsUtils.Models.{AutoCorrelation, CrossCovariance, DurbinLevinsonAR}
+import TsUtils.Models.{AutoCorrelation, CrossCovariance, DurbinLevinsonAR, InnovationAlgoMA}
 import TsUtils.{TimeSeries, TestUtils}
 
 import org.apache.spark.sql._
@@ -27,7 +27,8 @@ object TestTsDataFrame {
     val sqlContext = new SQLContext(sc)
 
     //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, sc)
-    val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
+    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
+    val rawTsRDD = TestUtils.getMA1TsRDD(0.8, nColumns, nSamples, sc)
 
     val timeSeries = new TimeSeries[Array[Any], Double](rawTsRDD,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
@@ -67,10 +68,18 @@ object TestTsDataFrame {
      */
     val DLAR = new DurbinLevinsonAR(5)
     val startAR = java.lang.System.currentTimeMillis()
-    val coefs = DLAR.estimate(timeSeries)
+    val ARcoefs = DLAR.estimate(timeSeries)
     val timeSpentAR = java.lang.System.currentTimeMillis() - startAR
     println(timeSpentAR)
 
+    /*
+    This will calibrate a MA model (onde per column) on the time series
+     */
+    var IAMA = new InnovationAlgoMA(5)
+    val startMA = java.lang.System.currentTimeMillis()
+    val MAcoefs = IAMA.estimate(timeSeries)
+    val timeSpentMA = java.lang.System.currentTimeMillis() - startMA
+    println(timeSpentMA)
 
     /*
     ############################################
@@ -104,8 +113,15 @@ object TestTsDataFrame {
      */
     val windowedCrossCorrelations = timeSeries.applyBy(crossCov.estimate, secondSlicer).collectAsMap
 
+    /*
+    This will compute a windowed AR calibration
+     */
+    val windowedAR = timeSeries.applyBy(DLAR.estimate, secondSlicer).collectAsMap
 
-
+    /*
+    This will compute a windowed MA calibration
+     */
+    val windowedMA = timeSeries.applyBy(IAMA.estimate, secondSlicer).collectAsMap
 
 
     println("Done")

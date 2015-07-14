@@ -2,12 +2,11 @@ package TsUtils.Models
 
 import TsUtils.TimeSeries
 import breeze.linalg._
-import breeze.numerics._
 
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class DurbinLevinsonAR(h: Int)
+class InnovationAlgoMA(h: Int)
   extends AutoCovariance(h){
 
   /*
@@ -15,29 +14,26 @@ class DurbinLevinsonAR(h: Int)
   This calibrate one univariate AR model per columns.
   Returns an array of calibrated parameters (Coeffs, variance of noise).
 
-  Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 234)
+  Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
   private [this] def proceed(autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
-    var prevPhiEst          = DenseVector.zeros[Double](1)
-    prevPhiEst(0)           = autoCov(1) / autoCov(0)
-    var prevVarEst: Double  = autoCov(0) * (1.0 - prevPhiEst(0) * prevPhiEst(0))
+    val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double](_))
+    val varEsts   = DenseVector.zeros[Double](h + 1)
 
-    var newVarEst: Double   = 0.0
+    varEsts(0)    = autoCov(0) // Potential edge case here whenever varEsts(0) == 0
 
-    for(m <- 2 to h){
-      val newPhiEst               = DenseVector.zeros[Double](m)
-      val temp                    = reverse(autoCov(1 until m))
-      newPhiEst(m - 1)            = (autoCov(m) - sum(prevPhiEst :* temp)) / prevVarEst
-      newPhiEst(0 to (m - 2))     := prevPhiEst - (reverse(prevPhiEst) :* newPhiEst(m - 1))
-
-      newVarEst                   = prevVarEst * (1.0 - newPhiEst(m - 1) * newPhiEst(m - 1))
-
-      prevPhiEst = newPhiEst
-      prevVarEst = newVarEst
+    for(m <- 1 to h){
+      for(k <- 0 until m){
+        // In the book the theta estimate vector is filled from the tail to the head.
+        // Here it is filled from the head to the tail.
+        thetaEsts(m - 1)(k) = (autoCov(m - k) - sum(thetaEsts(m - 1)(0 until k) :* thetaEsts(k) :* varEsts(0 until k))) / varEsts(k)
+      }
+      varEsts(m) = autoCov(0) - sum(thetaEsts(m - 1) :* thetaEsts(m - 1) :* varEsts(0 until m))
     }
 
-    (prevPhiEst, prevVarEst)
+    // Reverse the result so as to have the same convention as in the book
+    (reverse(thetaEsts(h - 1)), varEsts(h))
   }
 
   override def estimate(timeSeries: TimeSeries[_, Double]): Array[(DenseVector[Double], Double)] = {

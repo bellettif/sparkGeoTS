@@ -9,7 +9,7 @@ import breeze.linalg._
 class AutoCovariance(h: Int)
   extends Serializable with SecondOrderModel[Double]{
 
-  override def estimate(timeSeries: TimeSeries[_, Double]): Array[DenseVector[Double]]={
+  override def estimate(timeSeries: TimeSeries[_, Double]): Any={//Array[DenseVector[Double]]={
 
     val nCols = timeSeries.nColumns
     val nSamples = timeSeries.nSamples.value
@@ -37,7 +37,7 @@ class AutoCovariance(h: Int)
     res
   }
 
-  override def estimate(timeSeriesTile: Seq[Array[Double]]): Array[DenseVector[Double]] ={
+  override def estimate(timeSeriesTile: Seq[Array[Double]]): Any={ //Array[DenseVector[Double]] ={
 
     val nCols = timeSeriesTile.size
 
