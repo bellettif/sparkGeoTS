@@ -2,7 +2,7 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TsUtils.Models.{AutoCorrelation, CrossCovariance, DurbinLevinsonAR, InnovationAlgoMA}
+import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel}
 import TsUtils.{TimeSeries, TestUtils}
 
 import org.apache.spark.sql._
@@ -66,7 +66,7 @@ object TestTsDataFrame {
     /*
     This will calibrate an AR model (one per column) on the time series
      */
-    val DLAR = new DurbinLevinsonAR(5)
+    val DLAR = new ARModel(5)
     val startAR = java.lang.System.currentTimeMillis()
     val ARcoefs = DLAR.estimate(timeSeries)
     val timeSpentAR = java.lang.System.currentTimeMillis() - startAR
@@ -75,7 +75,7 @@ object TestTsDataFrame {
     /*
     This will calibrate a MA model (onde per column) on the time series
      */
-    var IAMA = new InnovationAlgoMA(5)
+    var IAMA = new MAModel(5)
     val startMA = java.lang.System.currentTimeMillis()
     val MAcoefs = IAMA.estimate(timeSeries)
     val timeSpentMA = java.lang.System.currentTimeMillis() - startMA
