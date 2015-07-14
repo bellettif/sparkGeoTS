@@ -26,7 +26,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   var effectiveLag    = sc.broadcast(if (memory.isDefined) memory.get else 10)
   val nCols           = sc.broadcast(10)
   val nSamples        = sc.broadcast(rawRDD.count())
-  val partitionLength = sc.broadcast(100)
+  val partitionLength = sc.broadcast(nSamples.value.toInt / 8)
   val nPartitions     = sc.broadcast(floor(rawRDD.count() / partitionLength.value).toInt)
   val partitioner     = new TSPartitioner(nPartitions.value)
 
@@ -80,13 +80,6 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   })
     .partitionBy(partitioner)
 
-  val temp1 = augmentedIndexRDD.glom.collect()
-  val temp2 = timeRDD.glom.collect()
-
-  println()
-
-
-
   /*
   #############################################
 
@@ -137,6 +130,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
 
   /*
   The compute cross fold is typically used to compute cross correlations
+  TODO: Implement a special case when cLeft == cRight
    */
   def computeCrossFold[ResultType: ClassTag](cross: (RecordType, RecordType) => ResultType,
                                              foldOp: (ResultType, ResultType) => ResultType,
@@ -159,9 +153,9 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
       val leftCol: Array[RecordType]  = data.apply(cLeft)
       val rightCol: Array[RecordType] = data.apply(cRight)
       var result: ResultType = zero
-      val effectiveSize = min(leftCol.size, partitionLength.value + lag)
+      val effectiveSize = min(leftCol.length, partitionLength.value + lag)
       for(rowIdx <- 0 until (effectiveSize - lag)){
-        result = foldOp(result, cross(leftCol.apply(rowIdx + lag), rightCol.apply(rowIdx)))
+        result = foldOp(result, cross(leftCol(rowIdx + lag), rightCol(rowIdx)))
       }
       result
     }
@@ -193,6 +187,8 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
     val endPoints = timeStamps
       .mapPartitions(windowEndPoints, true)
 
+    endPoints.persist()
+
     val monitorEndPoints = endPoints.glom.collect
 
     println()
@@ -214,7 +210,14 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
       (intervals zip valueWindows).map({case(interval, valueWindow) => (interval, g(valueWindow))}).toIterator
     }
 
-    tiles.zipPartitions(endPoints, true)(applyByWindow(f))
+    tiles.persist()
+
+    val result = tiles.zipPartitions(endPoints, true)(applyByWindow(f))
+
+    tiles.unpersist()
+    endPoints.unpersist()
+
+    result
   }
 
 }

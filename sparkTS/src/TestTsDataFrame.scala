@@ -2,7 +2,7 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TsUtils.Models.Autocorrelation
+import TsUtils.Models.{AutoCorrelation, CrossCovariance, DurbinLevinsonAR}
 import TsUtils.{TimeSeries, TestUtils}
 
 import org.apache.spark.sql._
@@ -20,13 +20,14 @@ object TestTsDataFrame {
   def main(args: Array[String]): Unit ={
 
     val nColumns = 10
-    val nSamples = 1000
+    val nSamples = 10000
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
-    val rawTsRDD = TestUtils.getRandomRawTsRDD(nColumns, nSamples, sc)
+    //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, sc)
+    val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
 
     val timeSeries = new TimeSeries[Array[Any], Double](rawTsRDD,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
@@ -34,20 +35,50 @@ object TestTsDataFrame {
       Some(20)
     )
 
-    val autoCor = new Autocorrelation(10)
+    /*
+    #############################################
 
-    val acf = autoCor.estimate(timeSeries)
+              GLOBAL OPERATIONS
 
-    acf.foreach(println)
+    #############################################
+     */
+
 
     /*
-    Test windowed operation
-    */
+    This will compute the autocorrelation (until rank 5 included) of each column of the time series
+     */
+    val autoCor = new AutoCorrelation(5)
+    val startAuto = java.lang.System.currentTimeMillis()
+    val acf = autoCor.estimate(timeSeries)
+    val timeSpentAuto = java.lang.System.currentTimeMillis() - startAuto
+    println(timeSpentAuto)
 
-    val temp = timeSeries.timeStamps.glom.collect()
-    val temp2 = timeSeries.tiles.glom.collect()
+    /*
+    This will compute the cross-correlation (between columns) of the time series
+     */
+    val crossCov = new CrossCovariance(5)
+    val startCross = java.lang.System.currentTimeMillis()
+    val crossAcf = crossCov.estimate(timeSeries)
+    val timeSpentCross = java.lang.System.currentTimeMillis() - startCross
+    println(timeSpentCross)
 
-    println()
+    /*
+    This will calibrate an AR model (one per column) on the time series
+     */
+    val DLAR = new DurbinLevinsonAR(5)
+    val startAR = java.lang.System.currentTimeMillis()
+    val coefs = DLAR.estimate(timeSeries)
+    val timeSpentAR = java.lang.System.currentTimeMillis() - startAR
+    println(timeSpentAR)
+
+
+    /*
+    ############################################
+
+              WINDOWED OPERATIONS
+
+    ###########################################
+     */
 
     def secondSlicer(t1 : DateTime, t2: DateTime): Boolean ={
       t1.secondOfDay() != t2.secondOfDay()
@@ -55,10 +86,27 @@ object TestTsDataFrame {
 
     def f(ts: Seq[Array[Double]]): Iterator[Double] = {
       // Return a column based average of the table
-      ts.map(x => x.reduce(_+_)).toIterator
+      ts.map(x => x.sum).toIterator
     }
 
-    val temp3 = timeSeries.applyBy(f, secondSlicer).collectAsMap
+    /*
+    This will compute the windowed sum of each column of the timeseries (each window spans a second)
+     */
+    val windowedSums              = timeSeries.applyBy(f, secondSlicer).collectAsMap
+
+    /*
+    This will compute the autocorrelation of each column of the timeseries (each window spans a second)
+     */
+    val windowedAutoCorrelations  = timeSeries.applyBy(autoCor.estimate, secondSlicer).collectAsMap
+
+    /*
+    This will compute the cross correlation (between columns) of the time series (each window spans a second)
+     */
+    val windowedCrossCorrelations = timeSeries.applyBy(crossCov.estimate, secondSlicer).collectAsMap
+
+
+
+
 
     println("Done")
 

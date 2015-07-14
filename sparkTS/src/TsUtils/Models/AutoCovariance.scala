@@ -1,19 +1,18 @@
 package TsUtils.Models
 
 import TsUtils.TimeSeries
-
-import scala.reflect._
 import breeze.linalg._
 
 /**
  * Created by Francois Belletti on 7/10/15.
  */
-class AutoCorrelation(h: Int)
+class AutoCovariance(h: Int)
   extends Serializable with SecondOrderModel[Double]{
 
   override def estimate(timeSeries: TimeSeries[_, Double]): Array[DenseVector[Double]]={
 
     val nCols = timeSeries.nColumns
+    val nSamples = timeSeries.nSamples.value
 
     val result = (0 until nCols).toArray.map(x => DenseVector.zeros[Double](h + 1))
 
@@ -21,14 +20,7 @@ class AutoCorrelation(h: Int)
 
     for(i <- 0 until nCols){
       for(lag <- 0 to h){
-        result(i)(lag) = timeSeries.computeCrossFold[Double](_*_, _+_, i, i, lag, 0.0)
-      }
-      if(result(i)(0) != 0.0) {
-        val variance = result(i)(0)
-        result(i)(0) = 1.0
-        for (lag <- 1 to h) {
-          result(i)(lag) /= variance
-        }
+        result(i)(lag) = timeSeries.computeCrossFold[Double](_*_, _+_, i, i, lag, 0.0) / nSamples.toDouble
       }
     }
 
@@ -59,14 +51,7 @@ class AutoCorrelation(h: Int)
 
     for(i <- 0 until nCols){
       for(lag <- 0 to h){
-        result(i)(lag) = autoCov(timeSeriesTile(i), lag)
-      }
-      if(result(i)(0) != 0.0) {
-        val variance = result(i)(0)
-        result(i)(0) = 1.0
-        for (lag <- 1 to h) {
-          result(i)(lag) /= variance
-        }
+        result(i)(lag) = autoCov(timeSeriesTile(i), lag) / nSamples.toDouble
       }
     }
     result
