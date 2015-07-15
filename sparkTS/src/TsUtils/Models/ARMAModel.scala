@@ -18,8 +18,11 @@ class ARMAModel(p: Int, q: Int)
     val MACoefs = DenseVector.zeros[Double](q)
     for(j <- 0 until q){
       MACoefs(j) = pqEstTheta(j)
-      for(i <- 0 until (j min p)){
-        MACoefs(j) -= pqEstPhis(i) * pqEstTheta(j - i)
+      for(i <- 1 to (j min p)){
+        MACoefs(j) -= pqEstPhis(i - 1) * pqEstTheta(j - i)
+      }
+      if(p > j){
+        MACoefs(j) -= pqEstPhis(j)
       }
     }
     MACoefs
@@ -35,8 +38,6 @@ class ARMAModel(p: Int, q: Int)
     val autoCovs = super.estimate(timeSeries)
     val thetasPQ = autoCovs.asInstanceOf[Array[DenseVector[Double]]]
       .map(x => runIA(p + q, x)._1)
-    val temp1 = thetasPQ(0)
-    val temp = runR(p, temp1(q - p to q + p - 2), temp1(q to q + p - 1))
     val phis: Array[DenseVector[Double]] = thetasPQ
       .map(x => runR(p, x(q - p to q + p - 2), x(q to q + p - 1)))
     val thetas = (thetasPQ zip phis).map({case (x, y) => getMACoefs(x, y)})
@@ -48,7 +49,7 @@ class ARMAModel(p: Int, q: Int)
     val thetasPQ = autoCovs.asInstanceOf[Array[DenseVector[Double]]]
       .map(x => runIA(p + q, x)._1)
     val phis: Array[DenseVector[Double]] = thetasPQ
-      .map(x => runR(p, x(q - (p - 1) to q + (p - 1)), x(q + 1 to q + p)))
+      .map(x => runR(p, x(q - p to q + p - 2), x(q to q + p - 1)))
     val thetas = (thetasPQ zip phis).map({case (x, y) => getMACoefs(x, y)})
     phis zip thetas
   }
