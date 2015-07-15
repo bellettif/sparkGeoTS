@@ -110,6 +110,7 @@
     </JAVADOC>
     <SOURCES>
       <root url="jar://$USER_HOME$/.ideaLibSources/spark-core_2.10-1.1.1-sources.jar!/" />
+      <root url="jar://$USER_HOME$/.ideaLibSources/breeze_2.10-0.9-sources.jar!/" />
     </SOURCES>
   </library>
 </component>

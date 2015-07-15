@@ -2,7 +2,7 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel}
+import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
 import TsUtils.{TimeSeries, TestUtils}
 
 import org.apache.spark.sql._
@@ -27,8 +27,8 @@ object TestTsDataFrame {
     val sqlContext = new SQLContext(sc)
 
     //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, sc)
-    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
-    val rawTsRDD = TestUtils.getMA1TsRDD(0.8, nColumns, nSamples, sc)
+    val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
+    //val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples, sc)
 
     val timeSeries = new TimeSeries[Array[Any], Double](rawTsRDD,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
@@ -66,20 +66,29 @@ object TestTsDataFrame {
     /*
     This will calibrate an AR model (one per column) on the time series
      */
-    val DLAR = new ARModel(5)
+    val AR = new ARModel(5)
     val startAR = java.lang.System.currentTimeMillis()
-    val ARcoefs = DLAR.estimate(timeSeries)
+    val ARcoefs = AR.estimate(timeSeries)
     val timeSpentAR = java.lang.System.currentTimeMillis() - startAR
     println(timeSpentAR)
 
     /*
-    This will calibrate a MA model (onde per column) on the time series
+    This will calibrate a MA model (one per column) on the time series
      */
-    var IAMA = new MAModel(5)
+    var MA = new MAModel(5)
     val startMA = java.lang.System.currentTimeMillis()
-    val MAcoefs = IAMA.estimate(timeSeries)
+    val MAcoefs = MA.estimate(timeSeries)
     val timeSpentMA = java.lang.System.currentTimeMillis() - startMA
     println(timeSpentMA)
+
+    /*
+    This will calibrate an ARMA model (one per column) on the time series
+     */
+    var ARMA = new ARMAModel(5, 5)
+    val startARMA = java.lang.System.currentTimeMillis()
+    val ARMAcoefs = ARMA.estimate(timeSeries)
+    val timeSpentARMA = java.lang.System.currentTimeMillis() - startARMA
+    println(timeSpentARMA)
 
     /*
     ############################################
@@ -116,12 +125,12 @@ object TestTsDataFrame {
     /*
     This will compute a windowed AR calibration
      */
-    val windowedAR = timeSeries.applyBy(DLAR.estimate, secondSlicer).collectAsMap
+    val windowedAR = timeSeries.applyBy(AR.estimate, secondSlicer).collectAsMap
 
     /*
     This will compute a windowed MA calibration
      */
-    val windowedMA = timeSeries.applyBy(IAMA.estimate, secondSlicer).collectAsMap
+    val windowedMA = timeSeries.applyBy(MA.estimate, secondSlicer).collectAsMap
 
 
     println("Done")

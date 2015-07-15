@@ -16,7 +16,7 @@ trait InnovationAlgo {
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
   private [TsUtils] def runIA(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
-    val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double](_))
+    val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](h + 1)
 
     varEsts(0)    = autoCov(0) // Potential edge case here whenever varEsts(0) == 0
