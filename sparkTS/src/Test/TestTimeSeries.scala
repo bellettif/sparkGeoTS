@@ -24,7 +24,9 @@ class TestTimeSeries extends FlatSpec with Matchers{
 
     val rawTSRDD = TestUtils.getOnesRawTsRDD(nColumns, nSamples, sc)
 
-    val timeSeries = new TimeSeries[Array[Any], Double](rawTSRDD,
+    val timeSeries = new TimeSeries[Array[Any], Double](
+      rawTSRDD,
+      nColumns,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
       sc,
       Some(20)

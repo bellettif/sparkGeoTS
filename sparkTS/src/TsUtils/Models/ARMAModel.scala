@@ -34,6 +34,9 @@ class ARMAModel(p: Int, q: Int)
   }
   */
 
+  /*
+  TODO: there is an issue here whenever most pre-estimation thetas are zero. Need to use another calibration procedure.
+   */
   override def estimate(timeSeries: TimeSeries[_, Double]): Array[(DenseVector[Double], DenseVector[Double])] = {
     val autoCovs = super.estimate(timeSeries)
     val thetasPQ = autoCovs.asInstanceOf[Array[DenseVector[Double]]]

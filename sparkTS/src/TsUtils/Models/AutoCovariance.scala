@@ -11,20 +11,20 @@ class AutoCovariance(h: Int)
 
   override def estimate(timeSeries: TimeSeries[_, Double]): Any={//Array[DenseVector[Double]]={
 
-    val nCols = timeSeries.nColumns
-    val nSamples = timeSeries.nSamples.value
+    val nCols = timeSeries.nCols
+    val nSamples = timeSeries.nSamples
 
-    val result = (0 until nCols).toArray.map(x => DenseVector.zeros[Double](h + 1))
+    val result = (0 until nCols.value).toArray.map(x => DenseVector.zeros[Double](h + 1))
 
-    timeSeries.tiles.persist()
+    timeSeries.dataTiles.persist()
 
-    for(i <- 0 until nCols){
+    for(i <- 0 until nCols.value){
       for(lag <- 0 to h){
-        result(i)(lag) = timeSeries.computeCrossFold[Double](_*_, _+_, i, i, lag, 0.0) / nSamples.toDouble
+        result(i)(lag) = timeSeries.computeCrossFold[Double](_*_, _+_, i, i, lag, 0.0) / nSamples.value.toDouble
       }
     }
 
-    timeSeries.tiles.unpersist()
+    timeSeries.dataTiles.unpersist()
 
     result
   }

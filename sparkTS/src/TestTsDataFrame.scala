@@ -30,7 +30,9 @@ object TestTsDataFrame {
     //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
     val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples, sc)
 
-    val timeSeries = new TimeSeries[Array[Any], Double](rawTsRDD,
+    val timeSeries = new TimeSeries[Array[Any], Double](
+      rawTsRDD,
+      nColumns,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
       sc,
       Some(20)

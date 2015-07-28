@@ -11,21 +11,21 @@ class CrossCovariance(h: Int)
 
   override def estimate(timeSeries: TimeSeries[_, Double]): Array[DenseMatrix[Double]]={
 
-    timeSeries.tiles.persist()
+    timeSeries.dataTiles.persist()
 
-    val nCols = timeSeries.nColumns
+    val nCols = timeSeries.nCols
 
-    val result = (0 until nCols).toArray.map(x => DenseMatrix.zeros[Double](nCols, h + 1))
+    val result = (0 until nCols.value).toArray.map(x => DenseMatrix.zeros[Double](nCols.value, h + 1))
 
-    for(i <- 0 until nCols){
-      for(j <- 0 until nCols){
+    for(i <- 0 until nCols.value){
+      for(j <- 0 until nCols.value){
         for (lag <- 0 to h){
           result(i)(j, lag) = timeSeries.computeCrossFold[Double](_ * _, _ + _, i, j, lag, 0.0) / timeSeries.nSamples.value
         }
       }
     }
 
-    timeSeries.tiles.unpersist()
+    timeSeries.dataTiles.unpersist()
 
     result
   }

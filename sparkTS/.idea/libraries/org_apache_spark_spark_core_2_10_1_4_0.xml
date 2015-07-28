@@ -106,6 +106,8 @@
       <root url="jar://$MAVEN_REPOSITORY$/org/codehaus/groovy/groovy-all/2.3.7/groovy-all-2.3.7.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.ideaLibSources/spark-core_2.10-1.4.0-sources.jar!/" />
+    </SOURCES>
   </library>
 </component>
