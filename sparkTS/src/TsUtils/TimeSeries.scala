@@ -1,5 +1,7 @@
 package TsUtils
 
+import TsUtils.TimeSeriesHelper.TSInstant
+
 import scala.reflect._
 
 import org.apache.spark._
@@ -7,16 +9,18 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.OrderedRDDFunctions
 import org.apache.spark.SparkContext
 
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.Interval
 
 import scala.math._
+
+
 
 /**
  * Created by Francois Belletti on 6/24/15.
  */
 class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
                                                           nColumns: Int,
-                                                          timeExtractor: RawType => (DateTime, Array[RecordType]),
+                                                          timeExtractor: RawType => (TSInstant, Array[RecordType]),
                                                           sc: SparkContext,
                                                           memory: Option[Int]) extends Serializable{
 
@@ -30,7 +34,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   val nPartitions     = sc.broadcast(floor(rawRDD.count() / partitionLength.value).toInt)
   val partitioner     = new TSPartitioner(nPartitions.value)
 
-  val (dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[(Int, (Long, DateTime))]) =
+  val (dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[(Int, TSInstant)]) =
     TimeSeriesHelper.buildTilesFromSyncData(this, rawRDD, timeExtractor)
 
   /*
@@ -95,16 +99,16 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   TODO: Return another timeSeries here
    */
   def applyBy[ResultType: ClassTag](f: Seq[Array[RecordType]] => ResultType,
-                                    slicer: (DateTime, DateTime) => Boolean)={//: RDD[(Interval, ResultType)] = {
+                                    slicer: (TSInstant, TSInstant) => Boolean)={//: RDD[(Interval, ResultType)] = {
 
-    def windowEndPoints(tsGroup: Iterator[(Int, (Long, DateTime))]): Iterator[(Int, Long, Long)] = {
+    def windowEndPoints(tsGroup: Iterator[(Int, TSInstant)]): Iterator[(Int, TSInstant, TSInstant)] = {
       val (it1, it2) = tsGroup.duplicate
       (it1 zip it2.zipWithIndex.drop(1))
         .filter({
-        case ((pIdx1, (millis1, datet1)), ((pIdx2, (millis2, datet2)), idx2)) => slicer(datet1, datet2)
+        case ((pIdx1, instant1), ((pIdx2, instant2), idx2)) => slicer(instant1, instant2)
       })
         .map({
-        case ((_, (stopMillis, _)), ((_, (startMillis, _)), startIdx)) => (startIdx, stopMillis, startMillis)
+        case ((_, stopInstant), ((_, startInstant), startIdx)) => (startIdx, stopInstant, startInstant)
       })
     }
 
@@ -117,7 +121,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
 
     def applyByWindow(g: Seq[Array[RecordType]] => ResultType)(
       values: Iterator[Array[RecordType]],
-      cutIdxs: Iterator[(Int, Long, Long)]) = {//:Iterator[(Interval, ResultType)] = {
+      cutIdxs: Iterator[(Int, TSInstant, TSInstant)]) = {//:Iterator[(Interval, ResultType)] = {
 
       val valueArray = values.toArray
       val cutIdxArray = cutIdxs.toArray

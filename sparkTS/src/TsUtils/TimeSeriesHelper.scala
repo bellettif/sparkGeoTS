@@ -12,10 +12,12 @@ import scala.reflect.ClassTag
  */
 object TimeSeriesHelper extends Serializable{
 
+  type TSInstant = DateTime
+
   def buildTilesFromSyncData[RawType: ClassTag, RecordType: ClassTag](
          timeSeries: TimeSeries[RawType, RecordType],
          rawRDD: RDD[RawType],
-         timeExtractor: RawType => (DateTime, Array[RecordType])) = {
+         timeExtractor: RawType => (TSInstant, Array[RecordType])) = {
 
     val partitionLength = timeSeries.partitionLength
     val nPartitions     = timeSeries.nPartitions
@@ -23,28 +25,33 @@ object TimeSeriesHelper extends Serializable{
     val partitioner     = timeSeries.partitioner
 
     /*
-  Convert the time index to longs
+    Convert the time index to longs
    */
-    implicit val RecordTimeOrdering = new Ordering[(Long, Array[RecordType])] {
-      override def compare(a: (Long, Array[RecordType]), b: (Long, Array[RecordType])) =
-        a._1.compare(b._1)
+    implicit val RecordTimeOrdering = new Ordering[(TSInstant, Array[RecordType])] {
+      override def compare(a: (TSInstant, Array[RecordType]), b: (TSInstant, Array[RecordType])) =
+        a._1.compareTo(b._1)
     }
 
-    val timeRDD: RDD[(Long, Array[RecordType])] = {
-      val tempRDD: RDD[(Long, Array[RecordType])]  = rawRDD
+    implicit val TSInstantOrdering = new Ordering[TSInstant] {
+      override def compare(a: TSInstant, b: TSInstant) =
+        a.compareTo(b)
+    }
+
+    val timeRDD: RDD[(TSInstant, Array[RecordType])] = {
+      val tempRDD: RDD[(TSInstant, Array[RecordType])]  = rawRDD
         .map(timeExtractor)
-        .map({case (t, v) => (t.getMillis, v)})
-      val partitioner: Partitioner = new RangePartitioner(nPartitions.value, tempRDD)
-      tempRDD.repartitionAndSortWithinPartitions(partitioner)
+        //.map({case (t, v) => (t.getMillis, v)})
+      val rangePartitioner: Partitioner = new RangePartitioner(nPartitions.value, tempRDD)
+      tempRDD.repartitionAndSortWithinPartitions(rangePartitioner)
     }
 
     /*
     Figure out the time partitioner
      */
-    def stitchAndTranspose(kVPairs: Iterator[((Int, Long), Array[RecordType])]): Iterator[Array[RecordType]] ={
+    def stitchAndTranspose(kVPairs: Iterator[((Int, TSInstant), Array[RecordType])]): Iterator[Array[RecordType]] ={
       kVPairs.toSeq.map(_._2).transpose.map(x => Array(x: _*)).iterator
     }
-    def extractTimeIndex(kVPairs: Iterator[((Int, Long), Array[RecordType])]): Iterator[Long] ={
+    def extractTimeIndex(kVPairs: Iterator[((Int, TSInstant), Array[RecordType])]): Iterator[TSInstant] ={
       kVPairs.toSeq.map(_._1._2).iterator
     }
 
@@ -80,17 +87,17 @@ object TimeSeriesHelper extends Serializable{
     val tiles = augmentedIndexRDD
       .mapPartitions(stitchAndTranspose, true)
 
-    val timeStamps: RDD[(Int, (Long, DateTime))] = rawRDD
+    val timeStamps: RDD[(Int, TSInstant)] = rawRDD
       .map(x => timeExtractor(x)._1)
       .zipWithIndex()
       .flatMap({ case (t, i) =>
       if ((i % partitionLength.value <= effectiveLag.value) &&
         (floor(i / partitionLength.value).toInt > 0))
-        (floor(i / partitionLength.value).toInt, (t.getMillis, t)) ::
-          (floor(i / partitionLength.value).toInt - 1, (t.getMillis, t)) ::
+        (floor(i / partitionLength.value).toInt, t) ::
+          (floor(i / partitionLength.value).toInt - 1, t) ::
           Nil
       else
-        (floor(i / partitionLength.value).toInt, (t.getMillis, t)) :: Nil
+        (floor(i / partitionLength.value).toInt, t) :: Nil
     }
     )
       .partitionBy(partitioner)
