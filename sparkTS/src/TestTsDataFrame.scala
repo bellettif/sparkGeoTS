@@ -4,6 +4,7 @@
 
 import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
 import TsUtils.{TimeSeries, TestUtils}
+import groovy.sql.Sql
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
@@ -20,22 +21,24 @@ object TestTsDataFrame {
   def main(args: Array[String]): Unit ={
 
     val nColumns = 10
-    val nSamples = 10000
+    val nSamples = 10000L
+    val effectiveLag = 40L
+    val deltaTMillis = 1L
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
-    //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, sc)
-    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, sc)
-    val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples, sc)
+    //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, deltaTMillis, sc)
+    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, deltaTMillis, sc)
+    val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples.toInt, deltaTMillis, sc)
 
-    val timeSeries = new TimeSeries[Array[Any], Double](
+    val timeSeries = TimeSeries[Array[Any], Double](
       rawTsRDD,
       nColumns,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
       sc,
-      Some(20)
+      effectiveLag
     )
 
     /*
@@ -104,35 +107,35 @@ object TestTsDataFrame {
       t1.secondOfDay() != t2.secondOfDay()
     }
 
-    def f(ts: Seq[Array[Double]]): Iterator[Double] = {
+    def f(ts: Array[Array[Double]]): Array[Double] = {
       // Return a column based average of the table
-      ts.map(x => x.sum).toIterator
+      ts.map(x => x.sum)
     }
 
     /*
     This will compute the windowed sum of each column of the timeseries (each window spans a second)
      */
-    val windowedSums              = timeSeries.applyBy(f, secondSlicer).collectAsMap
+    val windowedSums              = timeSeries.applyBy(f, secondSlicer).collect
 
     /*
     This will compute the autocorrelation of each column of the timeseries (each window spans a second)
      */
-    val windowedAutoCorrelations  = timeSeries.applyBy(autoCor.estimate, secondSlicer).collectAsMap
+    val windowedAutoCorrelations  = timeSeries.applyBy(autoCor.estimate, secondSlicer).collect
 
     /*
     This will compute the cross correlation (between columns) of the time series (each window spans a second)
      */
-    val windowedCrossCorrelations = timeSeries.applyBy(crossCov.estimate, secondSlicer).collectAsMap
+    val windowedCrossCorrelations = timeSeries.applyBy(crossCov.estimate, secondSlicer).collect
 
     /*
     This will compute a windowed AR calibration
      */
-    val windowedAR = timeSeries.applyBy(AR.estimate, secondSlicer).collectAsMap
+    val windowedAR = timeSeries.applyBy(AR.estimate, secondSlicer).collect
 
     /*
     This will compute a windowed MA calibration
      */
-    val windowedMA = timeSeries.applyBy(MA.estimate, secondSlicer).collectAsMap
+    val windowedMA = timeSeries.applyBy(MA.estimate, secondSlicer).collect
 
 
     println("Done")

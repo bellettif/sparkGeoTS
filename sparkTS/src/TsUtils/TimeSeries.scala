@@ -1,7 +1,9 @@
 package TsUtils
 
-import TsUtils.TimeSeriesHelper.TSInstant
+import TsUtils.TimeSeriesHelper.{TSInterval, TSInstant}
 
+import scala.collection.immutable.HashMap
+import scala.collection.{GenTraversableOnce}
 import scala.reflect._
 
 import org.apache.spark._
@@ -13,29 +15,56 @@ import org.joda.time.Interval
 
 import scala.math._
 
+/*
+Time series factory.
+ */
+object TimeSeries{
 
+  def apply[RawType: ClassTag, RecordType: ClassTag](
+        rawRDD: RDD[RawType],
+        nColumns: Int,
+        timeExtractor: RawType => (TSInstant, Array[RecordType]),
+        sc: SparkContext,
+        memoryMillis: Long): TimeSeries[RecordType] ={
+
+    val memory            = sc.broadcast(memoryMillis)
+    val nCols             = sc.broadcast(nColumns)
+    val nSamples          = sc.broadcast(rawRDD.count())
+    val partitionDuration = sc.broadcast(nSamples.value / 8L)
+    val nPartitions       = sc.broadcast(floor(rawRDD.count() / partitionDuration.value).toInt)
+    val partitioner       = new TSPartitioner(nPartitions.value)
+
+    val config = new TimeSeriesConfig(
+      memory,
+      nCols,
+      nSamples,
+      partitionDuration,
+      nPartitions,
+      partitioner)
+
+    val (dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[TSInstant]) =
+      TimeSeriesHelper.buildTilesFromSyncData(config, rawRDD, timeExtractor)
+
+    new TimeSeries(config, dataTiles, timestampTiles)
+  }
+
+  def fromIntervals[RecordType: ClassTag](timeSeriesConfig: TimeSeriesConfig,
+                                          intervalRDD: RDD[(TSInterval, Array[RecordType])]): TimeSeries[RecordType] = {
+    val timestampTiles  = intervalRDD.mapPartitions(_.map(_._1.getEnd), true)
+    val dataTiles       = intervalRDD.mapPartitions(_.map(x => Array(x._2: _*)), true)
+
+    new TimeSeries[RecordType](timeSeriesConfig, dataTiles, timestampTiles)
+  }
+
+}
 
 /**
  * Created by Francois Belletti on 6/24/15.
  */
-class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
-                                                          nColumns: Int,
-                                                          timeExtractor: RawType => (TSInstant, Array[RecordType]),
-                                                          sc: SparkContext,
-                                                          memory: Option[Int]) extends Serializable{
-
-  /*
-  Initialization phase
-   */
-  var effectiveLag    = sc.broadcast(if (memory.isDefined) memory.get else 100)
-  val nCols           = sc.broadcast(nColumns)
-  val nSamples        = sc.broadcast(rawRDD.count())
-  val partitionLength = sc.broadcast(nSamples.value.toInt / 8)
-  val nPartitions     = sc.broadcast(floor(rawRDD.count() / partitionLength.value).toInt)
-  val partitioner     = new TSPartitioner(nPartitions.value)
-
-  val (dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[(Int, TSInstant)]) =
-    TimeSeriesHelper.buildTilesFromSyncData(this, rawRDD, timeExtractor)
+class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
+                                       val dataTiles: RDD[Array[RecordType]],
+                                       val timestampTiles: RDD[TSInstant])
+  extends Serializable{
 
   /*
   ################################################################
@@ -66,7 +95,7 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
                                              zero: ResultType): ResultType ={
     /*
     @brief: Compute a cross and fold operation. If fold is + and cross * this is
-    a cross correlation for example.
+    a cross covariation for example.
     @param: cross: function that multiplies two row elements together. Does not have to be comm or asso.
     @param: foldOp: how to fold results of cross operations. Has to be assoc.
     @param: cLeft: index of the first column.
@@ -81,7 +110,8 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
       val leftCol: Array[RecordType]  = data.apply(cLeft)
       val rightCol: Array[RecordType] = data.apply(cRight)
       var result: ResultType = zero
-      val effectiveSize = min(leftCol.length, partitionLength.value + lag)
+      // TODO: problem here
+      val effectiveSize = min(leftCol.length, config.partitionDuration.value + lag).toInt
       for(rowIdx <- 0 until (effectiveSize - lag)){
         result = foldOp(result, cross(leftCol(rowIdx + lag), rightCol(rowIdx)))
       }
@@ -98,37 +128,41 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
   be unified thanks to a collectAsMap.
   TODO: Return another timeSeries here
    */
-  def applyBy[ResultType: ClassTag](f: Seq[Array[RecordType]] => ResultType,
-                                    slicer: (TSInstant, TSInstant) => Boolean)={//: RDD[(Interval, ResultType)] = {
+  def applyBy[ResultType: ClassTag](f: Array[Array[RecordType]] => Array[ResultType],
+                                    slicer: (TSInstant, TSInstant) => Boolean): TimeSeries[ResultType] ={
 
-    def windowEndPoints(tsGroup: Iterator[(Int, TSInstant)]): Iterator[(Int, TSInstant, TSInstant)] = {
+    /*
+    Compute the indices where each window ends
+     */
+    def windowEndPoints(partitionIdx: Int, tsGroup: Iterator[TSInstant]): Iterator[(Int, TSInstant, TSInstant)] = {
       val (it1, it2) = tsGroup.duplicate
       (it1 zip it2.zipWithIndex.drop(1))
         .filter({
-        case ((pIdx1, instant1), ((pIdx2, instant2), idx2)) => slicer(instant1, instant2)
+        case (instant1, (instant2, idx2)) => slicer(instant1, instant2)
       })
         .map({
-        case ((_, stopInstant), ((_, startInstant), startIdx)) => (startIdx, stopInstant, startInstant)
+        case (stopInstant, (startInstant, startIdx)) => (startIdx, stopInstant, startInstant)
       })
     }
 
-    val endPoints = timestampTiles
-      .mapPartitions(windowEndPoints, true)
+    val partitionedIntervals = timestampTiles
+      .mapPartitionsWithIndex(windowEndPoints, true)
 
-    endPoints.persist()
+    partitionedIntervals.persist()
 
-    val monitorEndPoints = endPoints.glom.collect
-
-    def applyByWindow(g: Seq[Array[RecordType]] => ResultType)(
+    /*
+    Helper function designed to apply f to each sliced window.
+     */
+    def applyByWindow(g: Array[Array[RecordType]] => Array[ResultType])(
       values: Iterator[Array[RecordType]],
-      cutIdxs: Iterator[(Int, TSInstant, TSInstant)]) = {//:Iterator[(Interval, ResultType)] = {
+      cutIdxs: Iterator[(Int, TSInstant, TSInstant)]): Iterator[(TSInterval, Array[ResultType])] = {
 
-      val valueArray = values.toArray
+      val valueArray  = values.toArray
       val cutIdxArray = cutIdxs.toArray
 
       // Sliding could be used here but case matching will not work later on
-      val intervals = (cutIdxArray zip cutIdxArray.drop(1)).map(x => new Interval(x._1._3, x._2._2))
-      val windowIdxs = (cutIdxArray zip cutIdxArray.drop(1)).map(x => (x._1._1, x._2._1))
+      val intervals   = (cutIdxArray zip cutIdxArray.drop(1)).map(x => new TSInterval(x._1._3, x._2._2))
+      val windowIdxs  = (cutIdxArray zip cutIdxArray.drop(1)).map(x => (x._1._1, x._2._1))
 
       val valueWindows = windowIdxs
         .map({case (startIdx, stopIdx) => valueArray.map(_.slice(startIdx, stopIdx))})
@@ -138,12 +172,35 @@ class TimeSeries[RawType: ClassTag, RecordType: ClassTag](rawRDD: RDD[RawType],
 
     dataTiles.persist()
 
-    val result = dataTiles.zipPartitions(endPoints, true)(applyByWindow(f))
+    /*
+    Paritioning is preserved
+     */
+    val result = dataTiles.zipPartitions(partitionedIntervals, true)(applyByWindow(f))
 
     dataTiles.unpersist()
-    endPoints.unpersist()
+    partitionedIntervals.unpersist()
 
-    result
+    TimeSeries.fromIntervals(this.config, result)
+  }
+
+  /*
+  TODO: distint and collect can be implemented in a smarter fashion
+   */
+
+  def distinct(): RDD[(TSInstant, Array[RecordType])] = {
+
+    timestampTiles.zip(dataTiles).distinct()
+
+  }
+
+  def collect(): Array[(TSInstant, Array[RecordType])] = {
+
+    implicit val TSInstantOrdering = new Ordering[TSInstant] {
+      override def compare(a: TSInstant, b: TSInstant) =
+        a.compareTo(b)
+    }
+
+    this.distinct().sortBy(_._1).collect()
   }
 
 }

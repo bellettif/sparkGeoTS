@@ -9,10 +9,13 @@ import breeze.linalg._
 class AutoCovariance(h: Int)
   extends Serializable with SecondOrderModel[Double]{
 
-  override def estimate(timeSeries: TimeSeries[_, Double]): Any={//Array[DenseVector[Double]]={
+  override def estimate(timeSeries: TimeSeries[Double]): Any={//Array[DenseVector[Double]]={
 
-    val nCols = timeSeries.nCols
-    val nSamples = timeSeries.nSamples
+    if(timeSeries.config.memory.value < h)
+      throw new IndexOutOfBoundsException("Insufficient effective lag");
+
+    val nCols = timeSeries.config.nCols
+    val nSamples = timeSeries.config.nSamples
 
     val result = (0 until nCols.value).toArray.map(x => DenseVector.zeros[Double](h + 1))
 
@@ -37,7 +40,7 @@ class AutoCovariance(h: Int)
     res
   }
 
-  override def estimate(timeSeriesTile: Seq[Array[Double]]): Any={ //Array[DenseVector[Double]] ={
+  override def estimate(timeSeriesTile: Array[Array[Double]]): Any={ //Array[DenseVector[Double]] ={
 
     val nCols = timeSeriesTile.size
 

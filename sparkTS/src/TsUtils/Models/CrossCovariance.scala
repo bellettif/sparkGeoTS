@@ -9,18 +9,19 @@ import breeze.linalg._
 class CrossCovariance(h: Int)
   extends Serializable with SecondOrderModel[Double]{
 
-  override def estimate(timeSeries: TimeSeries[_, Double]): Array[DenseMatrix[Double]]={
+  override def estimate(timeSeries: TimeSeries[Double]): Array[DenseMatrix[Double]]={
 
     timeSeries.dataTiles.persist()
 
-    val nCols = timeSeries.nCols
+    val nCols     = timeSeries.config.nCols
+    val nSamples  = timeSeries.config.nSamples
 
     val result = (0 until nCols.value).toArray.map(x => DenseMatrix.zeros[Double](nCols.value, h + 1))
 
     for(i <- 0 until nCols.value){
       for(j <- 0 until nCols.value){
         for (lag <- 0 to h){
-          result(i)(j, lag) = timeSeries.computeCrossFold[Double](_ * _, _ + _, i, j, lag, 0.0) / timeSeries.nSamples.value
+          result(i)(j, lag) = timeSeries.computeCrossFold[Double](_ * _, _ + _, i, j, lag, 0.0) / nSamples.value
         }
       }
     }
@@ -41,7 +42,7 @@ class CrossCovariance(h: Int)
     res
   }
 
-  override def estimate(timeSeriesTile: Seq[Array[Double]]): Array[DenseMatrix[Double]] ={
+  override def estimate(timeSeriesTile: Array[Array[Double]]): Array[DenseMatrix[Double]] ={
 
     val nCols = timeSeriesTile.size
 

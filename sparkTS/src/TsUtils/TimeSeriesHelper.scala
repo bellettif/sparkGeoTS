@@ -2,7 +2,7 @@ package TsUtils
 
 import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Interval}
 
 import scala.math._
 import scala.reflect.ClassTag
@@ -12,17 +12,19 @@ import scala.reflect.ClassTag
  */
 object TimeSeriesHelper extends Serializable{
 
-  type TSInstant = DateTime
+  type TSInstant  = DateTime
+  type TSInterval = Interval
 
   def buildTilesFromSyncData[RawType: ClassTag, RecordType: ClassTag](
-         timeSeries: TimeSeries[RawType, RecordType],
+         config: TimeSeriesConfig,
          rawRDD: RDD[RawType],
-         timeExtractor: RawType => (TSInstant, Array[RecordType])) = {
+         timeExtractor: RawType => (TSInstant, Array[RecordType])):
+  (RDD[Array[RecordType]], RDD[TSInstant])= {
 
-    val partitionLength = timeSeries.partitionLength
-    val nPartitions     = timeSeries.nPartitions
-    val effectiveLag    = timeSeries.effectiveLag
-    val partitioner     = timeSeries.partitioner
+    val partitionDuration   = config.partitionDuration
+    val nPartitions         = config.nPartitions
+    val memory              = config.memory
+    val partitioner         = config.partitioner
 
     /*
     Convert the time index to longs
@@ -48,61 +50,61 @@ object TimeSeriesHelper extends Serializable{
     /*
     Figure out the time partitioner
      */
-    def stitchAndTranspose(kVPairs: Iterator[((Int, TSInstant), Array[RecordType])]): Iterator[Array[RecordType]] ={
+    def stitchAndTranspose(kVPairs: Iterator[(Long, Array[RecordType])]): Iterator[Array[RecordType]] ={
       kVPairs.toSeq.map(_._2).transpose.map(x => Array(x: _*)).iterator
     }
-    def extractTimeIndex(kVPairs: Iterator[((Int, TSInstant), Array[RecordType])]): Iterator[TSInstant] ={
-      kVPairs.toSeq.map(_._1._2).iterator
+
+    def computePartitionOffset(t: TSInstant): Long ={
+      t.getMillis % partitionDuration.value
     }
+
+    def computePartititionIndex(t: TSInstant): Long ={
+      floor(t.getMillis / partitionDuration.value).toLong
+    }
+
 
     /*
     Gather data into overlapping tiles
      */
 
-    val augmentedIndexRDD = timeRDD
-      .zipWithIndex()
-      .flatMap({case ((t, v), i) =>
-      if ((i % partitionLength.value <= effectiveLag.value) &&
-        (floor(i / partitionLength.value).toInt > 0))
+    val rowOrientatedRDD = timeRDD
+      .flatMap({case (t, v) =>
+      if ((computePartitionOffset(t) <= memory.value) &&
+        (computePartititionIndex(t) > 0))
       // Create the overlap
       // ((partition, timestamp), record)
-        ((floor(i / partitionLength.value).toInt, t), v)::
-          ((floor(i / partitionLength.value).toInt - 1, t), v)::
-          Nil
+        (computePartititionIndex(t), v) :: (computePartititionIndex(t) - 1, v) :: Nil
       else
       // Outside the overlapping region
-        ((floor(i / partitionLength.value).toInt, t), v)::Nil
+        (computePartititionIndex(t), v) :: Nil
     })
       .partitionBy(partitioner)
 
     /*
     #############################################
-
             CONTAINERS IN THEIR FINAL FORM
-
     #############################################
      */
 
-
-    val tiles = augmentedIndexRDD
+    val tiles = rowOrientatedRDD
       .mapPartitions(stitchAndTranspose, true)
 
-    val timeStamps: RDD[(Int, TSInstant)] = rawRDD
-      .map(x => timeExtractor(x)._1)
-      .zipWithIndex()
-      .flatMap({ case (t, i) =>
-      if ((i % partitionLength.value <= effectiveLag.value) &&
-        (floor(i / partitionLength.value).toInt > 0))
-        (floor(i / partitionLength.value).toInt, t) ::
-          (floor(i / partitionLength.value).toInt - 1, t) ::
-          Nil
+    val timeStamps: RDD[TSInstant] = timeRDD
+      .flatMap({case (t, v) =>
+      if ((computePartitionOffset(t) <= memory.value) &&
+        (computePartititionIndex(t) > 0))
+      // Create the overlap
+      // ((partition, timestamp), record)
+        (computePartititionIndex(t), t) :: (computePartititionIndex(t) - 1, t) :: Nil
       else
-        (floor(i / partitionLength.value).toInt, t) :: Nil
-    }
-    )
+      // Outside the overlapping region
+        (computePartititionIndex(t), t) :: Nil
+    })
       .partitionBy(partitioner)
+      .mapPartitions(_.map(_._2), true)
 
     (tiles, timeStamps)
+
 
   }
 

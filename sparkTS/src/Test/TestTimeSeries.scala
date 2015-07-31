@@ -16,20 +16,21 @@ class TestTimeSeries extends FlatSpec with Matchers{
 
   "A time series" should "the sum of its elements when partitioning" in {
 
-    val nColumns = 10
-    val nSamples = 1000
+    val nColumns      = 10
+    val nSamples      = 1000
+    val deltaTMillis  = 200
 
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc = new SparkContext(conf)
 
-    val rawTSRDD = TestUtils.getOnesRawTsRDD(nColumns, nSamples, sc)
+    val rawTSRDD = TestUtils.getOnesRawTsRDD(nColumns, nSamples, deltaTMillis, sc)
 
-    val timeSeries = new TimeSeries[Array[Any], Double](
+    val timeSeries = TimeSeries[Array[Any], Double](
       rawTSRDD,
       nColumns,
       x => (x.head.asInstanceOf[DateTime], x.drop(1).map(_.asInstanceOf[Double])),
       sc,
-      Some(20)
+      20L
     )
 
     // This computes the sum of all elements as a cross fold operation.

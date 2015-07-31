@@ -12,11 +12,11 @@ import org.apache.spark.sql.{TsDataFrame, Row, SQLContext}
  */
 object TestUtils {
 
-  def getRandomTsDataFrame(nColumns: Int, nSamples: Int,
+  def getRandomTsDataFrame(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                            sc: SparkContext, sQLContext: SQLContext) = {
     val rawData = (0 until nSamples)
       .map(x => x +: DenseVector.rand[Double](nColumns).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     val rawDataRDD = sc.parallelize(rawData)
 
     val headers: Seq[String] = "Time" +: (1 until nColumns).map(x => "Link_" + x.toString)
@@ -26,26 +26,26 @@ object TestUtils {
     new TsDataFrame(rawDataFrame, "Time")
   }
 
-  def getJodaRandomTsRDD(nColumns: Int, nSamples: Int,
+  def getJodaRandomTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                        sc: SparkContext) = {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
       .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 5) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
 
-  def getRandomRawTsRDD(nColumns: Int, nSamples: Int,
+  def getRandomRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                         sc: SparkContext) = {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
       .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 2) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
-  def getAR1TsRDD(phi1: Double, nColumns: Int, nSamples: Int,
+  def getAR1TsRDD(phi1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
                   sc: SparkContext) = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- 1 until nSamples){
@@ -53,11 +53,11 @@ object TestUtils {
     }
     val rawData = (0 until nSamples)
       .map(x => x +: noiseMatrix(x, ::).t.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 2) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
-  def getAR2TsRDD(phi1: Double, phi2: Double, nColumns: Int, nSamples: Int,
+  def getAR2TsRDD(phi1: Double, phi2: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
                   sc: SparkContext) = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- 2 until nSamples){
@@ -65,11 +65,11 @@ object TestUtils {
     }
     val rawData = (0 until nSamples)
       .map(x => x +: noiseMatrix(x, ::).t.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 2) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
-  def getMA1TsRDD(theta1: Double, nColumns: Int, nSamples: Int,
+  def getMA1TsRDD(theta1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
                   sc: SparkContext) = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- (nSamples - 1) to 1 by -1){
@@ -77,16 +77,16 @@ object TestUtils {
     }
     val rawData = (0 until nSamples)
       .map(x => x +: noiseMatrix(x, ::).t.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 2) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
-  def getOnesRawTsRDD(nColumns: Int, nSamples: Int,
+  def getOnesRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                       sc: SparkContext) = {
     val oneValue = DenseVector.ones[Double](nColumns)
     val rawData = (0 until nSamples)
       .map(x => x +: oneValue.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * 2) +: x.drop(1))
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
     sc.parallelize(rawData)
   }
 
