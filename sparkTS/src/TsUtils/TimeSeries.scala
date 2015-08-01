@@ -32,28 +32,29 @@ object TimeSeries{
     val nSamples          = sc.broadcast(rawRDD.count())
     val partitionDuration = sc.broadcast(nSamples.value / 8L)
     val nPartitions       = sc.broadcast(floor(rawRDD.count() / partitionDuration.value).toInt)
-    val partitioner       = new TSPartitioner(nPartitions.value)
 
     val config = new TimeSeriesConfig(
       memory,
       nCols,
       nSamples,
       partitionDuration,
-      nPartitions,
-      partitioner)
+      nPartitions)
 
-    val (dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[TSInstant]) =
+    val (partitioner: TSPartitioner, dataTiles: RDD[Array[RecordType]], timestampTiles: RDD[TSInstant]) =
       TimeSeriesHelper.buildTilesFromSyncData(config, rawRDD, timeExtractor)
 
-    new TimeSeries(config, dataTiles, timestampTiles)
+    val temp = dataTiles.mapPartitionsWithIndex({case (x, y) => Seq((x, y.toSeq.apply(0).size)).toSeq.toIterator}).collectAsMap
+
+    new TimeSeries(config, partitioner, dataTiles, timestampTiles)
   }
 
   def fromIntervals[RecordType: ClassTag](timeSeriesConfig: TimeSeriesConfig,
+                                          partitioner: TSPartitioner,
                                           intervalRDD: RDD[(TSInterval, Array[RecordType])]): TimeSeries[RecordType] = {
     val timestampTiles  = intervalRDD.mapPartitions(_.map(_._1.getEnd), true)
     val dataTiles       = intervalRDD.mapPartitions(_.map(x => Array(x._2: _*)), true)
 
-    new TimeSeries[RecordType](timeSeriesConfig, dataTiles, timestampTiles)
+    new TimeSeries[RecordType](timeSeriesConfig, partitioner, dataTiles, timestampTiles)
   }
 
 }
@@ -62,6 +63,7 @@ object TimeSeries{
  * Created by Francois Belletti on 6/24/15.
  */
 class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
+                                       val partitioner: TSPartitioner,
                                        val dataTiles: RDD[Array[RecordType]],
                                        val timestampTiles: RDD[TSInstant])
   extends Serializable{
@@ -106,19 +108,33 @@ class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
     @retval: the resulting scalar value.
      */
 
-    def computeCrossFoldArray(data: Array[Array[RecordType]]): ResultType ={
-      val leftCol: Array[RecordType]  = data.apply(cLeft)
-      val rightCol: Array[RecordType] = data.apply(cRight)
-      var result: ResultType = zero
-      // TODO: problem here
-      val effectiveSize = min(leftCol.length, config.partitionDuration.value + lag).toInt
-      for(rowIdx <- 0 until (effectiveSize - lag)){
-        result = foldOp(result, cross(leftCol(rowIdx + lag), rightCol(rowIdx)))
+    def computeCrossFoldArray(partIdx:Int, dataColumns: Iterator[Array[RecordType]]): Iterator[ResultType] ={
+
+      var leftColumn:   Array[RecordType] = null
+      var rightColumn:  Array[RecordType] = null
+
+      val temp = dataColumns.zipWithIndex
+
+      for((array: Array[RecordType], idx: Int) <- dataColumns.zipWithIndex) {
+        if (idx == cLeft)
+          leftColumn = array
+        if (idx == cRight)
+          rightColumn = array
       }
-      result
+
+      var result: ResultType = zero
+
+      val effectiveSize = min(leftColumn.length, partitioner.getPartitionSize(partIdx) + lag)
+      for(rowIdx <- 0 until (effectiveSize - lag)){
+        result = foldOp(result, cross(leftColumn(rowIdx + lag), rightColumn(rowIdx)))
+      }
+      Seq(result).toIterator
     }
 
-    dataTiles.glom().map(computeCrossFoldArray).fold(zero)(foldOp(_,_))
+    val temp = dataTiles.glom.collect
+
+    dataTiles.mapPartitionsWithIndex(computeCrossFoldArray, true).fold(zero)(foldOp(_,_))
+
   }
 
   /*
@@ -128,7 +144,7 @@ class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
   be unified thanks to a collectAsMap.
   TODO: Return another timeSeries here
    */
-  def applyBy[ResultType: ClassTag](f: Array[Array[RecordType]] => Array[ResultType],
+  def windowApply[ResultType: ClassTag](f: Array[Array[RecordType]] => Array[ResultType],
                                     slicer: (TSInstant, TSInstant) => Boolean): TimeSeries[ResultType] ={
 
     /*
@@ -180,7 +196,7 @@ class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
     dataTiles.unpersist()
     partitionedIntervals.unpersist()
 
-    TimeSeries.fromIntervals(this.config, result)
+    TimeSeries.fromIntervals(this.config, this.partitioner, result)
   }
 
   /*

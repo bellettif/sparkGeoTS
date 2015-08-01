@@ -16,7 +16,7 @@ import org.joda.time.DateTime
 
 import breeze.linalg._
 
-object TestTsDataFrame {
+object RunTimeSeries {
 
   def main(args: Array[String]): Unit ={
 
@@ -115,27 +115,27 @@ object TestTsDataFrame {
     /*
     This will compute the windowed sum of each column of the timeseries (each window spans a second)
      */
-    val windowedSums              = timeSeries.applyBy(f, secondSlicer).collect
+    val windowedSums              = timeSeries.windowApply(f, secondSlicer).collect
 
     /*
     This will compute the autocorrelation of each column of the timeseries (each window spans a second)
      */
-    val windowedAutoCorrelations  = timeSeries.applyBy(autoCor.estimate, secondSlicer).collect
+    val windowedAutoCorrelations  = timeSeries.windowApply(autoCor.estimate, secondSlicer).collect
 
     /*
     This will compute the cross correlation (between columns) of the time series (each window spans a second)
      */
-    val windowedCrossCorrelations = timeSeries.applyBy(crossCov.estimate, secondSlicer).collect
+    val windowedCrossCorrelations = timeSeries.windowApply(crossCov.estimate, secondSlicer).collect
 
     /*
     This will compute a windowed AR calibration
      */
-    val windowedAR = timeSeries.applyBy(AR.estimate, secondSlicer).collect
+    val windowedAR = timeSeries.windowApply(AR.estimate, secondSlicer).collect
 
     /*
     This will compute a windowed MA calibration
      */
-    val windowedMA = timeSeries.applyBy(MA.estimate, secondSlicer).collect
+    val windowedMA = timeSeries.windowApply(MA.estimate, secondSlicer).collect
 
 
     println("Done")

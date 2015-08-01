@@ -10,5 +10,4 @@ case class TimeSeriesConfig(memory: Broadcast[Long], // Effective memory in mill
                             nCols: Broadcast[Int],
                             nSamples: Broadcast[Long],
                             partitionDuration: Broadcast[Long], // Duration represented on each partition in milliseconds
-                            nPartitions: Broadcast[Int],
-                            partitioner: TSPartitioner)
+                            nPartitions: Broadcast[Int])
