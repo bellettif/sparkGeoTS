@@ -2,8 +2,10 @@
  * Created by cusgadmin on 6/9/15.
  */
 
+import TsUtils.HF_estimators.HayashiYoshida
 import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
 import TsUtils.{TimeSeries, TestUtils}
+import breeze.numerics.sqrt
 import groovy.sql.Sql
 
 import org.apache.spark.sql._
@@ -32,6 +34,9 @@ object RunTimeSeries {
     //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, deltaTMillis, sc)
     //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, deltaTMillis, sc)
     val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTsRDD = TestUtils.getRandomRawTsRDD(nColumns, nSamples.toInt, deltaTMillis, sc)
+
+    val temp = rawTsRDD.collect
 
     val timeSeries = TimeSeries[Array[Any], Double](
       rawTsRDD,
@@ -48,6 +53,19 @@ object RunTimeSeries {
 
     #############################################
      */
+
+    val HYEstimator = new HayashiYoshida(timeSeries, timeSeries)
+
+    val (variation1, variation2, covariation) = HYEstimator.computeCrossFoldHY[Double](
+    {case ((x1, x2), (y1, y2)) => (y2 - y1) * (x2 - x1)},
+    {case (x1, x2) => (x1 - x2) * (x1 - x2)},
+    {case (x1, x2) => (x1 - x2) * (x1 - x2)},
+    _ + _,
+    0.0
+    )(0, 1, 0L)
+
+    println(covariation / sqrt(variation1 * variation2))
+    println("Done")
 
 
     /*
@@ -136,9 +154,6 @@ object RunTimeSeries {
     This will compute a windowed MA calibration
      */
     val windowedMA = timeSeries.windowApply(MA.estimate, secondSlicer).collect
-
-
-    println("Done")
 
   }
 }

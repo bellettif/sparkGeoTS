@@ -71,8 +71,8 @@ class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
   /*
   ################################################################
 
-  Accessors
-  TODO: modifiy collect once TimeSeries extends RDD in order to remove duplicate keys.
+  Initialization
+  TODO: Make sure that the first range partitionning does follow a chronological order
 
   ################################################################
   */
@@ -112,8 +112,6 @@ class TimeSeries[RecordType: ClassTag](val config: TimeSeriesConfig,
 
       var leftColumn:   Array[RecordType] = null
       var rightColumn:  Array[RecordType] = null
-
-      val temp = dataColumns.zipWithIndex
 
       for((array: Array[RecordType], idx: Int) <- dataColumns.zipWithIndex) {
         if (idx == cLeft)
