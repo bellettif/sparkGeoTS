@@ -21,6 +21,10 @@ class HayashiYoshida[LeftRecordType: ClassTag, RightRecordType: ClassTag](
                                                zero: ResultType)
                                               (cLeft: Int, cRight: Int, lagMillis: Long): (ResultType, ResultType, ResultType) ={
 
+    if(lagMillis < 0){
+      return computeCrossFoldHY(crossCov, leftVol, rightVol, foldOp, zero)(cRight, cLeft, -lagMillis)
+    }
+
     val leftTimestamps  = leftTS.timestampTiles
     val leftValues      = leftTS.dataTiles
 
@@ -32,10 +36,22 @@ class HayashiYoshida[LeftRecordType: ClassTag, RightRecordType: ClassTag](
                                   partitionLeftValues: Iterator[Array[LeftRecordType]],
                                   partitionRightValues: Iterator[Array[RightRecordType]]): Iterator[(ResultType, ResultType, ResultType)] = {
 
-      val leftIntervals: Iterator[(Long, Long)] = partitionLeftTimestamps
+      if(rightTS.config.memory.value < lagMillis){
+        throw new IndexOutOfBoundsException("Time series' memory is below lag")
+      }
+
+      val (partitionLeftTimestampsIt, partitionLeftTimestampsTemp) = partitionLeftTimestamps.duplicate
+      val firstLeftTS                 = partitionLeftTimestampsTemp.next()
+      val leftPartitionLastTimestamp  = leftTS.partitioner.getLastTimestampOfPartition(firstLeftTS).getMillis
+
+      val (partitionRightTimestampsIt, partitionRightTimestampsTemp) = partitionRightTimestamps.duplicate
+      val firstRightTS                = partitionRightTimestampsTemp.next()
+      val rightPartitionLastTimestamp = rightTS.partitioner.getLastTimestampOfPartition(firstRightTS).getMillis
+
+      val leftIntervals: Iterator[(Long, Long)] = partitionLeftTimestampsIt
         .sliding(2, 1)
-        .map(x => (x.head.getMillis - lagMillis, x.last.getMillis - lagMillis))
-      val rightIntervals: Iterator[(Long, Long)] = partitionRightTimestamps
+        .map(x => (x.head.getMillis + lagMillis, x.last.getMillis + lagMillis))
+      val rightIntervals: Iterator[(Long, Long)] = partitionRightTimestampsIt
         .sliding(2, 1)
         .map(x => (x.head.getMillis, x.last.getMillis))
 
@@ -54,36 +70,53 @@ class HayashiYoshida[LeftRecordType: ClassTag, RightRecordType: ClassTag](
       var leftVariation = zero
       var rightVariation = zero
 
-      if (rightIntervals.hasNext) {
+      if (leftIntervals.hasNext && rightIntervals.hasNext) {
+
+        var stopLeft  = false
+        var stopRight = false
+
+        var leftInterval = leftIntervals.next()
+        var leftDelta = leftDeltas.next()
+        leftVariation = foldOp(leftVariation, leftVol(leftDelta))
 
         var rightInterval = rightIntervals.next()
         var rightDelta = rightDeltas.next()
         rightVariation = foldOp(rightVariation, rightVol(rightDelta))
 
-        for (leftInterval <- leftIntervals) {
+        while((!stopLeft) &&
+          (leftInterval._1 <= leftPartitionLastTimestamp)){
 
-          val leftDelta = leftDeltas.next()
-          leftVariation = foldOp(leftVariation, leftVol(leftDelta))
-
+          stopRight = false
           // Right interval is not completely after left
-          while (rightIntervals.hasNext && (rightInterval._1 < leftInterval._2)) {
+          while ((rightInterval._1 < leftInterval._2) &&
+            (!stopRight) &&
+            (rightInterval._1 <= leftPartitionLastTimestamp + lagMillis)) {
 
             if (rightInterval._2 > leftInterval._1) {
               // Right interval is not completely before left
-                covariation = foldOp(covariation, crossCov(leftDelta, rightDelta))
+              covariation = foldOp(covariation, crossCov(leftDelta, rightDelta))
             }
 
-            rightInterval   = rightIntervals.next()
-            rightDelta      = rightDeltas.next()
-            rightVariation  = foldOp(rightVariation, rightVol(rightDelta))
-
+            if (rightIntervals.hasNext) {
+              rightInterval = rightIntervals.next()
+              rightDelta = rightDeltas.next()
+              if(rightInterval._1 <= leftPartitionLastTimestamp + lagMillis)
+                rightVariation = foldOp(rightVariation, rightVol(rightDelta))
+            } else {
+              stopRight = true
+            }
           }
 
-          if(rightInterval._1 < leftInterval._2){
-            covariation = foldOp(covariation, crossCov(leftDelta, rightDelta))
+          if (!leftIntervals.hasNext) {
+            stopLeft = true
+          } else {
+            leftInterval = leftIntervals.next()
+            leftDelta = leftDeltas.next()
+            if(leftInterval._1 <= leftPartitionLastTimestamp)
+              leftVariation = foldOp(leftVariation, leftVol(leftDelta))
           }
-
         }
+
       }
 
       ((leftVariation, rightVariation, covariation) :: Nil).toIterator

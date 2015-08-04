@@ -32,9 +32,10 @@ object RunTimeSeries {
     val sqlContext = new SQLContext(sc)
 
     //val rawTsRDD = TestUtils.getAR2TsRDD(0.5, 0.2, nColumns, nSamples, deltaTMillis, sc)
-    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples, deltaTMillis, sc)
-    val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTsRDD = TestUtils.getAR1TsRDD(0.70, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTsRDD = TestUtils.getMA1TsRDD(0.67, nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTsRDD = TestUtils.getRandomRawTsRDD(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTsRDD = TestUtils.getCumOnesRawTsRDD(nColumns, nSamples.toInt, deltaTMillis, sc)
 
     val temp = rawTsRDD.collect
 
@@ -64,9 +65,11 @@ object RunTimeSeries {
     0.0
     )(0, 1, 0L)
 
+    println(covariation, variation1, variation2)
     println(covariation / sqrt(variation1 * variation2))
     println("Done")
 
+    exit(0)
 
     /*
     This will compute the autocorrelation (until rank 5 included) of each column of the time series

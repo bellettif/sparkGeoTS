@@ -12,49 +12,54 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 6/24/15.
  */
 class TSPartitioner(override val numPartitions: Int,
-                    partitionToSizeAndIntervalStart: Map[Int, (Int, TSInstant)])
+                    partitionToSizeAndInterval: Map[Int, (Int, TSInstant, TSInstant)])
   extends Partitioner{
 
-  implicit val TSInstantReverseOrdering = new Ordering[((Int, TSInstant), Int)] {
-    override def compare(a: ((Int, TSInstant), Int), b: ((Int, TSInstant), Int)) =
-      b._1._2.compareTo(a._1._2)
+  implicit val TSInstantReverseOrdering = new Ordering[((Int, TSInstant, TSInstant), Int)] {
+    override def compare(a: ((Int, TSInstant, TSInstant), Int), b: ((Int, TSInstant, TSInstant), Int)) =
+      a._1._2.compareTo(b._1._2)
   }
 
-  val reverseIntervalStartPartition = partitionToSizeAndIntervalStart
+  // Intervals sorted in increasing order
+  val sizeAndIntervalToPartition = partitionToSizeAndInterval
     .map(_.swap)
     .toArray
     .sorted
 
-  val reverseIntervalPartition = reverseIntervalStartPartition.drop(1) zip reverseIntervalStartPartition
-
-  println()
-
   def getPartitionIdx(timestamp: TSInstant): Int ={
-    if(! timestamp.isBefore(reverseIntervalStartPartition(0)._1._2)) {
-      return reverseIntervalStartPartition(0)._2
-    }
-    for((((_, intervalStart), partIdx1), ((_, intervalEnd), partIdx2))  <- reverseIntervalPartition) {
-      if ((!timestamp.isBefore(intervalStart)) && timestamp.isBefore(intervalEnd)) {
+    for(((_, intervalStart, intervalEnd), partIdx1)  <- sizeAndIntervalToPartition) {
+      if ((!timestamp.isBefore(intervalStart)) && (!timestamp.isAfter(intervalEnd))) {
         return partIdx1
       }
     }
     throw new IndexOutOfBoundsException("Invalid timestamp " + timestamp.toString)
   }
 
+  def getLastTimestampOfPartition(partIdx: Int): TSInstant ={
+    val queryResult = partitionToSizeAndInterval.get(partIdx)
+    if(queryResult.isDefined)
+      queryResult.get._3
+    else throw new IndexOutOfBoundsException("Invalid partition index " + partIdx)
+  }
+
+  def getLastTimestampOfPartition(timestamp: TSInstant): TSInstant ={
+    return getLastTimestampOfPartition(getPartitionIdx(timestamp))
+  }
+
   def getPartitionOffset(timestamp: TSInstant): Long ={
-    if(! timestamp.isBefore(reverseIntervalStartPartition(0)._1._2)) {
-      return timestamp.getMillis - reverseIntervalStartPartition(0)._1._2.getMillis
-    }
-    for((((_, intervalStart), partIdx1), ((_, intervalEnd), partIdx2))  <- reverseIntervalPartition) {
-      if ((!timestamp.isBefore(intervalStart)) && timestamp.isBefore(intervalEnd)) {
+    for(((_, intervalStart, intervalEnd), partIdx1)  <- sizeAndIntervalToPartition) {
+      if ((!timestamp.isBefore(intervalStart)) && (!timestamp.isAfter(intervalEnd))) {
         return timestamp.getMillis - intervalStart.getMillis
       }
     }
-    throw new IndexOutOfBoundsException("Invalid timestamp " + timestamp.toString)
+    throw new IndexOutOfBoundsException("Invalid timestamp" + timestamp.toString)
   }
 
   def getPartitionSize(partIdx: Int): Int={
-    partitionToSizeAndIntervalStart(partIdx)._1
+    val queryResult = partitionToSizeAndInterval.get(partIdx)
+    if(queryResult.isDefined)
+      queryResult.get._1
+    else throw new IndexOutOfBoundsException("Invalid partition index " + partIdx)
   }
 
   def getPartition(key: Any): Int = key match {

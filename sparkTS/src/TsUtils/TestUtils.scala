@@ -77,4 +77,15 @@ object TestUtils {
     sc.parallelize(rawData)
   }
 
+  def getCumOnesRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                      sc: SparkContext) = {
+    val oneValue = DenseVector.ones[Double](nColumns)
+    val rawData = (0 until nSamples)
+      .map(x => x +: (oneValue :* x.toDouble).toArray)
+      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+    sc.parallelize(rawData)
+  }
+
+
+
 }

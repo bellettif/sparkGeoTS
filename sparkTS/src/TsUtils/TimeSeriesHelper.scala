@@ -46,14 +46,19 @@ object TimeSeriesHelper extends Serializable{
     /*
       Map each partition to its time interval, this will be used in the TS partitioning
      */
-    def extractSizeAndFirstElement[T: ClassTag](iterator: Iterator[(TSInstant, T)]): (Int, TSInstant) = {
+    def extractSizeFirstAndLast[T: ClassTag](iterator: Iterator[(TSInstant, T)]): (Int, TSInstant, TSInstant) = {
       val (it1, it2) = iterator.duplicate
-      return (it1.size, it2.take(1).toArray.apply(0)._1)
+      val (it3, it4) = it2.duplicate
+      var lastElement = it4.next()
+      while(it4.hasNext){
+        lastElement = it4.next()
+      }
+      return (it1.size, it3.next()._1, lastElement._1)
     }
 
-    val partitionToSizeAndIntervalStart = sortedWithinPartitionsParsedRDD
+    val partitionToSizeAndInterval = sortedWithinPartitionsParsedRDD
       .mapPartitionsWithIndex({case (partIdx, partContent)
-                                => Seq((partIdx, extractSizeAndFirstElement(partContent))).toIterator},
+                                => Seq((partIdx, extractSizeFirstAndLast(partContent))).toIterator},
                                 true)
       .collectAsMap
       .toMap
@@ -61,7 +66,7 @@ object TimeSeriesHelper extends Serializable{
     /*
       This is the TS partitioner that will be used in the end
      */
-    val partitioner = new TSPartitioner(nPartitions.value, partitionToSizeAndIntervalStart)
+    val partitioner = new TSPartitioner(nPartitions.value, partitionToSizeAndInterval)
 
     def stitchAndTranspose(kVPairs: Iterator[(Int, Array[RecordType])]): Iterator[Array[RecordType]] ={
       kVPairs.toSeq.map(_._2).transpose.map(x => Array(x: _*)).iterator
