@@ -1,7 +1,7 @@
-package TsUtils.Models
+package TimeIndex.Estimators.RegularSpacing.Models
 
-import TsUtils.Procedures.{InnovationAlgo, Rybicki}
-import TsUtils.TimeSeries
+import TimeIndex.Containers.TimeSeries
+import TimeIndex.Estimators.RegularSpacing.Procedures.{InnovationAlgo, Rybicki}
 import breeze.linalg._
 
 /**

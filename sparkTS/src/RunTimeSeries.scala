@@ -2,9 +2,10 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TsUtils.HF_estimators.HayashiYoshida
-import TsUtils.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
-import TsUtils.{TimeSeries, TestUtils}
+import TimeIndex.Containers.TimeSeries
+import TimeIndex.Estimators.UnevenSpacing.HayashiYoshida
+import TimeIndex.Estimators.RegularSpacing.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
+import TimeIndex.SurrogateData.TestUtils
 import breeze.numerics.sqrt
 import groovy.sql.Sql
 
@@ -68,8 +69,6 @@ object RunTimeSeries {
     println(covariation, variation1, variation2)
     println(covariation / sqrt(variation1 * variation2))
     println("Done")
-
-    exit(0)
 
     /*
     This will compute the autocorrelation (until rank 5 included) of each column of the time series

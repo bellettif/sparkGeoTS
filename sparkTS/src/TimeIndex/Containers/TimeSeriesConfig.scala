@@ -1,6 +1,5 @@
-package TsUtils
+package TimeIndex.Containers
 
-import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 
 /**

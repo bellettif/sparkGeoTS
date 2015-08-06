@@ -1,11 +1,10 @@
-package TsUtils
+package TimeIndex.SurrogateData
 
 import org.joda.time.DateTime
 
 import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType, TimestampType}
-import org.apache.spark.sql.{TsDataFrame, Row, SQLContext}
 
 /**
  * Created by Francois Belletti on 6/24/15.

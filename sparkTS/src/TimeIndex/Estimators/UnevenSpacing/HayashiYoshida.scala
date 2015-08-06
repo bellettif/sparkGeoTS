@@ -1,7 +1,7 @@
-package TsUtils.HF_estimators
+package TimeIndex.Estimators.UnevenSpacing
 
-import TsUtils.TimeSeries
-import TsUtils.TimeSeriesHelper.TSInstant
+import TimeIndex.Containers.{TimeSeriesHelper, TimeSeries}
+import TimeSeriesHelper.TSInstant
 
 import scala.reflect.ClassTag
 

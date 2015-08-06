@@ -1,4 +1,4 @@
-package TsUtils.Procedures
+package TimeIndex.Estimators.RegularSpacing.Procedures
 
 import breeze.linalg._
 
@@ -15,7 +15,7 @@ trait Rybicki {
   TODO: check size of toepM and y are compatible.
   TODO: check that diagonal element of toepM is non zero.
    */
-  private [TsUtils] def runR(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
+  private [RegularSpacing] def runR(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
     var prevX = DenseVector.zeros[Double](1)
     var prevH = DenseVector.zeros[Double](1)
     var prevG = DenseVector.zeros[Double](1)

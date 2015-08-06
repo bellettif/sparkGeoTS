@@ -1,12 +1,9 @@
-package TsUtils
+package TimeIndex.Containers
 
-import TsUtils.TimeSeriesHelper.TSInstant
-import org.apache.spark.rdd.RDD
+import TimeIndex.Containers.TimeSeriesHelper.TSInstant
 import org.apache.spark.Partitioner
-import org.joda.time.ReadableInstant
 
 import scala.math._
-import scala.reflect.ClassTag
 
 /**
  * Created by Francois Belletti on 6/24/15.

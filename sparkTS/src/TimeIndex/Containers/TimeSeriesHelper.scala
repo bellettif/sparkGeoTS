@@ -1,7 +1,7 @@
-package TsUtils
+package TimeIndex.Containers
 
-import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{Partitioner, RangePartitioner}
 import org.joda.time.{DateTime, Interval}
 
 import scala.math._

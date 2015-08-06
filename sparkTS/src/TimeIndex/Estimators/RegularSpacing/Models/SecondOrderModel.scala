@@ -1,6 +1,6 @@
-package TsUtils.Models
+package TimeIndex.Estimators.RegularSpacing.Models
 
-import TsUtils.TimeSeries
+import TimeIndex.Containers.TimeSeries
 
 /**
  * Created by Francois Belletti on 7/10/15.

@@ -1,6 +1,6 @@
-package TsUtils.Models
+package TimeIndex.Estimators.RegularSpacing.Models
 
-import TsUtils.TimeSeries
+import TimeIndex.Containers.TimeSeries
 import breeze.linalg._
 
 /**

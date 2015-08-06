@@ -1,7 +1,7 @@
-package TsUtils.Models
+package TimeIndex.Estimators.RegularSpacing.Models
 
-import TsUtils.Procedures.DurbinLevinson
-import TsUtils.TimeSeries
+import TimeIndex.Containers.TimeSeries
+import TimeIndex.Estimators.RegularSpacing.Procedures.DurbinLevinson
 import breeze.linalg._
 import breeze.numerics._
 

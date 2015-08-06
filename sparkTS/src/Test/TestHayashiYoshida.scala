@@ -1,7 +1,8 @@
 package Test
 
-import TsUtils.HF_estimators.HayashiYoshida
-import TsUtils.{TimeSeries, TestUtils}
+import TimeIndex.Containers.TimeSeries
+import TimeIndex.Estimators.UnevenSpacing.HayashiYoshida
+import TimeIndex.SurrogateData.TestUtils
 import org.apache.spark.{SparkContext, SparkConf}
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, FlatSpec}

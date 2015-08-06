@@ -1,19 +1,11 @@
-package TsUtils
+package TimeIndex.Containers
 
-import TsUtils.TimeSeriesHelper.{TSInterval, TSInstant}
-
-import scala.collection.immutable.HashMap
-import scala.collection.{GenTraversableOnce}
-import scala.reflect._
-
-import org.apache.spark._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.rdd.OrderedRDDFunctions
+import TimeSeriesHelper.{TSInstant, TSInterval}
 import org.apache.spark.SparkContext
-
-import org.joda.time.Interval
+import org.apache.spark.rdd.RDD
 
 import scala.math._
+import scala.reflect._
 
 /*
 Time series factory.

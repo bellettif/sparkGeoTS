@@ -1,7 +1,8 @@
 package Test
 
+import TimeIndex.Containers.TimeSeries
 import breeze.linalg._
-import TsUtils.{TestUtils, TimeSeries}
+import TimeIndex.SurrogateData.TestUtils
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
