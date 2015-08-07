@@ -1,6 +1,8 @@
 package overlapping
 
 import org.apache.spark.rdd.RDD
+import overlapping.dataShaping.block.OverlappingBlock
+import overlapping.dataShaping.graph.OverlappingGraph
 
 /**
  * Created by Francois Belletti on 8/6/15.

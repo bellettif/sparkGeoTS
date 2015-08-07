@@ -1,4 +1,4 @@
-package overlapping.partitioners
+package overlapping.dataShaping
 
 import org.apache.spark.Partitioner
 import timeIndex.containers.TimeSeriesHelper.TSInstant
@@ -11,11 +11,9 @@ import scala.reflect.ClassTag
   */
 trait Replicator[KeyT, ValueT]{
 
-  case class ExtendedKey(partIdx: Int, origK: KeyT)
+  case class ExtendedKey(partIdx: Int, origK: KeyT, isReplica: Boolean)
   case class ExtendedKeyValue(k: ExtendedKey, v: ValueT)
 
   def replicate(k: KeyT, v: ValueT): List[ExtendedKeyValue]
-
-  def isReplica(eK: ExtendedKeyValue): Boolean = replicate(eK.k.origK, eK.v).head.k.partIdx == eK.k.origK
 
 }

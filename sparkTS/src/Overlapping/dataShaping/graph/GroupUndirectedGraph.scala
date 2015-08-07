@@ -1,4 +1,4 @@
-package overlapping.partitioners
+package overlapping.dataShaping.graph
 
 /**
  * Created by Francois Belletti on 8/6/15.
