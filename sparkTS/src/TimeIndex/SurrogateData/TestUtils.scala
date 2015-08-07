@@ -1,4 +1,4 @@
-package TimeIndex.SurrogateData
+package timeIndex.surrogateData
 
 import org.joda.time.DateTime
 

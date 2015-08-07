@@ -1,6 +1,6 @@
-package TimeIndex.Containers
+package timeIndex.containers
 
-import TimeIndex.Containers.TimeSeriesHelper.TSInstant
+import timeIndex.containers.TimeSeriesHelper.TSInstant
 import org.apache.spark.Partitioner
 
 import scala.math._

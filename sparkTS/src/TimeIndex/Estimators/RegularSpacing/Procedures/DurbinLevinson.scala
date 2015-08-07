@@ -1,4 +1,4 @@
-package TimeIndex.Estimators.RegularSpacing.Procedures
+package timeIndex.estimators.regularSpacing.procedures
 
 import breeze.linalg._
 
@@ -15,7 +15,7 @@ trait DurbinLevinson{
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 234)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  private [RegularSpacing] def runDL(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
+  private [regularSpacing] def runDL(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
     var prevPhiEst          = DenseVector.zeros[Double](1)
     prevPhiEst(0)           = autoCov(1) / autoCov(0)
     var prevVarEst: Double  = autoCov(0) * (1.0 - prevPhiEst(0) * prevPhiEst(0))

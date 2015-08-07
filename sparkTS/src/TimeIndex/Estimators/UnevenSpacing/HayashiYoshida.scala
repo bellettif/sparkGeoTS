@@ -1,6 +1,6 @@
-package TimeIndex.Estimators.UnevenSpacing
+package timeIndex.estimators.unevenSpacing
 
-import TimeIndex.Containers.{TimeSeriesHelper, TimeSeries}
+import timeIndex.containers.{TimeSeriesHelper, TimeSeries}
 import TimeSeriesHelper.TSInstant
 
 import scala.reflect.ClassTag

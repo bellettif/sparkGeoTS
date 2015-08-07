@@ -1,4 +1,4 @@
-package TimeIndex.Estimators.RegularSpacing.Procedures
+package timeIndex.estimators.regularSpacing.procedures
 
 import breeze.linalg._
 
@@ -15,7 +15,7 @@ trait InnovationAlgo {
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  private [RegularSpacing] def runIA(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
+  private [regularSpacing] def runIA(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
     val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](h + 1)
 

@@ -2,10 +2,10 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import TimeIndex.Containers.TimeSeries
-import TimeIndex.Estimators.UnevenSpacing.HayashiYoshida
-import TimeIndex.Estimators.RegularSpacing.Models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
-import TimeIndex.SurrogateData.TestUtils
+import timeIndex.containers.TimeSeries
+import timeIndex.estimators.unevenSpacing.HayashiYoshida
+import timeIndex.estimators.regularSpacing.models.{AutoCorrelation, CrossCovariance, ARModel, MAModel, ARMAModel}
+import timeIndex.surrogateData.TestUtils
 import breeze.numerics.sqrt
 import groovy.sql.Sql
 

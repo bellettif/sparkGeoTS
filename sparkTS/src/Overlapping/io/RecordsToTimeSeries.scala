@@ -1,52 +1,40 @@
-package timeIndex.containers
+package overlapping.io
 
+import overlapping.BlockGraph
+import overlapping.partitioners.BlockGraphPartitioner
+import timeIndex.containers.{TSPartitioner, TimeSeriesConfig}
+import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{Partitioner, RangePartitioner}
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{Interval, DateTime}
 
-import scala.math._
+import scala.math.Ordering
 import scala.reflect.ClassTag
 
 /**
- * Created by Francois Belletti on 7/28/15.
+ * Created by Francois Belletti on 8/6/15.
  */
-object TimeSeriesHelper extends Serializable{
+object RecordsToTimeSeries {
 
-  type TSInstant  = DateTime
-  type TSInterval = Interval
-
-  def buildTilesFromSyncData[RawType: ClassTag, RecordType: ClassTag](
-         config: TimeSeriesConfig,
-         rawRDD: RDD[RawType],
-         timeExtractor: RawType => (TSInstant, Array[RecordType])):
-  (TSPartitioner, RDD[Array[RecordType]], RDD[TSInstant])= {
-
-    val partitionDuration   = config.partitionDuration
-    val nPartitions         = config.nPartitions
-    val memory              = config.memory
+  def transposeData[DataT, KeyT, IndexT](timePaddingMillis: Long,
+                                         nPartitions: Int,
+                                         recordRDD: RDD[(KeyT, DataT)])
+                                        (implicit bgp: BlockGraphPartitioner[KeyT, IndexT],
+                                         keyOrdering: Ordering[IndexT]):
+    RDD[(((IndexT, IndexT), Long), BlockGraph[KeyT, DataT])]= {
 
     /*
-    Convert the time index to longs
-   */
-    implicit val TSInstantOrdering = new Ordering[TSInstant] {
-      override def compare(a: TSInstant, b: TSInstant) =
-        a.compareTo(b)
-    }
-
-    /*
-      Parse each row from RawType to (TSInstant, Array[RecordType])
+      Sort the record RDD with respect to time
      */
-    val sortedWithinPartitionsParsedRDD: RDD[(TSInstant, Array[RecordType])] = {
-      val tempRDD: RDD[(TSInstant, Array[RecordType])]  = rawRDD
-        .map(timeExtractor)
-      val rangePartitioner: Partitioner = new RangePartitioner(nPartitions.value, tempRDD)
-      tempRDD.repartitionAndSortWithinPartitions(rangePartitioner)
-    }
+    val rangePartitioner: Partitioner = new RangePartitioner(nPartitions, recordRDD)(keyOrdering)
+
+    val sortedWithinPartitionsParsedRDD: RDD[(IndexT, (KeyT, DataT))] = recordRDD
+      .map({case (k, v) => (bgp.indexExtractor(k), (k, v))})
+      .repartitionAndSortWithinPartitions(rangePartitioner)
 
     /*
       Map each partition to its time interval, this will be used in the TS partitioning
      */
-    def extractSizeFirstAndLast[T: ClassTag](iterator: Iterator[(TSInstant, T)]): (Int, TSInstant, TSInstant) = {
+    def extractSizeFirstAndLast[T: ClassTag](iterator: Iterator[(, T)]): (Int, , ) = {
       val (it1, it2) = iterator.duplicate
       val (it3, it4) = it2.duplicate
       var lastElement = it4.next()
@@ -58,8 +46,8 @@ object TimeSeriesHelper extends Serializable{
 
     val partitionToSizeAndInterval = sortedWithinPartitionsParsedRDD
       .mapPartitionsWithIndex({case (partIdx, partContent)
-                                => Seq((partIdx, extractSizeFirstAndLast(partContent))).toIterator},
-                                true)
+    => Seq((partIdx, extractSizeFirstAndLast(partContent))).toIterator},
+    true)
       .collectAsMap
       .toMap
 
@@ -122,8 +110,5 @@ object TimeSeriesHelper extends Serializable{
 
     (partitioner, tiles, timeStamps)
 
-
-  }
-
-
 }
+

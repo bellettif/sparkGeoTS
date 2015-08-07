@@ -1,7 +1,7 @@
-package TimeIndex.Estimators.RegularSpacing.Models
+package timeIndex.estimators.regularSpacing.models
 
-import TimeIndex.Containers.TimeSeries
-import TimeIndex.Estimators.RegularSpacing.Procedures.{InnovationAlgo, Rybicki}
+import timeIndex.containers.TimeSeries
+import timeIndex.estimators.regularSpacing.procedures.{InnovationAlgo, Rybicki}
 import breeze.linalg._
 
 /**

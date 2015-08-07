@@ -1,4 +1,4 @@
-package Overlapping
+package overlapping
 
 import org.apache.spark.rdd.RDD
 

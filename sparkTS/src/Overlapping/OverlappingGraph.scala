@@ -1,4 +1,4 @@
-package Overlapping
+package overlapping
 
 /**
  * Created by Francois Belletti on 8/6/15.

@@ -1,7 +1,7 @@
-package TimeIndex.Estimators.RegularSpacing.Models
+package timeIndex.estimators.regularSpacing.models
 
 
-import TimeIndex.Containers.TimeSeries
+import timeIndex.containers.TimeSeries
 
 import scala.reflect._
 import breeze.linalg._

@@ -1,4 +1,4 @@
-package TimeIndex.Containers
+package timeIndex.containers
 
 import org.apache.spark.broadcast.Broadcast
 

@@ -1,4 +1,4 @@
-package TimeIndex.Containers
+package timeIndex.containers
 
 import TimeSeriesHelper.{TSInstant, TSInterval}
 import org.apache.spark.SparkContext
