@@ -20,9 +20,9 @@ object RunGenericOverlapping {
   def main(args: Array[String]): Unit ={
 
     val nColumns      = 10
-    val nSamples      = 100000L
-    val paddingMillis = 40L
-    val deltaTMillis  = 1L
+    val nSamples      = 800L
+    val paddingMillis = 20L
+    val deltaTMillis  = 6L
     val nPartitions   = 8
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")

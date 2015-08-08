@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType, TimestampType}
+import overlapping.io.RecordsToTimeSeries.TSInstant
 
 /**
  * Created by Francois Belletti on 8/7/15.
@@ -14,10 +15,10 @@ object IndividualRecords {
 
 
   def generateWhiteNoise(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                         sc: SparkContext): RDD[(DateTime, Array[Double])] = {
+                         sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
-      .map(x => (new DateTime(x), (DenseVector.rand[Double](nColumns) - meanValue).toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), (DenseVector.rand[Double](nColumns) - meanValue).toArray))
     sc.parallelize(rawData)
   }
 

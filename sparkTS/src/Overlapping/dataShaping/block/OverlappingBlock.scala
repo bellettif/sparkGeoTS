@@ -3,24 +3,30 @@ package overlapping.dataShaping.block
 /**
  * Created by Francois Belletti on 8/6/15.
  */
-trait OverlappingBlock[LocationT, DataT]{
+trait OverlappingBlock[KeyT, ValueT] extends Serializable{
 
-  def data: Array[DataT]
-  def locations: Array[LocationT] // Can be evenly spaced or not
+  case class CompleteLocation(partIdx: Int, originIdx: Int, k: KeyT)
+  case class KernelSize(lookBack: Int, lookAhead: Int)
 
-  def overlapIndexSpan: Array[Int]
-  def overlapSpatialSpan: Array[Double]
-  def distance: Array[(LocationT, LocationT => Double)]
+  def data: Array[ValueT]
+  def locations: Array[CompleteLocation] // Can be evenly spaced or not
+  def algebraicDistances: Array[((ValueT, ValueT) => Double)]
 
-  // Define the padding of the iterator in terms of T along each direction
-  def toIterator(padding: Array[Double]): Iterator[DataT]
+  def sliding(size: Array[KernelSize], stride: Array[Int])
 
-  // Define the padding in terms of number of records along each direction
-  def toIterator(padding: Array[Int]): Iterator[DataT]
+  def toIterator(): Iterator[ValueT]
 
+  // Define the offsets of the iterator in terms of T along each direction
+  def toIterator(offsets: Array[Double]): Iterator[ValueT]
+
+  // Define the offsets in terms of number of records along each direction
+  def toIterator(offsets: Array[Int]): Iterator[ValueT]
+
+  /*
   // Zipping on collisions with another overlapping block whose indices are different
   // This is equivalent to a join but is expected to be implemented in a manner more adapted to the data.
   def zipOnCollisions[ThatDataT, ResultT](thatLookAhead: Array[Double], that: OverlappingBlock[LocationT, ThatDataT])
-                               (f: ((LocationT, DataT), (LocationT, ThatDataT)) => ResultT) : Iterator[ResultT]
+                               (f: ((LocationT, ValueT), (LocationT, ThatDataT)) => ResultT) : Iterator[ResultT]
+  */
 
 }

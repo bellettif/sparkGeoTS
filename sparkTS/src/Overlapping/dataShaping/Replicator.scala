@@ -9,11 +9,8 @@ import scala.reflect.ClassTag
 /**
   * Created by Francois Belletti on 6/24/15.
   */
-trait Replicator[KeyT, ValueT]{
+trait Replicator[KeyT, ValueT] extends Serializable{
 
-  case class ExtendedKey(partIdx: Int, origK: KeyT, isReplica: Boolean)
-  case class ExtendedKeyValue(k: ExtendedKey, v: ValueT)
-
-  def replicate(k: KeyT, v: ValueT): List[ExtendedKeyValue]
+  def replicate(k: KeyT, v: ValueT): TraversableOnce[((Int, Int, KeyT), ValueT)]
 
 }
