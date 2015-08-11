@@ -7,12 +7,15 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
 
   case class CompleteLocation(partIdx: Int, originIdx: Int, k: KeyT)
   case class KernelSize(lookBack: Int, lookAhead: Int)
+  case class IntervalSize(lookBack: Double, lookAhead: Double)
 
   def data: Array[ValueT]
   def locations: Array[CompleteLocation] // Can be evenly spaced or not
   def algebraicDistances: Array[((ValueT, ValueT) => Double)]
 
-  def sliding(size: Array[KernelSize], stride: Array[Int])
+  def sliding(size: Array[KernelSize], stride: Array[Int]): Iterator[Array[ValueT]]
+
+  def sliding(size: Array[IntervalSize]): Iterator[Array[(KeyT, ValueT)]]
 
   def toIterator(): Iterator[ValueT]
 

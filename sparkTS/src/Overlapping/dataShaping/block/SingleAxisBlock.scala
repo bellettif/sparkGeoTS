@@ -6,7 +6,8 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 8/7/15.
  */
 class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
-    val rawData: Array[((Int, Int, IndexT), ValueT)])
+    val rawData: Array[((Int, Int, IndexT), ValueT)],
+    val algDistanaces: Array[(ValueT, ValueT) => Double])
   extends OverlappingBlock[IndexT, ValueT]{
 
   val sortedData: Array[((Int, Int, IndexT), ValueT)] = rawData
@@ -19,12 +20,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     .map({case (k, v) => CompleteLocation(k._1, k._2, k._3)})
 
   lazy val firstValidIndex = locations.indexWhere(x => x.partIdx == x.originIdx)
+  lazy val lastValidIndex  = locations.lastIndexWhere(x => x.partIdx == x.originIdx)
 
-  lazy val lastValidIndex = locations.lastIndexWhere(x => x.partIdx == x.originIdx)
 
+  override def sliding(size: Array[KernelSize], stride: Array[Int]): Iterator[Array[ValueT]] ={
 
-  override def sliding(size: Array[KernelSize], stride: Array[Int]): Unit ={
-
+    // Here there is only one dimension thus one kernel and one kernel size
     val activeKernelSize    = size.head
     val activeStride        = stride.head
 
@@ -38,6 +39,37 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
+  def sliding(size: Array[IntervalSize]): Iterator[Array[(IndexT, ValueT)]] = {
+
+    val activeIntervalSize = size.head
+
+    val lookBack  = activeIntervalSize.lookBack
+    val lookAhead = activeIntervalSize.lookAhead
+
+    val activeDistance = algebraicDistances.head
+
+    val buff = locations.toIterator.zip(data.toIterator)
+
+    var preBuff = List[(IndexT, ValueT)]()
+    var postBuff = List[(IndexT, ValueT)]()
+
+    var result = List[Array[(IndexT, ValueT)]]()
+
+    def scanAhead() = {
+
+    }
+
+    def dropBack() = {
+
+    }
+
+    while(buff.hasNext){
+      val (loc: CompleteLocation, v: ValueT) = buff.next()
+
+      result = (preBuff ::: ((loc.k, v) :: postBuff)).toArray :: result
+    }
+
+  }
 
   override def toIterator(): Iterator[ValueT] ={
 
@@ -76,6 +108,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
-
+  // Can be evenly spaced or not
+  override def algebraicDistances: Array[(ValueT, ValueT) => Double] = algDistanaces
 
 }
