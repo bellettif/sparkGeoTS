@@ -8,7 +8,7 @@ object SingleAxisBlock{
 
   def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag]
     (rawData: Array[((Int, Int, IndexT), ValueT)],
-    signedDistances: Array[(IndexT, IndexT) => Double]): SingleAxisBlock[IndexT, ValueT] ={
+    signedDistance: (IndexT, IndexT) => Double): SingleAxisBlock[IndexT, ValueT] ={
 
     val sortedData: Array[((Int, Int, IndexT), ValueT)] = rawData
       .sortBy(_._1._3)
@@ -18,6 +18,8 @@ object SingleAxisBlock{
 
     val locations: Array[CompleteLocation[IndexT]] = sortedData
       .map({case (k, v) => CompleteLocation(k._1, k._2, k._3)})
+
+    val signedDistances: Array[((IndexT, IndexT) => Double)] = (signedDistance :: Nil).toArray
 
     new SingleAxisBlock[IndexT, ValueT](data, locations, signedDistances)
 
@@ -80,16 +82,16 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
     val p_ = p.tupled
 
-    val validIndices = data.indices.filter(i => p_(data.apply(i))).toArray
+    val validIndices = data.indices.filter(i => p_(data(i))).toArray
 
     new SingleAxisBlock[IndexT, ValueT](
-      validIndices.map(i => data.apply(i)),
-      validIndices.map(i => locations.apply(i)),
+      validIndices.map(i => data(i)),
+      validIndices.map(i => locations(i)),
       signedDistances)
 
   }
 
-  def map[ResultT](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+  def map[ResultT: ClassTag](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
     new SingleAxisBlock[IndexT, ResultT](data.map({case (k, v) => (k, f(k, v))}), locations, signedDistances)
 

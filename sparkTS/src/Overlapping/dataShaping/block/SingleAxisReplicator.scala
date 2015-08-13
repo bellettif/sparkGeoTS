@@ -12,7 +12,7 @@ import scala.reflect.ClassTag
 
 class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag](intervals: Array[(IndexT, IndexT)],
                                                                         algebraicDistance: (IndexT, IndexT) => Double,
-                                                                        padding: Double)
+                                                                        padding: (Double, Double))
   extends Replicator[IndexT, ValueT]{
 
   case class IntervalLocation(intervalIdx: Int, offset: Double, ahead: Double)
@@ -66,13 +66,13 @@ class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag](interval
 
     var result = ((intervalLocation.intervalIdx, intervalLocation.intervalIdx, k), v) :: Nil
 
-    if((intervalLocation.offset <= padding) &&
+    if((intervalLocation.offset <= padding._1) &&
       (intervalLocation.ahead >= 0.0) &&
       (intervalLocation.intervalIdx > 0)){
       result = ((intervalLocation.intervalIdx - 1, intervalLocation.intervalIdx, k), v) :: result
     }
 
-    if((intervalLocation.ahead <= padding) &&
+    if((intervalLocation.ahead <= padding._2) &&
       (intervalLocation.offset >= 0.0) &&
       (intervalLocation.intervalIdx < intervals.size - 1)){
       result = ((intervalLocation.intervalIdx + 1, intervalLocation.intervalIdx, k), v) :: result

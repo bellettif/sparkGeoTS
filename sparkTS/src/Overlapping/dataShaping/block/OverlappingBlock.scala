@@ -2,6 +2,8 @@ package overlapping.dataShaping.block
 
 import overlapping.CompleteLocation
 
+import scala.reflect.ClassTag
+
 /**
  * Created by Francois Belletti on 8/6/15.
  */
@@ -21,7 +23,7 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
   def filter(p: (KeyT, ValueT) => Boolean)(size: Array[IntervalSize]):
       OverlappingBlock[KeyT, ValueT]
 
-  def map[ResultT](f: (KeyT, ValueT) => ResultT): OverlappingBlock[KeyT, ResultT]
+  def map[ResultT: ClassTag](f: (KeyT, ValueT) => ResultT): OverlappingBlock[KeyT, ResultT]
 
   def reduce(f: (ValueT, ValueT) => ValueT): ValueT
 

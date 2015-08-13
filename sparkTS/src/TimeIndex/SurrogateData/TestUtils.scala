@@ -1,5 +1,6 @@
 package timeIndex.surrogateData
 
+import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 
 import breeze.linalg._
@@ -13,11 +14,11 @@ object TestUtils {
 
 
   def getJodaRandomTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                       sc: SparkContext) = {
+                       sc: SparkContext): RDD[(DateTime, Array[Double])] ={
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
-      .map(x => x +: (DenseVector.rand[Double](nColumns) - meanValue).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+      .map(x => (x, (DenseVector.rand[Double](nColumns) - meanValue).toArray))
+      .map(x => (new DateTime(x._1.toLong * deltaTMillis), x._2.asInstanceOf[Array[Double]]))
     sc.parallelize(rawData)
   }
 

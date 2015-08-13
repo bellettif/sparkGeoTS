@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType, TimestampType}
-import overlapping.io.RecordsToTimeSeries.TSInstant
+import timeIndex.containers.TSInstant
 
 /**
  * Created by Francois Belletti on 8/7/15.
@@ -19,7 +19,7 @@ object IndividualRecords {
     val meanValue = DenseVector.ones[Double](nColumns) * 0.5
     val rawData = (0 until nSamples)
       .map(x => (TSInstant(new DateTime(x * deltaTMillis)), (DenseVector.rand[Double](nColumns) - meanValue).toArray))
-    sc.parallelize(rawData)
+    sc.parallelize(rawData).asInstanceOf[RDD[(TSInstant, Array[Double])]]
   }
 
   /*
