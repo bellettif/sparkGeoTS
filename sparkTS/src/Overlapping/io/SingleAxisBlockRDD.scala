@@ -5,7 +5,7 @@ import org.joda.time.{Interval, DateTime}
 import overlapping.BlockGraph
 import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
-import overlapping.dataShaping.block.{SingleAxisBlock, SingleAxisReplicator, BlockIndexPartitioner, IntervalSampler}
+import overlapping.containers.block.{SingleAxisBlock, SingleAxisReplicator, BlockIndexPartitioner, IntervalSampler}
 
 import scala.math.Ordering
 import scala.reflect.ClassTag

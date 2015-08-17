@@ -4,16 +4,14 @@
 
 import breeze.linalg.sum
 import breeze.numerics.sqrt
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
-import overlapping.dataShaping.block.{SingleAxisBlock, IntervalSampler}
+import overlapping.containers.block.{SingleAxisBlock, IntervalSampler}
 import overlapping.io.SingleAxisBlockRDD
-import timeIndex.containers.{TSInstant, TimeSeries}
-import timeIndex.estimators.regularSpacing.models.{ARMAModel, ARModel, AutoCorrelation, CrossCovariance, MAModel}
-import timeIndex.estimators.unevenSpacing.HayashiYoshida
-import timeIndex.surrogateData.{IndividualRecords, TestUtils}
+import overlapping.surrogateData.{TSInstant, IndividualRecords}
 
 import scala.math.Ordering
 
@@ -24,12 +22,11 @@ object RunGenericOverlapping {
     val nColumns      = 10
     val nSamples      = 80000L
     val paddingMillis = 20L
-    val deltaTMillis  = 6L
+    val deltaTMillis  = 1L
     val nPartitions   = 8
 
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
-    val sqlContext = new SQLContext(sc)
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
 
