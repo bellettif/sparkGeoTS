@@ -1,6 +1,6 @@
 package overlapping.containers.block
 
-import overlapping.CompleteLocation
+import overlapping.{IntervalSize, CompleteLocation}
 
 import scala.reflect.ClassTag
 
@@ -47,12 +47,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   override def sliding(size: Array[IntervalSize]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] = {
 
-    sliding(size, locations.slice(firstValidIndex, lastValidIndex + 1).toIterator)
+    sliding(size, locations.slice(firstValidIndex, lastValidIndex + 1))
 
   }
 
 
-  override def sliding(size: Array[IntervalSize], targets: Iterator[CompleteLocation[IndexT]]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] = {
+  override def sliding(size: Array[IntervalSize], targets: Array[CompleteLocation[IndexT]]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] = {
 
     val lookAhead = size.head.lookAhead
     val lookBack  = size.head.lookBack
@@ -77,12 +77,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
       }
     }
 
-    new SingleAxisBlock[IndexT, Array[(IndexT, ValueT)]](result.toArray, targets.toArray, signedDistances)
+    new SingleAxisBlock[IndexT, Array[(IndexT, ValueT)]](result.toArray, targets, signedDistances)
 
   }
 
-
-  override def slidingWindow(cutPredicates: Array[(IndexT, IndexT) => Boolean]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] ={
+  // By convention the marking CompleteLocation of a slice will be that of the start of the interval
+  override def slicingWindow(cutPredicates: Array[(IndexT, IndexT) => Boolean]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] ={
 
     val cutPredicate = cutPredicates.head
 
@@ -94,23 +94,20 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
     val intervals = locations.zip(locations.drop(1))
 
-    while(end_index < intervals.length){
+    while((end_index < intervals.length) && (end_index != -1)){
       end_index = intervals.indexWhere({case (x, y) => cutPredicate(x.k, y.k)}, begin_index)
 
-      val start = locations(begin_index)
-      val stop  = locations(end_index)
+      if(end_index != -1) {
 
-      if(start.originIdx == start.partIdx){
+        val start = locations(begin_index)
+        val stop = locations(end_index)
+
         resultLocations = resultLocations :+ CompleteLocation[IndexT](start.partIdx, start.originIdx, start.k)
-      }else if(stop.originIdx == stop.partIdx){
-        resultLocations = resultLocations :+ CompleteLocation[IndexT](stop.partIdx, stop.originIdx, start.k)
-      }else{
-        resultLocations = resultLocations :+ CompleteLocation[IndexT](start.partIdx, start.originIdx, start.k)
+
+        resultData = resultData :+(start.k, data.slice(begin_index, end_index + 1))
+
+        begin_index = end_index + 1
       }
-
-      resultData      = resultData :+ (start.k, data.slice(begin_index, end_index))
-
-      begin_index = end_index + 1
     }
 
     new SingleAxisBlock[IndexT, Array[(IndexT, ValueT)]](resultData.toArray, resultLocations.toArray, signedDistances)
@@ -118,7 +115,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
   }
 
 
-  override def filter(p: (IndexT, ValueT) => Boolean)(size: Array[IntervalSize]): SingleAxisBlock[IndexT, ValueT] = {
+  override def filter(p: (IndexT, ValueT) => Boolean): SingleAxisBlock[IndexT, ValueT] = {
 
     val p_ = p.tupled
 
@@ -131,28 +128,36 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
-  def map[ResultT: ClassTag](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+  override def map[ResultT: ClassTag](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
     new SingleAxisBlock[IndexT, ResultT](data.map({case (k, v) => (k, f(k, v))}), locations, signedDistances)
 
   }
 
-  def reduce(f: (ValueT, ValueT) => ValueT): ValueT = {
+  override def reduce(f: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT)): (IndexT, ValueT) = {
 
-    data.slice(firstValidIndex, lastValidIndex + 1).map(_._2).reduce(f)
-
-  }
-
-  def fold(zeroValue: ValueT)(op: (ValueT, ValueT) => ValueT): ValueT = {
-
-    data.slice(firstValidIndex, lastValidIndex + 1).map(_._2).fold(zeroValue)(op)
+    data.slice(firstValidIndex, lastValidIndex + 1).reduce(f)
 
   }
 
-  override def toIterator: Iterator[(IndexT, ValueT)] = {
+  override def fold(zeroValue: (IndexT, ValueT))(op: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT)): (IndexT, ValueT) = {
 
-    data.slice(firstValidIndex, lastValidIndex + 1).toIterator
+    data.slice(firstValidIndex, lastValidIndex + 1).fold(zeroValue)(op)
 
   }
+
+  override def toArray: Array[(IndexT, ValueT)] = {
+
+    data.slice(firstValidIndex, lastValidIndex + 1)
+
+  }
+
+  override def count: Long = {
+
+    return lastValidIndex + 1 - firstValidIndex
+
+  }
+
+
 
 }

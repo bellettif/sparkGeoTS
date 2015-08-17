@@ -30,8 +30,6 @@ object RunGenericOverlapping {
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
 
-    val temp = rawTS.collect()
-
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
         a._1.compareTo(b._1)
@@ -42,12 +40,7 @@ object RunGenericOverlapping {
     val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
-    val temp2 = overlappingRDD
-       .mapValues(v => v.map({case(k, v) => sum(v)}).reduce(_ + _)).map(_._2).reduce(_ + _)
 
-    println(rawTS.map(_._2.sum).reduce(_ + _))
-
-    println(temp2)
 
   }
 }
