@@ -1,19 +1,17 @@
 package overlapping.models.secondOrder
 
-/*
+import org.apache.spark.rdd.RDD
+import overlapping.containers.block.SingleAxisBlock
 
-import timeIndex.containers.TimeSeries
 
 /**
  * Created by Francois Belletti on 7/10/15.
  */
-abstract trait SecondOrderModel[DataType]
+abstract trait SecondOrderModel[IndexT <: Ordered[IndexT], ValueT]
   extends Serializable{
 
-  def estimate(timeSeries: TimeSeries[DataType]): Any = ???
+  def estimate(timeSeries: SingleAxisBlock[IndexT, ValueT]): Any = ???
 
-  def estimate(timeSeriesTile: Array[Array[DataType]]): Any = ???
+  def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]): Any = ???
 
 }
-
-*/

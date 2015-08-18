@@ -1,73 +1,51 @@
 package overlapping.models.secondOrder
 
 import breeze.linalg._
-
-/*
+import overlapping.IntervalSize
+import overlapping.containers.block.SingleAxisBlock
 
 /**
  * Created by Francois Belletti on 7/10/15.
  */
-class CrossCovariance(h: Int)
-  extends Serializable with SecondOrderModel[Double]{
 
-  override def estimate(timeSeries: TimeSeries[Double]): Array[DenseMatrix[Double]]={
+/*
+Here we expect the number of dimensions to be the same for all records.
+ */
+class CrossCovariance[IndexT <: Ordered[IndexT]](selectionSize: IntervalSize, modelOrder: Int)
+  extends Serializable with SecondOrderModel[IndexT, Array[Double]]{
 
-    timeSeries.dataTiles.persist()
+  def computeCrossCov(accumulator: Array[DenseMatrix[Double]])
+                     (slice: Array[(IndexT, Array[Double])]): Unit = {
 
-    val nCols     = timeSeries.config.nCols
-    val nSamples  = timeSeries.config.nSamples
+    if(slice.length != 2 * modelOrder + 1){
+      return
+    }
 
-    val result = (0 until nCols.value).toArray.map(x => DenseMatrix.zeros[Double](nCols.value, h + 1))
+    val nCols         = slice(0)._2.length
+    val centerTarget  = slice(modelOrder)._2
 
-    for(i <- 0 until nCols.value){
-      for(j <- 0 until nCols.value){
-        for (lag <- 0 to h){
-          result(i)(j, lag) = timeSeries.computeCrossFold[Double](_ * _, _ + _, i, j, lag, 0.0) / nSamples.value
+    for(i <- 0 until 2 * modelOrder + 1){
+      val currentTarget = slice(i)._2
+      for(c1 <- 0 until nCols){
+        for(c2 <- 0 until nCols){
+          accumulator(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
         }
       }
     }
 
-    timeSeries.dataTiles.unpersist()
-
-    result
   }
 
-  /*
-  Issue here: if lag is too high the result will be zero and not NA.
-   */
-  private[this] def crossCov(leftCol: Array[Double], rightCol: Array[Double], lag: Int): Double ={
-    var res: Double = 0.0
-    for(i <- 0 until leftCol.length - lag){
-      res += leftCol(i + lag) * rightCol(i)
-    }
-    res
-  }
 
-  override def estimate(timeSeriesTile: Array[Array[Double]]): Array[DenseMatrix[Double]] ={
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[DenseMatrix[Double]]={
 
-    val nCols = timeSeriesTile.size
+    val nCols = timeSeries.take(1).head._2.length
 
-    val result = (0 until nCols).toArray.map(x => DenseMatrix.zeros[Double](nCols, h + 1))
+    val result = Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols))
 
-    if(timeSeriesTile.isEmpty) return result
+    timeSeries.sliding(Array(selectionSize))(computeCrossCov(result)(_))
 
-    val nSamples: Int = timeSeriesTile.size
-
-    if(nSamples == 0) return result
-
-    for(i <- 0 until nCols){
-      for(j <- 0 until nCols){
-        for (lag <- 0 to h){
-          result(i)(j, lag) = crossCov(timeSeriesTile(i), timeSeriesTile(j), lag) / nSamples.toDouble
-        }
-      }
-    }
     result
 
   }
-
-
 
 }
-
-*/

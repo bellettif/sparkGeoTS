@@ -378,7 +378,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val intervalSize = IntervalSize(10, 10)
 
     val slidingRDD = overlappingRDD
-      .mapValues(_.sliding(Array(intervalSize)).toArray)
+      .mapValues(_.sliding(Array(intervalSize))(x => x).toArray)
       .map(_._2)
       .map(_.map(_._2))
       .collect()
@@ -426,7 +426,10 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val intervalSize = IntervalSize(10, 10)
 
     val slidingRDD = overlappingRDD
-      .mapValues(v => v.sliding(Array(intervalSize), v.locations.slice(v.firstValidIndex, v.lastValidIndex + 1)).toArray)
+      .mapValues(v => v.sliding(Array(intervalSize),
+                                v.locations.slice(v.firstValidIndex, v.lastValidIndex + 1))
+                                (x => x)
+                                .toArray)
       .map(_._2)
       .map(_.map(_._2))
       .collect()
@@ -477,7 +480,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay != y.timestamp.secondOfDay
 
     val slicedRDD = overlappingRDD
-      .mapValues(v => v.slicingWindow(Array(cutPredicate)).toArray)
+      .mapValues(v => v.slicingWindow(Array(cutPredicate))(x => x).toArray)
       .map(_._2)
       .map(_.map(_._2))
       .collect()

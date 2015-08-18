@@ -13,12 +13,20 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
   def locations: Array[CompleteLocation[KeyT]] // Can be evenly spaced or not
   def signedDistances: Array[((KeyT, KeyT) => Double)]
 
-  def sliding(size: Array[IntervalSize]): OverlappingBlock[KeyT, Array[(KeyT, ValueT)]]
+  def sliding[ResultT: ClassTag](size: Array[IntervalSize])
+                                (f: Array[(KeyT, ValueT)] => ResultT): OverlappingBlock[KeyT, ResultT]
 
-  def sliding(size: Array[IntervalSize],
-              targets: Array[CompleteLocation[KeyT]]): OverlappingBlock[KeyT, Array[(KeyT, ValueT)]]
+  def sliding[ResultT: ClassTag](size: Array[IntervalSize],
+                                 targets: Array[CompleteLocation[KeyT]])
+                                (f: Array[(KeyT, ValueT)] => ResultT): OverlappingBlock[KeyT, ResultT]
 
-  def slicingWindow(cutPredicates: Array[(KeyT, KeyT) => Boolean]): OverlappingBlock[KeyT, Array[(KeyT, ValueT)]]
+  def slicingWindow[ResultT: ClassTag](cutPredicates: Array[(KeyT, KeyT) => Boolean])
+                                      (f: Array[(KeyT, ValueT)] => ResultT): OverlappingBlock[KeyT, ResultT]
+
+  def slicingWindowFold[ResultT: ClassTag](cutPredicates: Array[(KeyT, KeyT) => Boolean])
+                                          (f: Array[(KeyT, ValueT)] => ResultT,
+                                           zero: ResultT,
+                                           op: (ResultT, ResultT) => ResultT): ResultT
 
   def filter(p: (KeyT, ValueT) => Boolean):
       OverlappingBlock[KeyT, ValueT]
@@ -29,8 +37,21 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
 
   def fold(zeroValue: (KeyT, ValueT))(op: ((KeyT, ValueT), (KeyT, ValueT)) => (KeyT, ValueT)): (KeyT, ValueT)
 
+  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize],
+                                     targets: Array[CompleteLocation[KeyT]])
+                                    (f: Array[(KeyT, ValueT)] => ResultT,
+                                     zero: ResultT,
+                                     op: (ResultT, ResultT) => ResultT): ResultT
+
+  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize])
+                                    (f: Array[(KeyT, ValueT)] => ResultT,
+                                     zero: ResultT,
+                                     op: (ResultT, ResultT) => ResultT): ResultT
+
   def toArray: Array[(KeyT, ValueT)] // Guarantees there is no redundancy here
 
   def count: Long
+
+  def take(n: Int): Array[(KeyT, ValueT)]
 
 }

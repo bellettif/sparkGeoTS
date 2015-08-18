@@ -45,14 +45,17 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
   val signedDistance = signedDistances.apply(0)
 
 
-  override def sliding(size: Array[IntervalSize]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] = {
+  override def sliding[ResultT: ClassTag](size: Array[IntervalSize])
+                               (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
-    sliding(size, locations.slice(firstValidIndex, lastValidIndex + 1))
+    sliding[ResultT](size, locations.slice(firstValidIndex, lastValidIndex + 1))(f)
 
   }
 
 
-  override def sliding(size: Array[IntervalSize], targets: Array[CompleteLocation[IndexT]]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] = {
+  override def sliding[ResultT: ClassTag](size: Array[IntervalSize],
+                                targets: Array[CompleteLocation[IndexT]])
+                                (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
     val lookAhead = size.head.lookAhead
     val lookBack  = size.head.lookBack
@@ -60,7 +63,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var begin_index = 0
     var end_index   = 0
 
-    var result = List[(IndexT, Array[(IndexT, ValueT)])]()
+    var result = List[(IndexT, ResultT)]()
 
     for(center_location <- targets){
       if(end_index != -1) {
@@ -72,17 +75,60 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
           end_index)
 
         if ((begin_index != -1) && (end_index != -1))
-          result = result :+(center_location.k, data.slice(begin_index, end_index + 1))
+          result = result :+(center_location.k, f(data.slice(begin_index, end_index + 1)))
 
       }
     }
 
-    new SingleAxisBlock[IndexT, Array[(IndexT, ValueT)]](result.toArray, targets, signedDistances)
+    new SingleAxisBlock[IndexT, ResultT](result.toArray, targets, signedDistances)
 
   }
 
+  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize],
+                                     targets: Array[CompleteLocation[IndexT]])
+                                    (f: Array[(IndexT, ValueT)] => ResultT,
+                                     zero: ResultT,
+                                     op: (ResultT, ResultT) => ResultT): ResultT = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    var result = zero
+
+    for(center_location <- targets){
+      if(end_index != -1) {
+
+        begin_index = locations.indexWhere(x => signedDistance(x.k, center_location.k) <= lookBack,
+          begin_index)
+
+        end_index = locations.indexWhere(x => signedDistance(center_location.k, x.k) >= lookAhead,
+          end_index)
+
+        if ((begin_index != -1) && (end_index != -1))
+          result = op(result, f(data.slice(begin_index, end_index + 1)))
+
+      }
+    }
+
+    result
+  }
+
+  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize])
+                                    (f: Array[(IndexT, ValueT)] => ResultT,
+                                     zero: ResultT,
+                                     op: (ResultT, ResultT) => ResultT): ResultT = {
+
+    slidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(f, zero, op)
+
+  }
+
+
   // By convention the marking CompleteLocation of a slice will be that of the start of the interval
-  override def slicingWindow(cutPredicates: Array[(IndexT, IndexT) => Boolean]): OverlappingBlock[IndexT, Array[(IndexT, ValueT)]] ={
+  override def slicingWindow[ResultT: ClassTag](cutPredicates: Array[(IndexT, IndexT) => Boolean])
+                                               (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] ={
 
     val cutPredicate = cutPredicates.head
 
@@ -90,7 +136,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var end_index   = 0
 
     var resultLocations = List[CompleteLocation[IndexT]]()
-    var resultData      = List[(IndexT, Array[(IndexT, ValueT)])]()
+    var resultData      = List[(IndexT, ResultT)]()
 
     val intervals = locations.zip(locations.drop(1))
 
@@ -104,13 +150,45 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
         resultLocations = resultLocations :+ CompleteLocation[IndexT](start.partIdx, start.originIdx, start.k)
 
-        resultData = resultData :+(start.k, data.slice(begin_index, end_index + 1))
+        resultData = resultData :+ (start.k, f(data.slice(begin_index, end_index + 1)))
 
         begin_index = end_index + 1
       }
     }
 
-    new SingleAxisBlock[IndexT, Array[(IndexT, ValueT)]](resultData.toArray, resultLocations.toArray, signedDistances)
+    new SingleAxisBlock[IndexT, ResultT](resultData.toArray, resultLocations.toArray, signedDistances)
+
+  }
+
+
+  def slicingWindowFold[ResultT: ClassTag](cutPredicates: Array[(IndexT, IndexT) => Boolean])
+                                          (f: Array[(IndexT, ValueT)] => ResultT,
+                                           zero: ResultT,
+                                           op: (ResultT, ResultT) => ResultT): ResultT = {
+
+    val cutPredicate = cutPredicates.head
+
+    var begin_index = 0
+    var end_index   = 0
+    var result      = zero
+
+    val intervals = locations.zip(locations.drop(1))
+
+    while((end_index < intervals.length) && (end_index != -1)){
+      end_index = intervals.indexWhere({case (x, y) => cutPredicate(x.k, y.k)}, begin_index)
+
+      if(end_index != -1) {
+
+        val start = locations(begin_index)
+        val stop = locations(end_index)
+
+        result = op(result, f(data.slice(begin_index, end_index + 1)))
+
+        begin_index = end_index + 1
+      }
+    }
+
+    result
 
   }
 
@@ -154,10 +232,15 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   override def count: Long = {
 
-    return lastValidIndex + 1 - firstValidIndex
+    lastValidIndex + 1 - firstValidIndex
 
   }
 
+  override def take(n : Int): Array[(IndexT, ValueT)] = {
+
+    data.slice(firstValidIndex, lastValidIndex + 1).take(n)
+
+  }
 
 
 }
