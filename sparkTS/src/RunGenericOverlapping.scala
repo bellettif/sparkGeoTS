@@ -32,7 +32,8 @@ object RunGenericOverlapping {
 
     //val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
-    val rawTS = IndividualRecords.generateAR1(0.9, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTS = IndividualRecords.generateAR1(0.9, nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateAR2(0.6, 0.2, nColumns, nSamples.toInt, deltaTMillis, sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -47,9 +48,7 @@ object RunGenericOverlapping {
     /*
     val crossCov = new CrossCovariance[TSInstant](IntervalSize(5, 5), 5)
     val result = crossCov.estimate(overlappingRDD)
-    */
 
-    /*
     val autoCov = new AutoCovariances[TSInstant](5.0, 5)
     val result = autoCov.estimate(overlappingRDD)
     */

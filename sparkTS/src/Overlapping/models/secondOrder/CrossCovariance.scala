@@ -5,6 +5,8 @@ import org.apache.spark.rdd.RDD
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
 
+import scala.reflect.ClassTag
+
 /**
  * Created by Francois Belletti on 7/10/15.
  */
@@ -12,10 +14,10 @@ import overlapping.containers.block.SingleAxisBlock
 /*
 Here we expect the number of dimensions to be the same for all records.
  */
-class CrossCovariance[IndexT <: Ordered[IndexT]](selectionSize: IntervalSize, modelOrder: Int)
+class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: IntervalSize, modelOrder: Int)
   extends Serializable with SecondOrderModel[IndexT, Array[Double]]{
 
-  def computeCrossCov(slice: Array[(IndexT, Array[Double])]): Array[DenseMatrix[Double]] = {
+  def computeCrossCov(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], Long) = {
 
     val nCols         = slice(0)._2.length
     val centerTarget  = slice(modelOrder)._2
@@ -23,7 +25,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT]](selectionSize: IntervalSize, mo
     val result = Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols))
 
     if(slice.length != 2 * modelOrder + 1){
-      return result
+      return (result, 0L)
     }
 
     for(i <- 0 until 2 * modelOrder + 1){
@@ -35,28 +37,39 @@ class CrossCovariance[IndexT <: Ordered[IndexT]](selectionSize: IntervalSize, mo
       }
     }
 
-    result
+    (result, 1L)
   }
 
-  def sumArrays = (x: Array[DenseMatrix[Double]], y: Array[DenseMatrix[Double]]) => x.zip(y).map({case (u, v) => u :+ v})
+  def sumArrays(x: (Array[DenseMatrix[Double]], Long), y: (Array[DenseMatrix[Double]], Long)): (Array[DenseMatrix[Double]], Long) ={
+    (x._1.zip(y._1).map({case (u, v) => u :+ v}), x._2 + y._2)
+  }
 
-
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[DenseMatrix[Double]]={
+  def computeCovariations(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): (Array[DenseMatrix[Double]], Long) ={
 
     val nCols = timeSeries.take(1).head._2.length
 
-    val zero = Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols))
+    val zero = (Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols)), 0L)
 
-    timeSeries.slidingFold(Array(selectionSize))(computeCrossCov, zero, sumArrays)
+    timeSeries
+      .slidingFold(Array(selectionSize))(computeCrossCov, zero, sumArrays)
+
+  }
+
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[DenseMatrix[Double]]={
+
+    val (covariations, nSamples) = computeCovariations(timeSeries)
+    covariations.map(_ / nSamples.toDouble)
 
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[DenseMatrix[Double]]={
 
-    timeSeries
-      .mapValues(estimate)
+    val (covariations, nSamples) = timeSeries
+      .mapValues(computeCovariations)
       .map(_._2)
-      .reduce({case (x, y) => x.zip(y).map({case (u, v) => u :+ v})})
+      .reduce(sumArrays)
+
+    covariations.map(_ / nSamples.toDouble)
 
   }
 
