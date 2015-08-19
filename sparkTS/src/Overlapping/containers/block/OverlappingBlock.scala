@@ -28,8 +28,7 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
                                            zero: ResultT,
                                            op: (ResultT, ResultT) => ResultT): ResultT
 
-  def filter(p: (KeyT, ValueT) => Boolean):
-      OverlappingBlock[KeyT, ValueT]
+  def filter(p: (KeyT, ValueT) => Boolean): OverlappingBlock[KeyT, ValueT]
 
   def map[ResultT: ClassTag](f: (KeyT, ValueT) => ResultT): OverlappingBlock[KeyT, ResultT]
 

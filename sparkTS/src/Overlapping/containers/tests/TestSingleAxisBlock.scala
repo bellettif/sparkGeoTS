@@ -290,6 +290,80 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
   }
 
+  it should " properly slide fold elements" in {
+
+    val nColumns      = 10
+    val nSamples      = 80000L
+    val paddingMillis = 20L
+    val deltaTMillis  = 1L
+    val nPartitions   = 8
+
+    val zeroArray   = Array.fill(nColumns)(0.0)
+    val zeroSecond  = TSInstant(new DateTime(0L))
+
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+
+    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
+      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+        a._1.compareTo(b._1)
+    }
+
+    val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
+
+    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
+
+    def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
+      data.map(_._2.sum).sum
+    }
+
+    val foldFromOverlappingData = overlappingRDD
+      .mapValues(v => v.slidingFold(Array(IntervalSize(1.0, 1.0)))(sumArray, 0.0, (x: Double, y: Double) => x + y))
+      .map(_._2)
+      .reduce(_ + _)
+
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2) * nColumns)
+
+  }
+
+  it should " properly slide fold elements with external targets" in {
+
+    val nColumns      = 10
+    val nSamples      = 80000L
+    val paddingMillis = 20L
+    val deltaTMillis  = 1L
+    val nPartitions   = 8
+
+    val zeroArray   = Array.fill(nColumns)(0.0)
+    val zeroSecond  = TSInstant(new DateTime(0L))
+
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+
+    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
+      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+        a._1.compareTo(b._1)
+    }
+
+    val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
+
+    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
+
+    def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
+      data.map(_._2.sum).sum
+    }
+
+    val foldFromOverlappingData = overlappingRDD
+      .mapValues(v => v.slidingFold(Array(IntervalSize(1.0, 1.0)),
+                                    v.locations.slice(v.firstValidIndex, v.lastValidIndex + 1))
+                                    (sumArray, 0.0, (x: Double, y: Double) => x + y))
+      .map(_._2)
+      .reduce(_ + _)
+
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2) * nColumns)
+
+  }
+
   it should " properly count elements" in {
 
     val nColumns      = 10
@@ -499,7 +573,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     }
 
   }
-
 
 
 }
