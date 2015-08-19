@@ -1,29 +1,34 @@
 package overlapping.models.secondOrder
 
-/*
 
 import breeze.linalg._
-import timeIndex.containers.TimeSeries
+import org.apache.spark.rdd.RDD
+import overlapping.IntervalSize
+import overlapping.containers.block.{ColumnFirstBlock, SingleAxisBlock}
 import overlapping.models.secondOrder.procedures.DurbinLevinson
+
+import scala.reflect.ClassTag
 
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class ARModel(p: Int)
-  extends AutoCovariance(p) with DurbinLevinson{
+class ARModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, modelOrder: Int)
+  extends AutoCovariances[IndexT](selectionSize, modelOrder) with DurbinLevinson{
 
-  override def estimate(timeSeries: TimeSeries[Double]): Array[(DenseVector[Double], Double)] = {
-    val autoCovs = super.estimate(timeSeries)
-    autoCovs.asInstanceOf[Array[DenseVector[Double]]].map(x => runDL(p, x))
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature] = {
+
+    super
+      .estimate(timeSeries)
+      .map(x => runDL(modelOrder, x.covariation))
+
   }
 
-  override def estimate(timeSeriesTile: Array[Array[Double]]): Array[(DenseVector[Double], Double)] = {
-    val autoCovs = super.estimate(timeSeriesTile)
-    autoCovs.asInstanceOf[Array[DenseVector[Double]]].map(x => runDL(p, x))
-  }
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[Signature]= {
 
+    super
+      .estimate(timeSeries)
+      .map(x => runDL(modelOrder, x.covariation))
+
+  }
 
 }
-
-
-*/

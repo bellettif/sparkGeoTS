@@ -26,19 +26,20 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
-  /*
-  def getAR1TsRDD(phi1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                  sc: SparkContext) = {
+  def generateAR1(phi1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                  sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- 1 until nSamples){
       noiseMatrix(i, ::) :+= noiseMatrix(i-1, ::) :* phi1
     }
+
     val rawData = (0 until nSamples)
-      .map(x => x +: noiseMatrix(x, ::).t.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
     sc.parallelize(rawData)
   }
 
+  /*
   def getAR2TsRDD(phi1: Double, phi2: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
                   sc: SparkContext) = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5

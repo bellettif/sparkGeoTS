@@ -58,8 +58,9 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
 
   }
 
+
   def columnSliding[ResultT: ClassTag](size: Array[IntervalSize])
-                                          (kernels: Array[(Array[IndexT], Array[Double]) => ResultT]): SingleAxisBlock[IndexT, Array[ResultT]] = {
+                                      (kernels: Array[(Array[IndexT], Array[Double]) => ResultT]): SingleAxisBlock[IndexT, Array[ResultT]] = {
 
     columnSliding(size, locations.slice(firstValidIndex, lastValidIndex + 1))(kernels)
 
@@ -96,14 +97,25 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
 
         if ((begin_index != -1) && (end_index != -1)){
           result = result
-            .zip((0 until nCols).map(c => kernels(c)(indexSlice, columns(c).slice(begin_index, end_index + 1))).toArray)
+            .zip((0 until nCols).map(c => kernels(c)(indexSlice, columns(c).slice(begin_index, end_index + 1))))
             .zipWithIndex
             .map({case ((x, y), c) => ops(c)(x, y)})
         }
+
       }
     }
 
     result
+  }
+
+
+  def columnSlidingFold[ResultT: ClassTag](size: Array[IntervalSize])
+                                          (kernels: Array[(Array[IndexT], Array[Double]) => ResultT],
+                                           zeros: Array[ResultT],
+                                           ops: Array[(ResultT, ResultT) => ResultT]): Array[ResultT] = {
+
+    columnSlidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(kernels, zeros, ops)
+
   }
 
 }

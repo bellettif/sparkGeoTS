@@ -5,7 +5,6 @@ import breeze.linalg._
 /**
  * Created by Francois Belletti on 7/14/15.
  */
-/*
 
 trait Rybicki {
 
@@ -17,7 +16,7 @@ trait Rybicki {
   TODO: check size of toepM and y are compatible.
   TODO: check that diagonal element of toepM is non zero.
    */
-  private [regularSpacing] def runR(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
+  def runR(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
     var prevX = DenseVector.zeros[Double](1)
     var prevH = DenseVector.zeros[Double](1)
     var prevG = DenseVector.zeros[Double](1)
@@ -65,7 +64,4 @@ trait Rybicki {
     prevX
   }
 
-
 }
-
-*/
