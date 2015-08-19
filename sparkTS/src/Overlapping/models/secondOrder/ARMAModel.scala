@@ -1,9 +1,9 @@
 package overlapping.models.secondOrder
 
-/*
-
 import breeze.linalg._
 import overlapping.models.secondOrder.procedures.{InnovationAlgo, Rybicki}
+
+/*
 
 /**
  * Created by Francois Belletti on 7/14/15.

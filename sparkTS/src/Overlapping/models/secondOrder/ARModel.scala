@@ -15,6 +15,14 @@ import scala.reflect.ClassTag
 class ARModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, modelOrder: Int)
   extends AutoCovariances[IndexT](selectionSize, modelOrder) with DurbinLevinson{
 
+  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
+
+    super
+      .estimate(slice)
+      .map(x => runDL(modelOrder, x.covariation))
+
+  }
+
   override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature] = {
 
     super

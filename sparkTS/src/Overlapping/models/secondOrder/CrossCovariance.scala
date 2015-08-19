@@ -55,21 +55,34 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Inter
 
   }
 
+  def normalize = (r: (Array[DenseMatrix[Double]], Long)) => r._1.map(_ / r._2.toDouble)
+
+  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[DenseMatrix[Double]] = {
+
+    normalize(
+      slice.sliding(2 * modelOrder + 1)
+        .map(computeCrossCov)
+        .reduce(sumArrays)
+    )
+
+  }
+
   override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[DenseMatrix[Double]]={
 
-    val (covariations, nSamples) = computeCovariations(timeSeries)
-    covariations.map(_ / nSamples.toDouble)
+    normalize(
+      computeCovariations(timeSeries)
+    )
 
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[DenseMatrix[Double]]={
 
-    val (covariations, nSamples) = timeSeries
-      .mapValues(computeCovariations)
-      .map(_._2)
-      .reduce(sumArrays)
-
-    covariations.map(_ / nSamples.toDouble)
+    normalize(
+      timeSeries
+        .mapValues(computeCovariations)
+        .map(_._2)
+        .reduce(sumArrays)
+    )
 
   }
 

@@ -52,19 +52,20 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
-  /*
-  def getMA1TsRDD(theta1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
+  def generateMA1(theta1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
                   sc: SparkContext) = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- (nSamples - 1) to 1 by -1){
       noiseMatrix(i, ::) :+= noiseMatrix(i-1, ::) :* theta1
     }
+
     val rawData = (0 until nSamples)
-      .map(x => x +: noiseMatrix(x, ::).t.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
     sc.parallelize(rawData)
   }
 
+  /*
   def getOnesRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                       sc: SparkContext) = {
     val oneValue = DenseVector.ones[Double](nColumns)

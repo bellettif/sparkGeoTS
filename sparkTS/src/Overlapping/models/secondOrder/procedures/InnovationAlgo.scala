@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.procedures
 
 import breeze.linalg._
+import overlapping.models.secondOrder.Signature
 
 /**
  * Created by Francois Belletti on 7/14/15.
@@ -16,7 +17,7 @@ trait InnovationAlgo {
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  def runIA(h: Int, autoCov: DenseVector[Double]): (DenseVector[Double], Double) ={
+  def runIA(h: Int, autoCov: DenseVector[Double]): Signature ={
     val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](h + 1)
 
@@ -32,7 +33,8 @@ trait InnovationAlgo {
     }
 
     // Reverse the result so as to have the same convention as in the book
-    (reverse(thetaEsts(h - 1)), varEsts(h))
+    Signature(reverse(thetaEsts(h - 1)), varEsts(h))
+
   }
 
 }
