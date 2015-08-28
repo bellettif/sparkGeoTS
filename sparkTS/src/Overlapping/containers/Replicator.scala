@@ -6,7 +6,8 @@ import scala.math._
 import scala.reflect.ClassTag
 
 /**
-  * Created by Francois Belletti on 6/24/15.
+  *  A replicator creates overlapping data in overlapping blocks
+  *  with respect to a certain partitioning scheme.
   */
 trait Replicator[KeyT, ValueT] extends Serializable{
 

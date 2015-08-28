@@ -43,7 +43,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val nonOverlappingSeqs = overlappingRDD
@@ -82,7 +82,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
@@ -113,7 +113,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
@@ -142,7 +142,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
@@ -173,7 +173,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
@@ -202,7 +202,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val nonOverlappingSeqs = overlappingRDD
@@ -240,7 +240,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val reduceFromOverlappingData = overlappingRDD
@@ -275,7 +275,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val foldFromOverlappingData = overlappingRDD
@@ -310,7 +310,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
@@ -346,7 +346,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
@@ -381,7 +381,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val overlappingCount = overlappingRDD
@@ -410,7 +410,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val filteredOverlappingRDDCount = overlappingRDD
@@ -439,7 +439,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS
@@ -487,7 +487,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS
@@ -541,7 +541,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS

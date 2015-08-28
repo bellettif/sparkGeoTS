@@ -7,9 +7,8 @@ import overlapping.containers.graph.GroupLinearGraph
 import scala.reflect.ClassTag
 
 /**
- * Created by Francois Belletti on 8/6/15.
+ * Implementation of the replicator in the case of an ordered index as in time series.
  */
-
 class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag](intervals: Array[(IndexT, IndexT)],
                                                                         algebraicDistance: (IndexT, IndexT) => Double,
                                                                         padding: (Double, Double))

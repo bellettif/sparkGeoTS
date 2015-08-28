@@ -5,7 +5,8 @@ import org.apache.spark.Partitioner
 import scala.math._
 
 /**
- * Created by Francois Belletti on 6/24/15.
+ * This computes partition hash value based on complete locations simply
+ * by retrieving the first element of the complete location.
  */
 class BlockIndexPartitioner(override val numPartitions: Int)
   extends Partitioner{

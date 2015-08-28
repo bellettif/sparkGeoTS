@@ -11,14 +11,22 @@ import scala.math.Ordering
 import scala.reflect.ClassTag
 
 /**
- * Created by Francois Belletti on 8/6/15.
+ * This object is used to transform an RDD of raw unsorted data into
+ * an RDD of key value pairs where keys are partition indices and values
+ * are SingleAxisBlocks inside which the data is sorted.
  */
 object SingleAxisBlockRDD {
 
+  /*
+  This will devise approximatively balanced intervals to partition the raw data along.
+  Partitions will be created, overlaps materialized and the data within each block
+  will be sorted.
+   */
   def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag](padding: (Double, Double),
                                                          signedDistance: (IndexT, IndexT) => Double,
                                                          nPartitions: Int,
-                                                         recordRDD: RDD[(IndexT, ValueT)]): RDD[(Int, SingleAxisBlock[IndexT, ValueT])] = {
+                                                         recordRDD: RDD[(IndexT, ValueT)]):
+    (RDD[(Int, SingleAxisBlock[IndexT, ValueT])], Array[(IndexT, IndexT)]) = {
 
     case class KeyValue(k: IndexT, v: ValueT)
     /*
@@ -38,6 +46,30 @@ object SingleAxisBlockRDD {
         true,
         recordRDD)
       .map({ case ((k1, v1), (k2, v2)) => (k1, k2) })
+
+    val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, signedDistance, padding)
+    val partitioner = new BlockIndexPartitioner(intervals.length)
+
+    (recordRDD
+      .flatMap({ case (k, v) => replicator.replicate(k, v) })
+      .partitionBy(partitioner)
+      .mapPartitionsWithIndex({case (i, x) => ((i, SingleAxisBlock(x.toArray, signedDistance)) :: Nil).toIterator}, true)
+    ,intervals)
+
+  }
+
+  /*
+  This is to build an RDD with predefined partitioning intervals. This is useful
+  so that two OverlappingBlock RDDs have corresponding overlapping blocks mapped on the
+  same key.
+   */
+  def fromIntervals[IndexT <: Ordered[IndexT], ValueT: ClassTag](padding: (Double, Double),
+                                                                 signedDistance: (IndexT, IndexT) => Double,
+                                                                 intervals: Array[(IndexT, IndexT)],
+                                                                 recordRDD: RDD[(IndexT, ValueT)]):
+    RDD[(Int, SingleAxisBlock[IndexT, ValueT])] = {
+
+    case class KeyValue(k: IndexT, v: ValueT)
 
     val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, signedDistance, padding)
     val partitioner = new BlockIndexPartitioner(intervals.length)

@@ -6,6 +6,9 @@ import scala.reflect.ClassTag
 
 object SingleAxisBlock{
 
+  /*
+  The data will be sorted with respect to keys.
+   */
   def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag]
     (rawData: Array[((Int, Int, IndexT), ValueT)],
     signedDistance: (IndexT, IndexT) => Double): SingleAxisBlock[IndexT, ValueT] ={

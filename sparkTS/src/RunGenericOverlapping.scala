@@ -43,7 +43,7 @@ object RunGenericOverlapping {
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])] =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], intervals: Array[(TSInstant, TSInstant)]) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     /*

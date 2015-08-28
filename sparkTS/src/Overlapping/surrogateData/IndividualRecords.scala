@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 
 /**
- * Created by Francois Belletti on 8/7/15.
+ * Simulate data based on different models.
  */
 object IndividualRecords {
 

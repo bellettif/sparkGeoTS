@@ -13,6 +13,11 @@ import scala.reflect.ClassTag
  */
 object IntervalSampler{
 
+  /*
+  Sample out a small data set from the complete data and
+  devise intervals so that about the same number of data points
+  sit on the intervals.
+   */
   def sampleAndComputeIntervals[T: ClassTag](nIntervals: Int,
                                              sampleSize: Int,
                                              withReplacement: Boolean,

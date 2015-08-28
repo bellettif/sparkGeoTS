@@ -3,7 +3,7 @@ package overlapping.surrogateData
 import org.joda.time.DateTime
 
 /**
- * Created by Francois Belletti on 8/12/15.
+ * Ordered timestamps.
  */
 case class TSInstant(timestamp: DateTime) extends Ordered[TSInstant]{
 

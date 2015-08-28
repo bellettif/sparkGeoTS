@@ -5,7 +5,10 @@ import overlapping.{IntervalSize, CompleteLocation}
 import scala.reflect.ClassTag
 
 /**
- * Created by Francois Belletti on 8/18/15.
+ * This special overlapping block is dedicated to a column first
+ * representation of the data.
+ * This is particularly useful for batch processing of unrelated dimensions
+ * stored in the same multivariate time series. (No cross correlation study).
  */
 class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
        override val data: Array[(IndexT, Array[Double])],
@@ -17,6 +20,9 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
   lazy val columns: Array[Array[Double]]  = data.map(_._2).transpose
   lazy val indices: Array[IndexT]         = data.map(_._1)
 
+  /*
+  There is one kernel size per column, on set of targets per column, on kernel per column.
+   */
   def columnSliding[ResultT: ClassTag](size: Array[IntervalSize],
                                        targets: Array[CompleteLocation[IndexT]])
                                       (kernels: Array[(Array[IndexT], Array[Double]) => ResultT]): SingleAxisBlock[IndexT, Array[ResultT]] = {
@@ -58,7 +64,9 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
 
   }
 
-
+  /*
+  The targets will be all admissible data points on each column.
+   */
   def columnSliding[ResultT: ClassTag](size: Array[IntervalSize])
                                       (kernels: Array[(Array[IndexT], Array[Double]) => ResultT]): SingleAxisBlock[IndexT, Array[ResultT]] = {
 
@@ -66,6 +74,10 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
 
   }
 
+  /*
+  Fold results along each column directly after they have been computed on the prescribed
+  targets given for each column.
+   */
   def columnSlidingFold[ResultT: ClassTag](size: Array[IntervalSize],
                                            targets: Array[CompleteLocation[IndexT]])
                                           (kernels: Array[(Array[IndexT], Array[Double]) => ResultT],
@@ -108,7 +120,9 @@ class ColumnFirstBlock[IndexT <: Ordered[IndexT] : ClassTag](
     result
   }
 
-
+  /*
+  Compute the kernels for each column and fold the results.
+   */
   def columnSlidingFold[ResultT: ClassTag](size: Array[IntervalSize])
                                           (kernels: Array[(Array[IndexT], Array[Double]) => ResultT],
                                            zeros: Array[ResultT],
