@@ -22,7 +22,7 @@ object RunGenericOverlapping {
   def main(args: Array[String]): Unit ={
 
     val nColumns      = 10
-    val nSamples      = 100000L
+    val nSamples      = 1000000L
     val paddingMillis = 1000L
     val deltaTMillis  = 1L
     val nPartitions   = 8
@@ -33,8 +33,11 @@ object RunGenericOverlapping {
     //val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateAR1(0.9, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTS = IndividualRecords.generateMA(Array(0.4, 0.3, 0.1, 0.05), nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateAR2(0.6, 0.2, nColumns, nSamples.toInt, deltaTMillis, sc)
-    val rawTS = IndividualRecords.generateMA1(0.3, nColumns, nSamples.toInt, deltaTMillis, sc)
+    //val rawTS = IndividualRecords.generateMA1(0.6, nColumns, nSamples.toInt, deltaTMillis, sc)
+
+    val rawTS = IndividualRecords.generateARMA(Array(0.25, 0.05), Array(0.10, 0.05), nColumns, nSamples.toInt, deltaTMillis, sc);
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -56,19 +59,26 @@ object RunGenericOverlapping {
     val result = autoCov.estimate(overlappingRDD)
     */
 
+    val AREstimator = new ARModel[TSInstant](1.0, 5)
+    AREstimator
+      .estimate(overlappingRDD)
+      .foreach(println)
+
+    println()
+
+    val MAEstimator = new MAModel[TSInstant](1.0, 5)
+    MAEstimator
+      .estimate(overlappingRDD)
+      .foreach(println)
+
+    println()
+
+    val ARMAEstimator = new ARMAModel[TSInstant](1.0, 2, 2)
+    ARMAEstimator
+      .estimate(overlappingRDD)
+      .foreach(println)
+
     /*
-    val AREstimator = new ARModel[TSInstant](5.0, 5)
-    val result = AREstimator.estimate(overlappingRDD)
-    */
-
-
-    val MAEstimator = new MAModel[TSInstant](5.0, 5)
-
-    /*
-    val result = MAEstimator.estimate(overlappingRDD)
-    result.foreach(println)
-    */
-
     val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay() != y.timestamp.secondOfDay()
 
     val slidingResult = overlappingRDD
@@ -76,6 +86,7 @@ object RunGenericOverlapping {
       .collect
 
     slidingResult.foreach(println)
+    */
 
   }
 }

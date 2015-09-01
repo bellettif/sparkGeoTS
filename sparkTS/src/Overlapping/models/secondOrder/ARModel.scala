@@ -12,14 +12,14 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class ARModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, modelOrder: Int)
-  extends AutoCovariances[IndexT](selectionSize, modelOrder) with DurbinLevinson{
+class ARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
+  extends AutoCovariances[IndexT](deltaT, modelOrder){
 
   override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
 
     super
       .estimate(slice)
-      .map(x => runDL(modelOrder, x.covariation))
+      .map(x => DurbinLevinson(modelOrder, x.covariation))
 
   }
 
@@ -27,7 +27,7 @@ class ARModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, model
 
     super
       .estimate(timeSeries)
-      .map(x => runDL(modelOrder, x.covariation))
+      .map(x => DurbinLevinson(modelOrder, x.covariation))
 
   }
 
@@ -35,7 +35,7 @@ class ARModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, model
 
     super
       .estimate(timeSeries)
-      .map(x => runDL(modelOrder, x.covariation))
+      .map(x => DurbinLevinson(modelOrder, x.covariation))
 
   }
 

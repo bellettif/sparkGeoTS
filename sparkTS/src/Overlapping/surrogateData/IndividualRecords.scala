@@ -52,8 +52,26 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
+  def generateAR(phis: Array[Double], nColumns:Int, nSamples: Int, deltaTMillis: Long,
+                 sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+
+    val p = phis.length
+
+    val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
+    for(i <- p until nSamples){
+      for(h <- 1 to p){
+        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
+      }
+    }
+
+    val rawData = (0 until nSamples)
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
+    sc.parallelize(rawData)
+  }
+
   def generateMA1(theta1: Double, nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                  sc: SparkContext) = {
+                  sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
     val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
     for(i <- (nSamples - 1) to 1 by -1){
       noiseMatrix(i, ::) :+= noiseMatrix(i-1, ::) :* theta1
@@ -65,24 +83,49 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
-  /*
-  def getOnesRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                      sc: SparkContext) = {
-    val oneValue = DenseVector.ones[Double](nColumns)
+  def generateMA(thetas: Array[Double], nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                 sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+    val q = thetas.length
+
+    val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
+    for(i <- (nSamples - 1) to 1 by -1){
+      for(h <- 1 to q) {
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
+      }
+    }
+
     val rawData = (0 until nSamples)
-      .map(x => x +: oneValue.toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
     sc.parallelize(rawData)
+
   }
 
-  def getCumOnesRawTsRDD(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                         sc: SparkContext) = {
-    val oneValue = DenseVector.ones[Double](nColumns)
+  def generateARMA(phis: Array[Double], thetas: Array[Double],
+                   nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                   sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+
+    val q = thetas.length
+    val p = phis.length
+
+    val noiseMatrix   = DenseMatrix.rand[Double](nSamples, nColumns) - 0.5
+    for(i <- (nSamples - 1) to 1 by -1){
+      for(h <- 1 to q) {
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
+      }
+    }
+
+    for(i <- p until nSamples){
+      for(h <- 1 to p){
+        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
+      }
+    }
+
     val rawData = (0 until nSamples)
-      .map(x => x +: (oneValue :* x.toDouble).toArray)
-      .map(x => new DateTime(x.apply(0).asInstanceOf[Int].toLong * deltaTMillis) +: x.drop(1))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
     sc.parallelize(rawData)
+
   }
-  */
 
 }

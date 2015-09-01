@@ -14,9 +14,9 @@ import overlapping.models.secondOrder.Signature
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 234)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-trait DurbinLevinson{
+object DurbinLevinson extends Serializable{
 
-  def runDL(h: Int, autoCov: DenseVector[Double]): Signature ={
+  def apply(h: Int, autoCov: DenseVector[Double]): Signature ={
 
     var prevPhiEst          = DenseVector.zeros[Double](1)
     prevPhiEst(0)           = autoCov(1) / autoCov(0)

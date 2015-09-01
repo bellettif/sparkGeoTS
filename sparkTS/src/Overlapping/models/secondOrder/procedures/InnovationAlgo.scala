@@ -7,7 +7,7 @@ import overlapping.models.secondOrder.Signature
  * Created by Francois Belletti on 7/14/15.
  */
 
-trait InnovationAlgo {
+object InnovationAlgo extends Serializable{
 
   /*
 
@@ -17,7 +17,7 @@ trait InnovationAlgo {
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  def runIA(h: Int, autoCov: DenseVector[Double]): Signature ={
+  def apply(h: Int, autoCov: DenseVector[Double]): Signature ={
     val thetaEsts = (1 to h).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](h + 1)
 

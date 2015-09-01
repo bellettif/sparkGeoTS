@@ -6,17 +6,17 @@ import breeze.linalg._
  * Created by Francois Belletti on 7/14/15.
  */
 
-trait Rybicki {
+object Rybicki extends Serializable{
 
   /*
-  This procedures inverts a non-symmetrix Toeplitz matrix.
+  This procedures inverts a non-symmetric Toeplitz matrix.
   R is a (n * n) Toeplitz matrix only characterized by its 2*n - 1 distinct elements.
   The R matrix is described from its upper left corner to its lower right corner.
   Check out Numerical Recipes Third Edition p97.
   TODO: check size of toepM and y are compatible.
   TODO: check that diagonal element of toepM is non zero.
    */
-  def runR(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
+  def apply(n: Int, R: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] ={
     var prevX = DenseVector.zeros[Double](1)
     var prevH = DenseVector.zeros[Double](1)
     var prevG = DenseVector.zeros[Double](1)

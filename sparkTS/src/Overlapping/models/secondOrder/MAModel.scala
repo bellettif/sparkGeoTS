@@ -10,14 +10,14 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class MAModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, modelOrder: Int)
-  extends AutoCovariances[IndexT](selectionSize, modelOrder) with InnovationAlgo{
+class MAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
+  extends AutoCovariances[IndexT](deltaT, modelOrder){
 
   override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
 
     super
       .estimate(slice)
-      .map(x => runIA(modelOrder, x.covariation))
+      .map(x => InnovationAlgo(modelOrder, x.covariation))
 
   }
 
@@ -25,7 +25,7 @@ class MAModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, model
 
     super
       .estimate(timeSeries)
-      .map(x => runIA(modelOrder, x.covariation))
+      .map(x => InnovationAlgo(modelOrder, x.covariation))
 
   }
 
@@ -33,7 +33,7 @@ class MAModel[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Double, model
 
     super
       .estimate(timeSeries)
-      .map(x => runIA(modelOrder, x.covariation))
+      .map(x => InnovationAlgo(modelOrder, x.covariation))
 
   }
 
