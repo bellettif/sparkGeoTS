@@ -4,6 +4,7 @@ package overlapping.containers.tests
  * Created by Francois Belletti on 8/17/15.
  */
 
+import breeze.stats.distributions.Uniform
 import overlapping.IntervalSize
 
 import scala.math._
@@ -34,7 +35,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -73,7 +76,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -104,7 +109,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -133,7 +140,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 3L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -164,7 +173,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -193,7 +204,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -231,7 +244,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -266,7 +281,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -301,7 +318,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -337,7 +356,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -372,7 +393,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -401,7 +424,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -430,7 +455,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 2L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -478,7 +505,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 2L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -532,7 +561,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 200L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
+    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =

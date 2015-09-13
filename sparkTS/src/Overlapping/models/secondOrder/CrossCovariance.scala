@@ -14,7 +14,7 @@ import scala.reflect.ClassTag
 /*
 Here we expect the number of dimensions to be the same for all records.
  */
-class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: IntervalSize, modelOrder: Int)
+class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
   extends Serializable with SecondOrderModel[IndexT, Array[Double]]{
 
   def computeCrossCov(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], Long) = {
@@ -50,39 +50,49 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](selectionSize: Inter
 
     val zero = (Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols)), 0L)
 
+    val selectionSize = IntervalSize(modelOrder * deltaT, 0)
+
     timeSeries
       .slidingFold(Array(selectionSize))(computeCrossCov, zero, sumArrays)
 
   }
 
-  def normalize = (r: (Array[DenseMatrix[Double]], Long)) => r._1.map(_ / r._2.toDouble)
+  def normalize(r: (Array[DenseMatrix[Double]], Long)): Array[DenseMatrix[Double]] = {
+    r._1.map(_ / r._2.toDouble)
+  }
 
-  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[DenseMatrix[Double]] = {
+  override def estimate(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    normalize(
+    val covarianceMatrices = normalize(
       slice.sliding(2 * modelOrder + 1)
         .map(computeCrossCov)
         .reduce(sumArrays)
     )
 
+    (covarianceMatrices, covarianceMatrices(modelOrder))
+
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[DenseMatrix[Double]]={
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double])={
 
-    normalize(
+    val covarianceMatrices = normalize(
       computeCovariations(timeSeries)
     )
 
+    (covarianceMatrices, covarianceMatrices(modelOrder))
+
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[DenseMatrix[Double]]={
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])={
 
-    normalize(
+    val covarianceMatrices = normalize(
       timeSeries
         .mapValues(computeCovariations)
         .map(_._2)
         .reduce(sumArrays)
     )
+
+    (covarianceMatrices, covarianceMatrices(modelOrder))
 
   }
 

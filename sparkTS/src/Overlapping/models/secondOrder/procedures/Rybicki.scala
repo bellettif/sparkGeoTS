@@ -32,10 +32,6 @@ object Rybicki extends Serializable{
     var nextG = DenseVector.zeros[Double](2)
     var nextX = DenseVector.zeros[Double](2)
     for(m <- 0 until n - 1){
-      println(prevG)
-      println(prevH)
-      println(prevX)
-      println()
 
       if(m < n - 2) {
         // Equation 2.8.23
@@ -55,11 +51,6 @@ object Rybicki extends Serializable{
 
       // Equation 2.8.16
       nextX(0 to m) := prevX - (reverse(prevG) * nextX(m + 1))
-
-      println(nextG)
-      println(nextH)
-      println(nextX)
-      println()
 
       //Swap and allocate
       prevX = nextX

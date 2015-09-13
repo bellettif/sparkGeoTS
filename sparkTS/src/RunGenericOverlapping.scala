@@ -2,8 +2,9 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import breeze.linalg.sum
+import breeze.linalg.{DenseMatrix, sum}
 import breeze.numerics.sqrt
+import breeze.stats.distributions.Uniform
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -37,7 +38,12 @@ object RunGenericOverlapping {
     //val rawTS = IndividualRecords.generateAR2(0.6, 0.2, nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateMA1(0.6, nColumns, nSamples.toInt, deltaTMillis, sc)
 
-    val rawTS = IndividualRecords.generateARMA(Array(0.25, 0.05), Array(0.10, 0.05), nColumns, nSamples.toInt, deltaTMillis, sc);
+    val rawTS = IndividualRecords.generateVAR(
+      Array(DenseMatrix.eye[Double](nColumns) :* 0.25, DenseMatrix.eye[Double](nColumns) :* 0.05),
+      //Array(DenseMatrix.eye[Double](nColumns) :* 0.10, DenseMatrix.eye[Double](nColumns) :* 0.05),
+      nColumns, nSamples.toInt, deltaTMillis,
+      Uniform(-0.5, 0.5),
+      sc);
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =

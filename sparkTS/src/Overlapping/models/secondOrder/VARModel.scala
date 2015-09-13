@@ -1,10 +1,9 @@
 package overlapping.models.secondOrder
 
-import breeze.linalg._
+import breeze.linalg.DenseMatrix
 import org.apache.spark.rdd.RDD
-import overlapping.IntervalSize
-import overlapping.containers.block.{ColumnFirstBlock, SingleAxisBlock}
-import overlapping.models.secondOrder.procedures.DurbinLevinson
+import overlapping.containers.block.SingleAxisBlock
+import overlapping.models.secondOrder.procedures.{RybickiMulti, DurbinLevinson}
 
 import scala.reflect.ClassTag
 
@@ -12,29 +11,41 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/13/15.
  */
 class VARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
-  extends AutoCovariances[IndexT](deltaT, modelOrder){
+  extends CrossCovariance[IndexT](deltaT, modelOrder){
 
-  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
+  def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
+    val nCols = covMatrix.size
 
-    super
-      .estimate(slice)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+    val coeffMatrices = RybickiMulti(2 * modelOrder + 1, nCols,
+      crossCovMatrices.slice(1, 2 * modelOrder),
+      crossCovMatrices.slice(modelOrder + 1, 2 * modelOrder + 1))
+
+    var noiseVariance = covMatrix
+    for(i <- 1 to modelOrder){
+      noiseVariance :+= - coeffMatrices(i - 1) * crossCovMatrices(modelOrder - i)
+    }
+
+    (coeffMatrices, noiseVariance)
+  }
+
+  override def estimate(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+
+    val (crossCovMatrices, covMatrix) = super.estimate(slice)
+    estimateVARMatrices(crossCovMatrices, covMatrix)
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature] = {
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    super
-      .estimate(timeSeries)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+    val (crossCovMatrices, covMatrix) = super.estimate(timeSeries)
+    estimateVARMatrices(crossCovMatrices, covMatrix)
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[Signature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {
 
-    super
-      .estimate(timeSeries)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+    val (crossCovMatrices, covMatrix) = super.estimate(timeSeries)
+    estimateVARMatrices(crossCovMatrices, covMatrix)
 
   }
 
