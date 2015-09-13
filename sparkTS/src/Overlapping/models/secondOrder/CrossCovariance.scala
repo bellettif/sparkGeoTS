@@ -19,14 +19,18 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
 
   def computeCrossCov(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], Long) = {
 
-    val nCols         = slice(0)._2.length
-    val centerTarget  = slice(modelOrder)._2
+    val nCols  = slice(0)._2.length
 
     val result = Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols))
 
+    /*
+    The slice is not full size, it shall not be considered in order to avoid redundant computations
+     */
     if(slice.length != 2 * modelOrder + 1){
       return (result, 0L)
     }
+
+    val centerTarget  = slice(modelOrder)._2
 
     for(i <- 0 until 2 * modelOrder + 1){
       val currentTarget = slice(i)._2
@@ -50,7 +54,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
 
     val zero = (Array.fill(2 * modelOrder + 1)(DenseMatrix.zeros[Double](nCols, nCols)), 0L)
 
-    val selectionSize = IntervalSize(modelOrder * deltaT, 0)
+    val selectionSize = IntervalSize(modelOrder * deltaT, modelOrder * deltaT)
 
     timeSeries
       .slidingFold(Array(selectionSize))(computeCrossCov, zero, sumArrays)

@@ -14,9 +14,9 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder:
   extends CrossCovariance[IndexT](deltaT, modelOrder){
 
   def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
-    val nCols = covMatrix.size
+    val nCols = covMatrix.rows
 
-    val coeffMatrices = RybickiMulti(2 * modelOrder + 1, nCols,
+    val coeffMatrices = RybickiMulti(modelOrder, nCols,
       crossCovMatrices.slice(1, 2 * modelOrder),
       crossCovMatrices.slice(modelOrder + 1, 2 * modelOrder + 1))
 

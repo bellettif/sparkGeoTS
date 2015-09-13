@@ -110,7 +110,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -174,7 +173,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -205,7 +203,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -245,7 +242,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -282,7 +278,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroSecond  = TSInstant(new DateTime(0L))
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -319,7 +314,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroSecond  = TSInstant(new DateTime(0L))
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -357,7 +351,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroSecond  = TSInstant(new DateTime(0L))
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -394,7 +387,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -425,7 +417,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val nPartitions   = 8
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {

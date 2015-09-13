@@ -4,7 +4,7 @@
 
 import breeze.linalg.{DenseMatrix, sum}
 import breeze.numerics.sqrt
-import breeze.stats.distributions.Uniform
+import breeze.stats.distributions.{Gaussian, Uniform}
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -22,7 +22,7 @@ object RunGenericOverlapping {
 
   def main(args: Array[String]): Unit ={
 
-    val nColumns      = 10
+    val nColumns      = 2
     val nSamples      = 1000000L
     val paddingMillis = 1000L
     val deltaTMillis  = 1L
@@ -39,10 +39,10 @@ object RunGenericOverlapping {
     //val rawTS = IndividualRecords.generateMA1(0.6, nColumns, nSamples.toInt, deltaTMillis, sc)
 
     val rawTS = IndividualRecords.generateVAR(
-      Array(DenseMatrix.eye[Double](nColumns) :* 0.25, DenseMatrix.eye[Double](nColumns) :* 0.05),
+      Array(DenseMatrix((0.25, 0.15), (-0.15, 0.20)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
       //Array(DenseMatrix.eye[Double](nColumns) :* 0.10, DenseMatrix.eye[Double](nColumns) :* 0.05),
       nColumns, nSamples.toInt, deltaTMillis,
-      Uniform(-0.5, 0.5),
+      Gaussian(0.0, 2.0),
       sc);
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -65,12 +65,17 @@ object RunGenericOverlapping {
     val result = autoCov.estimate(overlappingRDD)
     */
 
+    /*
+    println("Results of AR univariate frequentist estimator")
+
     val AREstimator = new ARModel[TSInstant](1.0, 5)
     AREstimator
       .estimate(overlappingRDD)
       .foreach(println)
 
     println()
+
+    println("Results of MA univariate frequentist estimator")
 
     val MAEstimator = new MAModel[TSInstant](1.0, 5)
     MAEstimator
@@ -79,10 +84,29 @@ object RunGenericOverlapping {
 
     println()
 
+    println("Results of ARMA univariate frequentist estimator")
+
     val ARMAEstimator = new ARMAModel[TSInstant](1.0, 2, 2)
     ARMAEstimator
       .estimate(overlappingRDD)
       .foreach(println)
+
+    println()
+    */
+
+    println("Results of cross covariance multivariate frequentist estimator")
+
+    val VAREstimator = new VARModel[TSInstant](1.0, 3)
+    val (coeffMatrices, noiseVariance) = VAREstimator
+      .estimate(overlappingRDD)
+
+    println("Cross covariance:")
+    coeffMatrices.foreach(println)
+    println(noiseVariance)
+
+    println()
+
+
 
     /*
     val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay() != y.timestamp.secondOfDay()

@@ -22,10 +22,9 @@ object IndividualRecords {
   }
 
   def generateOnes(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                   noiseGen: Rand[Double],
                    sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseGen.sample(nColumns).toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseMatrix.ones[Double](nColumns, nColumns).toArray))
     sc.parallelize(rawData)
   }
 
