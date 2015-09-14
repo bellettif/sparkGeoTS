@@ -13,6 +13,12 @@ import scala.reflect.ClassTag
 
 /*
 Here we expect the number of dimensions to be the same for all records.
+
+The autocovoriance is ordered as follows
+
+-modelOrder ... 0 ... modelOrder
+
+
  */
 class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
   extends Serializable with SecondOrderModel[IndexT, Array[Double]]{
@@ -32,13 +38,17 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
 
     val centerTarget  = slice(modelOrder)._2
 
-    for(i <- 0 until 2 * modelOrder + 1){
+    for(i <- 0 to modelOrder){
       val currentTarget = slice(i)._2
       for(c1 <- 0 until nCols){
         for(c2 <- 0 until nCols){
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
         }
       }
+    }
+
+    for(i <- 1 to modelOrder){
+      result(modelOrder + i) = result(modelOrder - i).t
     }
 
     (result, 1L)

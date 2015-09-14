@@ -42,7 +42,7 @@ object RunGenericOverlapping {
       Array(DenseMatrix((0.25, 0.15), (-0.15, 0.20)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
       //Array(DenseMatrix.eye[Double](nColumns) :* 0.10, DenseMatrix.eye[Double](nColumns) :* 0.05),
       nColumns, nSamples.toInt, deltaTMillis,
-      Gaussian(0.0, 2.0),
+      Gaussian(0.0, 1.0),
       sc);
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
@@ -94,19 +94,29 @@ object RunGenericOverlapping {
     println()
     */
 
-    println("Results of cross covariance multivariate frequentist estimator")
+    println("Results of AR multivariate frequentist estimator")
 
     val VAREstimator = new VARModel[TSInstant](1.0, 3)
-    val (coeffMatrices, noiseVariance) = VAREstimator
+    val (coeffMatricesAR, noiseVarianceAR) = VAREstimator
       .estimate(overlappingRDD)
 
-    println("Cross covariance:")
-    coeffMatrices.foreach(println)
-    println(noiseVariance)
+    println("AR estimated model:")
+    coeffMatricesAR.foreach(println)
+    println(noiseVarianceAR)
 
     println()
 
+    println("Results of MA multivariate frequentist estimator")
 
+    val VMAEstimator = new VMAModel[TSInstant](1.0, 3)
+    val (coeffMatricesMA, noiseVarianceMA) = VMAEstimator
+      .estimate(overlappingRDD)
+
+    println("MA estimated model:")
+    coeffMatricesMA.foreach(println)
+    println(noiseVarianceMA)
+
+    println()
 
     /*
     val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay() != y.timestamp.secondOfDay()

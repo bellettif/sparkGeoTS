@@ -52,7 +52,7 @@ object RybickiMulti extends Serializable{
 
       temp_H_den := - R_0
       for(i <- 0 until m + 1){
-        temp_H_den :+= R_plus(i) * prevG(i)
+        temp_H_den += R_plus(i) * prevG(i)
       }
 
       H_den_inv = inv(temp_H_den)
@@ -61,12 +61,12 @@ object RybickiMulti extends Serializable{
 
         temp_G_den = - R_0
         for(i <- 0 until m + 1){
-          temp_G_den :+= R_minus(i) * prevH(i)
+          temp_G_den += R_minus(i) * prevH(i)
         }
 
         temp_H_num = - R_plus(m + 1)
         for(i <- 0 until m + 1){
-          temp_H_num :+= R_plus(i) * prevH(m - i)
+          temp_H_num += R_plus(i) * prevH(m - i)
         }
 
         temp_G_num = - R_minus(m + 1)
@@ -95,7 +95,7 @@ object RybickiMulti extends Serializable{
 
       X_new = - y(m + 1)
       for(i <- 0 until m + 1){
-        X_new :+= R_plus(m - i) * prevX(i)
+        X_new += R_plus(m - i) * prevX(i)
       }
       X_new = H_den_inv * X_new
 

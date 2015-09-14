@@ -20,6 +20,8 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder:
       crossCovMatrices.slice(1, 2 * modelOrder),
       crossCovMatrices.slice(modelOrder + 1, 2 * modelOrder + 1))
 
+    coeffMatrices.foreach(x => x := x.t)
+
     var noiseVariance = covMatrix
     for(i <- 1 to modelOrder){
       noiseVariance :+= - coeffMatrices(i - 1) * crossCovMatrices(modelOrder - i)

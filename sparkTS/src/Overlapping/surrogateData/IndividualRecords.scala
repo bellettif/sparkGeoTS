@@ -24,7 +24,7 @@ object IndividualRecords {
   def generateOnes(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                    sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseMatrix.ones[Double](nColumns, nColumns).toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseVector.ones[Double](nColumns).toArray))
     sc.parallelize(rawData)
   }
 
@@ -104,7 +104,7 @@ object IndividualRecords {
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
     for(i <- p until nSamples){
       for(h <- 1 to p){
-        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) * phis(h - 1))
+        noiseMatrix(i, ::) += noiseMatrix(i - h, ::) * phis(h - 1).t
       }
     }
 
@@ -122,7 +122,7 @@ object IndividualRecords {
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
     for(i <- (nSamples - 1) to 1 by -1){
       for(h <- 1 to q) {
-        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * thetas(h - 1)
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * thetas(h - 1).t
       }
     }
 
@@ -144,13 +144,13 @@ object IndividualRecords {
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
     for(i <- (nSamples - 1) to 1 by -1){
       for(h <- 1 to q) {
-        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * thetas(h - 1)
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * thetas(h - 1).t
       }
     }
 
     for(i <- p until nSamples){
       for(h <- 1 to p){
-        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) * phis(h - 1))
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * phis(h - 1).t
       }
     }
 
