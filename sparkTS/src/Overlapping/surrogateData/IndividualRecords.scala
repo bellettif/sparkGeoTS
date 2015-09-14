@@ -53,7 +53,7 @@ object IndividualRecords {
     val q = thetas.length
 
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- (nSamples - 1) to 1 by -1){
+    for(i <- (nSamples - 1) to q by -1){
       for(h <- 1 to q) {
         noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
       }
@@ -75,7 +75,7 @@ object IndividualRecords {
     val p = phis.length
 
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- (nSamples - 1) to 1 by -1){
+    for(i <- (nSamples - 1) to q by -1){
       for(h <- 1 to q) {
         noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
       }
@@ -142,7 +142,7 @@ object IndividualRecords {
     val p = phis.length
 
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- (nSamples - 1) to 1 by -1){
+    for(i <- (nSamples - 1) to q by -1){
       for(h <- 1 to q) {
         noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) * thetas(h - 1).t
       }

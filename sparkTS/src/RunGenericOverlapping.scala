@@ -38,9 +38,11 @@ object RunGenericOverlapping {
     //val rawTS = IndividualRecords.generateAR2(0.6, 0.2, nColumns, nSamples.toInt, deltaTMillis, sc)
     //val rawTS = IndividualRecords.generateMA1(0.6, nColumns, nSamples.toInt, deltaTMillis, sc)
 
-    val rawTS = IndividualRecords.generateVAR(
+    val rawTS = IndividualRecords.generateVARMA(
       Array(DenseMatrix((0.25, 0.15), (-0.15, 0.20)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
-      //Array(DenseMatrix.eye[Double](nColumns) :* 0.10, DenseMatrix.eye[Double](nColumns) :* 0.05),
+      Array(DenseMatrix((0.13, 0.11), (-0.12, 0.05)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
+      //Array(DenseMatrix.eye[Double](nColumns) :* 0.21, DenseMatrix.eye[Double](nColumns) :* 0.15),
+      //Array(DenseMatrix.eye[Double](nColumns) :* 0.17, DenseMatrix.eye[Double](nColumns) :* 0.13),
       nColumns, nSamples.toInt, deltaTMillis,
       Gaussian(0.0, 1.0),
       sc);
@@ -65,13 +67,12 @@ object RunGenericOverlapping {
     val result = autoCov.estimate(overlappingRDD)
     */
 
-    /*
     println("Results of AR univariate frequentist estimator")
 
     val AREstimator = new ARModel[TSInstant](1.0, 5)
     AREstimator
       .estimate(overlappingRDD)
-      .foreach(println)
+      .foreach(x=> {println(x); println()})
 
     println()
 
@@ -80,7 +81,7 @@ object RunGenericOverlapping {
     val MAEstimator = new MAModel[TSInstant](1.0, 5)
     MAEstimator
       .estimate(overlappingRDD)
-      .foreach(println)
+      .foreach(x=> {println(x); println()})
 
     println()
 
@@ -89,10 +90,9 @@ object RunGenericOverlapping {
     val ARMAEstimator = new ARMAModel[TSInstant](1.0, 2, 2)
     ARMAEstimator
       .estimate(overlappingRDD)
-      .foreach(println)
+      .foreach(x=> {println(x); println()})
 
     println()
-    */
 
     println("Results of AR multivariate frequentist estimator")
 
@@ -101,7 +101,7 @@ object RunGenericOverlapping {
       .estimate(overlappingRDD)
 
     println("AR estimated model:")
-    coeffMatricesAR.foreach(println)
+    coeffMatricesAR.foreach(x=> {println(x); println()})
     println(noiseVarianceAR)
 
     println()
@@ -113,10 +113,24 @@ object RunGenericOverlapping {
       .estimate(overlappingRDD)
 
     println("MA estimated model:")
-    coeffMatricesMA.foreach(println)
+    coeffMatricesMA.foreach(x=> {println(x); println()})
     println(noiseVarianceMA)
 
     println()
+
+    println("Results of ARMA multivariate frequentist estimator")
+
+    val VARMAEstimator = new VARMAModel[TSInstant](1.0, 2, 2)
+    val (coeffMatricesARMA, noiseVarianceARMA) = VARMAEstimator
+      .estimate(overlappingRDD)
+
+    println("ARMA estimated model:")
+    coeffMatricesARMA.foreach(x=> {println(x); println()})
+    println(noiseVarianceARMA)
+
+    println()
+
+
 
     /*
     val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay() != y.timestamp.secondOfDay()

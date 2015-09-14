@@ -16,26 +16,22 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
   /*
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
    */
-  def getMACoefs(pqEstTheta: DenseVector[Double], pqEstPhis: DenseVector[Double]):
-  DenseVector[Double] ={
+  def getMACoefs(psiCoeffs: DenseVector[Double], aCoeffs: DenseVector[Double]): DenseVector[Double] ={
+
     val MACoefs = DenseVector.zeros[Double](q)
+
     for(j <- 0 until q){
-      MACoefs(j) = pqEstTheta(j)
-      for(i <- 1 to (j min p)){
-        MACoefs(j) -= pqEstPhis(i - 1) * pqEstTheta(j - i)
+      MACoefs(j) = psiCoeffs(j)
+      for(i <- 1 until (j min p)){
+        MACoefs(j) -= aCoeffs(i - 1) * psiCoeffs(j - i)
       }
       if(p >= j){
-        MACoefs(j) -= pqEstPhis(j)
+        MACoefs(j) -= aCoeffs(j)
       }
     }
+
     MACoefs
   }
-
-  /*
-  private[this] def getVar(pqEstTheta: DenseVector[Double], autoCov: DenseVector[Double]): Double ={
-    autoCov(0) - sum(pqEstTheta :* pqEstTheta :* rev)
-  }
-  */
 
   /*
   TODO: there is an issue here whenever most pre-estimation thetas are zero. Need to use another estimation procedure.
@@ -44,14 +40,14 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
 
     val signaturePQ = InnovationAlgo(p + q, autoCovs.covariation)
 
-    val phis: DenseVector[Double] = Rybicki(
+    val coeffsAR: DenseVector[Double] = Rybicki(
       p,
       signaturePQ.covariation(q - p to q + p - 2),
       signaturePQ.covariation(q to q + p - 1))
 
-    val thetas: DenseVector[Double] = getMACoefs(signaturePQ.covariation, phis)
+    val coeffsMA: DenseVector[Double] = getMACoefs(signaturePQ.covariation, coeffsAR)
 
-    val coeffs: DenseVector[Double] = DenseVector.vertcat(phis, thetas)
+    val coeffs: DenseVector[Double] = DenseVector.vertcat(coeffsAR, coeffsMA)
 
     Signature(coeffs, signaturePQ.variation)
 
