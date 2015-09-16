@@ -47,6 +47,25 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
+  def generateDenseAR(phis: Array[Double], nColumns:Int, nSamples: Int, deltaTMillis: Long,
+                      noiseGen: Rand[Double],
+                      sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+
+    val p = phis.length
+
+    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
+    for(i <- p until nSamples){
+      for(h <- 1 to p){
+        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
+      }
+    }
+
+    val rawData = (0 until nSamples)
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
+
+    sc.parallelize(rawData)
+  }
+
   def generateMA(thetas: Array[Double], nColumns: Int, nSamples: Int, deltaTMillis: Long,
                  noiseGen: Rand[Double],
                  sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
@@ -61,6 +80,25 @@ object IndividualRecords {
 
     val rawData = (0 until nSamples)
       .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+
+    sc.parallelize(rawData)
+
+  }
+
+  def generateDenseMA(thetas: Array[Double], nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                      noiseGen: Rand[Double],
+                      sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+    val q = thetas.length
+
+    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
+    for(i <- (nSamples - 1) to q by -1){
+      for(h <- 1 to q) {
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
+      }
+    }
+
+    val rawData = (0 until nSamples)
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
 
     sc.parallelize(rawData)
 
@@ -94,10 +132,37 @@ object IndividualRecords {
 
   }
 
+  def generateDenseARMA(phis: Array[Double], thetas: Array[Double],
+                        nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                        noiseGen: Rand[Double],
+                        sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+
+    val q = thetas.length
+    val p = phis.length
+
+    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
+    for(i <- (nSamples - 1) to q by -1){
+      for(h <- 1 to q) {
+        noiseMatrix(i, ::) :+= noiseMatrix(i - h, ::) :* thetas(h - 1)
+      }
+    }
+
+    for(i <- p until nSamples){
+      for(h <- 1 to p){
+        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
+      }
+    }
+
+    val rawData = (0 until nSamples)
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
+
+    sc.parallelize(rawData)
+
+  }
 
   def generateVAR(phis: Array[DenseMatrix[Double]], nColumns:Int, nSamples: Int, deltaTMillis: Long,
                  noiseGen: Rand[Double],
-                 sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                 sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
 
     val p = phis.length
 
@@ -109,14 +174,14 @@ object IndividualRecords {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
 
     sc.parallelize(rawData)
   }
 
   def generateVMA(thetas: Array[DenseMatrix[Double]], nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                 noiseGen: Rand[Double],
-                 sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                  noiseGen: Rand[Double],
+                  sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
     val q = thetas.length
 
     val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
@@ -127,16 +192,16 @@ object IndividualRecords {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
 
     sc.parallelize(rawData)
 
   }
 
   def generateVARMA(phis: Array[DenseMatrix[Double]], thetas: Array[DenseMatrix[Double]],
-                   nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                   noiseGen: Rand[Double],
-                   sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                    nColumns: Int, nSamples: Int, deltaTMillis: Long,
+                    noiseGen: Rand[Double],
+                    sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
 
     val q = thetas.length
     val p = phis.length
@@ -155,7 +220,7 @@ object IndividualRecords {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
 
     sc.parallelize(rawData)
 

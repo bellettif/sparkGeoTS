@@ -2,7 +2,7 @@
  * Created by cusgadmin on 6/9/15.
  */
 
-import breeze.linalg.{DenseMatrix, sum}
+import breeze.linalg.{DenseVector, DenseMatrix, sum}
 import breeze.numerics.sqrt
 import breeze.stats.distributions.{Gaussian, Uniform}
 
@@ -22,7 +22,7 @@ object RunGenericOverlapping {
 
   def main(args: Array[String]): Unit ={
 
-    val nColumns      = 2
+    val nColumns      = 3
     val nSamples      = 1000000L
     val paddingMillis = 1000L
     val deltaTMillis  = 1L
@@ -31,18 +31,9 @@ object RunGenericOverlapping {
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
 
-    //val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis, sc)
-    //val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis, sc)
-    //val rawTS = IndividualRecords.generateAR1(0.9, nColumns, nSamples.toInt, deltaTMillis, sc)
-    //val rawTS = IndividualRecords.generateMA(Array(0.4, 0.3, 0.1, 0.05), nColumns, nSamples.toInt, deltaTMillis, sc)
-    //val rawTS = IndividualRecords.generateAR2(0.6, 0.2, nColumns, nSamples.toInt, deltaTMillis, sc)
-    //val rawTS = IndividualRecords.generateMA1(0.6, nColumns, nSamples.toInt, deltaTMillis, sc)
-
-    val rawTS = IndividualRecords.generateVARMA(
-      Array(DenseMatrix((0.25, 0.15), (-0.15, 0.20)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
-      Array(DenseMatrix((0.13, 0.11), (-0.12, 0.05)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
-      //Array(DenseMatrix.eye[Double](nColumns) :* 0.21, DenseMatrix.eye[Double](nColumns) :* 0.15),
-      //Array(DenseMatrix.eye[Double](nColumns) :* 0.17, DenseMatrix.eye[Double](nColumns) :* 0.13),
+    val rawTS = IndividualRecords.generateVAR(
+      Array(DenseMatrix((0.25, 0.15, 0.0), (0.0, -0.15, 0.20), (0.0, 0.0, 0.10)), DenseMatrix((0.06, 0.03, 0.0), (0.0, 0.07, -0.09), (0.0, 0.0, 0.07))),
+      //Array(DenseMatrix((0.13, 0.11), (-0.12, 0.05)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
       nColumns, nSamples.toInt, deltaTMillis,
       Gaussian(0.0, 1.0),
       sc);
@@ -54,43 +45,16 @@ object RunGenericOverlapping {
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], intervals: Array[(TSInstant, TSInstant)]) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], intervals: Array[(TSInstant, TSInstant)]) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
-    /*
-    val crossCov = new CrossCovariance[TSInstant](IntervalSize(5, 5), 5)
-    val result = crossCov.estimate(overlappingRDD)
-    */
+    println("Results of cross cov frequentist estimator")
 
-    /*
-    val autoCov = new AutoCovariances[TSInstant](5.0, 5)
-    val result = autoCov.estimate(overlappingRDD)
-    */
-
-    println("Results of AR univariate frequentist estimator")
-
-    val AREstimator = new ARModel[TSInstant](1.0, 5)
-    AREstimator
+    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, 3)
+    val (crossCovMatrices, covMatrix) = crossCovEstimator
       .estimate(overlappingRDD)
-      .foreach(x=> {println(x); println()})
 
-    println()
-
-    println("Results of MA univariate frequentist estimator")
-
-    val MAEstimator = new MAModel[TSInstant](1.0, 5)
-    MAEstimator
-      .estimate(overlappingRDD)
-      .foreach(x=> {println(x); println()})
-
-    println()
-
-    println("Results of ARMA univariate frequentist estimator")
-
-    val ARMAEstimator = new ARMAModel[TSInstant](1.0, 2, 2)
-    ARMAEstimator
-      .estimate(overlappingRDD)
-      .foreach(x=> {println(x); println()})
+    crossCovMatrices.foreach(x=> {println(x); println()})
 
     println()
 
@@ -129,18 +93,6 @@ object RunGenericOverlapping {
     println(noiseVarianceARMA)
 
     println()
-
-
-
-    /*
-    val cutPredicate = (x: TSInstant, y: TSInstant) => x.timestamp.secondOfDay() != y.timestamp.secondOfDay()
-
-    val slidingResult = overlappingRDD
-      .mapValues(x => x.slicingWindow(Array(cutPredicate))(MAEstimator.estimate).toArray)
-      .collect
-
-    slidingResult.foreach(println)
-    */
 
   }
 }

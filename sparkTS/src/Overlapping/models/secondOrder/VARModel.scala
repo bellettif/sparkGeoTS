@@ -1,6 +1,6 @@
 package overlapping.models.secondOrder
 
-import breeze.linalg.DenseMatrix
+import breeze.linalg.{DenseVector, DenseMatrix}
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.secondOrder.procedures.{RybickiMulti, DurbinLevinson}
@@ -30,21 +30,21 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder:
     (coeffMatrices, noiseVariance)
   }
 
-  override def estimate(slice: Array[(IndexT, Array[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  override def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
     val (crossCovMatrices, covMatrix) = super.estimate(slice)
     estimateVARMatrices(crossCovMatrices, covMatrix)
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  override def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
     val (crossCovMatrices, covMatrix) = super.estimate(timeSeries)
     estimateVARMatrices(crossCovMatrices, covMatrix)
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {
 
     val (crossCovMatrices, covMatrix) = super.estimate(timeSeries)
     estimateVARMatrices(crossCovMatrices, covMatrix)
