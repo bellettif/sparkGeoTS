@@ -166,15 +166,16 @@ object IndividualRecords {
 
     val p = phis.length
 
-    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
+    val noiseMatrix = new DenseMatrix(nColumns, nSamples, noiseGen.sample(nSamples * nColumns).toArray)
+
     for(i <- p until nSamples){
       for(h <- 1 to p){
-        noiseMatrix(i, ::) += noiseMatrix(i - h, ::) * phis(h - 1).t
+        noiseMatrix(::, i) += phis(h - 1) * noiseMatrix(::, i - h)
       }
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x)copy))
 
     sc.parallelize(rawData)
   }
