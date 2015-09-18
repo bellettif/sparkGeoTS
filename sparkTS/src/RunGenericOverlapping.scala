@@ -31,17 +31,18 @@ object RunGenericOverlapping {
     val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc    = new SparkContext(conf)
 
-    val ARcoeffs = Array(DenseMatrix((0.25, 0.07, -0.01), (0.15, -0.30, 0.04), (0.03, -0.15, 0.35)))
+    val ARcoeffs = Array(DenseMatrix((0.25, 0.0, -0.01), (0.15, -0.30, 0.04), (0.0, -0.15, 0.35)),
+      DenseMatrix((0.06, 0.03, 0.0), (0.0, 0.07, -0.09), (0.0, 0.0, 0.07)))
+
+    val p = ARcoeffs.length
     //val ARcoeffs = Array(DenseMatrix(((0.80))))
 
     val rawTS = IndividualRecords.generateVAR(
-      ARcoeffs,// DenseMatrix((0.06, 0.03, 0.0), (0.0, 0.07, -0.09), (0.0, 0.0, 0.07))),
+      ARcoeffs,
       //Array(DenseMatrix((0.13, 0.11), (-0.12, 0.05)), DenseMatrix((0.06, 0.03), (0.07, -0.09))),
       nColumns, nSamples.toInt, deltaTMillis,
       Gaussian(0.0, 1.0),
       sc)
-
-    val temp = rawTS.collect
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
       override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
@@ -105,9 +106,8 @@ object RunGenericOverlapping {
 
     */
 
-    val p = 1
-
     val gradientSizes = Array.fill(p){(nColumns, nColumns)}
+    val batchSize = 1
 
     def lossFunctionAR(params: Array[DenseMatrix[Double]],
                        data: Array[(TSInstant, DenseVector[Double])]): Double = {
@@ -122,7 +122,7 @@ object RunGenericOverlapping {
         error := data(i)._2 - prevision
         totError += sum(error :* error)
       }
-      totError / nSamples.toDouble
+      totError / batchSize.toDouble
     }
 
     def gradientFunctionAR(params: Array[DenseMatrix[Double]],
@@ -140,27 +140,32 @@ object RunGenericOverlapping {
         }
       }
       for(h <- 1 to p) {
-        totGradient(h - 1) :*= 2.0 / nSamples.toDouble
+        totGradient(h - 1) :*= 2.0 / batchSize.toDouble
       }
       totGradient
     }
 
     def stepSize(x: Int): Double ={
-      1.0 / (max(s) + min(s))
+      //1.0 / ((max(s) + min(s)))
+      val m = min(s)
+      val L = 2 * max(s)
+      1.0 / (2.0 * m * (0.5 * L * L / (m * m) + x))
     }
 
     println("Results of AR multivariate bayesian estimator")
 
-    val VARBayesEstimator = new PartitionedARGradientDescent[TSInstant](
+    val VARBayesEstimator = new VARL1StoGradientMethod[TSInstant](
       p,
       deltaTMillis,
       lossFunctionAR,
       gradientFunctionAR,
       gradientSizes,
       stepSize,
-      1e-8,
-      100,
-      Array(DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)))
+      batchSize,
+      1e-5,
+      1.0,
+      10000,
+      Array.fill(p){DenseMatrix.zeros(nColumns, nColumns)}
     )
 
     val ARMatrices = VARBayesEstimator.estimate(overlappingRDD)

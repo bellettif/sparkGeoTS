@@ -3,6 +3,7 @@ package overlapping.containers.block
 import overlapping.{IntervalSize, CompleteLocation}
 
 import scala.reflect.ClassTag
+import scala.util.Random
 
 object SingleAxisBlock{
 
@@ -39,8 +40,6 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     val locations: Array[CompleteLocation[IndexT]],
     val signedDistances: Array[(IndexT, IndexT) => Double])
   extends OverlappingBlock[IndexT, ValueT]{
-
-
 
   lazy val firstValidIndex = locations.indexWhere(x => x.partIdx == x.originIdx)
   lazy val lastValidIndex  = locations.lastIndexWhere(x => x.partIdx == x.originIdx, locations.length - 1)
@@ -128,6 +127,78 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
+  def regularSliding[ResultT: ClassTag](size: Array[IntervalSize],
+                                        targets: Array[CompleteLocation[Int]])
+                                       (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    var result = List[(IndexT, ResultT)]()
+
+    for(center_location <- targets) {
+
+      begin_index = center_location.k - lookBack.toInt
+      end_index = center_location.k + lookAhead.toInt
+
+      if ((begin_index >= 0) && (end_index <= data.length)) {
+        result = result :+(data(center_location.k)._1, f(data.slice(begin_index, end_index + 1)))
+      }
+    }
+
+    new SingleAxisBlock[IndexT, ResultT](result.toArray, targets.map(x => locations(x.k)), signedDistances)
+
+  }
+
+  def regularSlidingFold[ResultT: ClassTag](size: Array[IntervalSize],
+                                            targets: Array[CompleteLocation[Int]])
+                                           (f: Array[(IndexT, ValueT)] => ResultT,
+                                            zero: ResultT,
+                                            op: (ResultT, ResultT) => ResultT): ResultT = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    var result = zero
+
+    for(center_location <- targets) {
+
+      begin_index = center_location.k - lookBack.toInt
+      end_index = center_location.k + lookAhead.toInt
+
+      if ((begin_index >= 0) && (end_index <= data.length)) {
+        result = op(result, f(data.slice(begin_index, end_index + 1)))
+      }
+    }
+
+    result
+  }
+
+  def randSlidingFold[ResultT: ClassTag](size: Array[IntervalSize])
+                                        (f: Array[(IndexT, ValueT)] => ResultT,
+                                         zero: ResultT,
+                                         op: (ResultT, ResultT) => ResultT,
+                                         batchSize: Int): ResultT = {
+
+    if(batchSize >= lastValidIndex - firstValidIndex){
+      slidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(f, zero, op)
+    }else{
+      val nValid = lastValidIndex - firstValidIndex + 1
+      val selectedLocations = Array.fill(batchSize){Random.nextInt(nValid)}
+        .map(i => {
+        val targetCompleteLocation = locations(firstValidIndex + i)
+        CompleteLocation(targetCompleteLocation.partIdx, targetCompleteLocation.originIdx, i)
+      })
+      regularSlidingFold(size, selectedLocations)(f, zero, op)
+    }
+
+  }
 
   // By convention the marking CompleteLocation of a slice will be that of the start of the interval
   override def slicingWindow[ResultT: ClassTag](cutPredicates: Array[(IndexT, IndexT) => Boolean])
