@@ -5,7 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.{L1GradientDescent, GradientDescent}
+import overlapping.models.secondOrder.procedures.{L1ClippedGradientDescent, L1TruncatedGradientDescent, GradientDescent}
 
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -23,6 +23,7 @@ class VARL1StoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
   val batchSize: Int,
   val precision: Double,
   val lambda: Double,
+  val theta: Double,
   val maxIter: Int,
   val start: Array[DenseMatrix[Double]])
   extends SecondOrderModel[IndexT, DenseVector[Double]]{
@@ -134,13 +135,14 @@ class VARL1StoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
   override def estimate(slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
-    L1GradientDescent.run[Array[(IndexT, DenseVector[Double])]](
+    L1TruncatedGradientDescent.run[Array[(IndexT, DenseVector[Double])]](
       {case (param: Array[DenseMatrix[Double]], data: Array[(IndexT, DenseVector[Double])]) => computeLoss(param, data)},
       {case (param: Array[DenseMatrix[Double]], data: Array[(IndexT, DenseVector[Double])]) => computeGradient(param, data)},
       gradientSizes,
       stepSize,
       precision,
       lambda,
+      theta,
       maxIter,
       start,
       slice
@@ -149,13 +151,14 @@ class VARL1StoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
   override def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): Array[DenseMatrix[Double]] = {
-    L1GradientDescent.run[SingleAxisBlock[IndexT, DenseVector[Double]]](
+    L1TruncatedGradientDescent.run[SingleAxisBlock[IndexT, DenseVector[Double]]](
       {case (param: Array[DenseMatrix[Double]], data: SingleAxisBlock[IndexT, DenseVector[Double]]) => computeLoss(param, data)},
       {case (param: Array[DenseMatrix[Double]], data: SingleAxisBlock[IndexT, DenseVector[Double]]) => computeGradient(param, data)},
       gradientSizes,
       stepSize,
       precision,
       lambda,
+      theta,
       maxIter,
       start,
       timeSeries
@@ -166,7 +169,7 @@ class VARL1StoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
 
     timeSeries.persist(MEMORY_AND_DISK)
 
-    val parameters = L1GradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
+    val parameters = L1ClippedGradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
       {case (param: Array[DenseMatrix[Double]], data: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]) => computeLoss(param, data)},
       {case (param: Array[DenseMatrix[Double]], data: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]) => computeGradient(param, data)},
       gradientSizes,

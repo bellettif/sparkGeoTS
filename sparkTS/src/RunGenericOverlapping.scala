@@ -164,6 +164,7 @@ object RunGenericOverlapping {
       batchSize,
       1e-5,
       1.0,
+      1.0,
       10000,
       Array.fill(p){DenseMatrix.zeros(nColumns, nColumns)}
     )

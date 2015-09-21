@@ -5,7 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.{L1GradientDescent, GradientDescent}
+import overlapping.models.secondOrder.procedures.{L1TruncatedGradientDescent, GradientDescent}
 
 import scala.reflect.ClassTag
 
