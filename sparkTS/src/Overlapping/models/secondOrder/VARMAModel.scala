@@ -56,6 +56,7 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q
 
   }
 
+  /*
   override def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
     computeARMACoeffs(super.estimate(slice)._1)
@@ -67,6 +68,7 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q
     computeARMACoeffs(super.estimate(timeSeries)._1)
 
   }
+  */
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 

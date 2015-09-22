@@ -132,6 +132,7 @@ class VARStoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
       .reduce(_ + _)
   }
 
+  /*
   override def estimate(slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
     GradientDescent.run[Array[(IndexT, DenseVector[Double])]](
       {case (param: Array[DenseMatrix[Double]], data: Array[(IndexT, DenseVector[Double])]) => computeLoss(param, data)},
@@ -158,6 +159,7 @@ class VARStoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
       timeSeries
     )
   }
+  */
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[DenseMatrix[Double]] = {
 

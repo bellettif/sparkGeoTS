@@ -75,7 +75,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
     r._1.map(_ / r._2.toDouble)
   }
 
-  override def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
     val covarianceMatrices = normalize(
       slice.sliding(2 * modelOrder + 1)
@@ -87,7 +87,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double])={
+  def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double])={
 
     val covarianceMatrices = normalize(
       computeCovariations(timeSeries)
@@ -97,7 +97,8 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])={
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
+  (Array[DenseMatrix[Double]], DenseMatrix[Double])={
 
     val covarianceMatrices = normalize(
       timeSeries

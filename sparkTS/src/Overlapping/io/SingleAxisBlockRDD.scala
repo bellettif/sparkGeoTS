@@ -1,11 +1,12 @@
 package overlapping.io
 
+import breeze.linalg.DenseVector
 import breeze.numerics.sqrt
 import org.joda.time.{Interval, DateTime}
 import overlapping.BlockGraph
 import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
-import overlapping.containers.block.{SingleAxisBlock, SingleAxisReplicator, BlockIndexPartitioner, IntervalSampler}
+import overlapping.containers.block._
 
 import scala.math.Ordering
 import scala.reflect.ClassTag
@@ -78,6 +79,88 @@ object SingleAxisBlockRDD {
       .flatMap({ case (k, v) => replicator.replicate(k, v) })
       .partitionBy(partitioner)
       .mapPartitionsWithIndex({case (i, x) => ((i, SingleAxisBlock(x.toArray, signedDistance)) :: Nil).toIterator}, true)
+
+  }
+
+  def splitArray[IndexT <: Ordered[IndexT], ValueT: ClassTag](mainAxisPadding: (Double, Double),
+                                                              mainAxisSignedDistance: (IndexT, IndexT) => Double,
+                                                              mainAxisNBlocks: Int,
+                                                              lateralPartitions: Array[Array[Int]],
+                                                              recordRDD: RDD[(IndexT, Array[ValueT])]):
+  (RDD[(Int, SingleAxisBlock[IndexT, Array[ValueT]])], Array[(IndexT, IndexT)]) = {
+
+    case class KeyValue(k: IndexT, v: ValueT)
+    /*
+      Sort the record RDD with respect to time
+     */
+    implicit val kvOrdering = new Ordering[(IndexT, Array[ValueT])] {
+      override def compare(a: (IndexT, Array[ValueT]), b: (IndexT, Array[ValueT])) =
+        a._1.compareTo(b._1)
+    }
+
+    val nSamples = recordRDD.count()
+
+    val intervals = IntervalSampler
+      .sampleAndComputeIntervals(
+        mainAxisNBlocks,
+        sqrt(nSamples).toInt,
+        true,
+        recordRDD)
+      .map({ case ((k1, v1), (k2, v2)) => (k1, k2) })
+
+    val replicator = new SingleAxisLateralReplicator[IndexT, ValueT](
+      intervals,
+      mainAxisSignedDistance,
+      mainAxisPadding,
+      lateralPartitions)
+    val partitioner = new BlockIndexPartitioner(intervals.length * lateralPartitions.length)
+
+    (recordRDD
+      .flatMap({ case (k, v) => replicator.replicate(k, v) })
+      .partitionBy(partitioner)
+      .mapPartitionsWithIndex({case (i, x) => ((i, SingleAxisBlock(x.toArray, mainAxisSignedDistance)) :: Nil).toIterator}, true)
+      ,intervals)
+
+  }
+
+  def splitDenseVector[IndexT <: Ordered[IndexT], ValueT: ClassTag](mainAxisPadding: (Double, Double),
+                                                                    mainAxisSignedDistance: (IndexT, IndexT) => Double,
+                                                                    mainAxisNBlocks: Int,
+                                                                    lateralPartitions: Array[Array[Int]],
+                                                                    recordRDD: RDD[(IndexT, DenseVector[ValueT])]):
+  (RDD[(Int, SingleAxisBlock[IndexT, DenseVector[ValueT]])], Array[(IndexT, IndexT)]) = {
+
+    case class KeyValue(k: IndexT, v: ValueT)
+    /*
+      Sort the record RDD with respect to time
+     */
+    implicit val kvOrdering = new Ordering[(IndexT, DenseVector[ValueT])] {
+      override def compare(a: (IndexT, DenseVector[ValueT]), b: (IndexT, DenseVector[ValueT])) =
+        a._1.compareTo(b._1)
+    }
+
+    val nSamples = recordRDD.count()
+
+    val intervals = IntervalSampler
+      .sampleAndComputeIntervals(
+        mainAxisNBlocks,
+        sqrt(nSamples).toInt,
+        true,
+        recordRDD)
+      .map({ case ((k1, v1), (k2, v2)) => (k1, k2) })
+
+    val replicator = new SingleAxisDenseLateralReplicator[IndexT, ValueT](
+      intervals,
+      mainAxisSignedDistance,
+      mainAxisPadding,
+      lateralPartitions)
+    val partitioner = new BlockIndexPartitioner(intervals.length * lateralPartitions.length)
+
+    (recordRDD
+      .flatMap({ case (k, v) => replicator.replicate(k, v) })
+      .partitionBy(partitioner)
+      .mapPartitionsWithIndex({case (i, x) => ((i, SingleAxisBlock(x.toArray, mainAxisSignedDistance)) :: Nil).toIterator}, true)
+      ,intervals)
 
   }
 

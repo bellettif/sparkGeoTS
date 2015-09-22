@@ -9,9 +9,12 @@ import scala.reflect.ClassTag
 /**
  * Implementation of the replicator in the case of an ordered index as in time series.
  */
-class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag](intervals: Array[(IndexT, IndexT)],
-                                                                        algebraicDistance: (IndexT, IndexT) => Double,
-                                                                        padding: (Double, Double))
+class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
+  (
+    val intervals: Array[(IndexT, IndexT)],
+    val signedDistance: (IndexT, IndexT) => Double,
+    val padding: (Double, Double)
+  )
   extends Replicator[IndexT, ValueT]{
 
   case class IntervalLocation(intervalIdx: Int, offset: Double, ahead: Double)
@@ -38,24 +41,24 @@ class SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag](interval
     if (i.compareTo(firstIdx) < 0) {
       return IntervalLocation(
         0,
-        algebraicDistance(firstIdx, i), // This offset will be negative
-        algebraicDistance(i, firstIdx))
+        signedDistance(firstIdx, i), // This offset will be negative
+        signedDistance(i, firstIdx))
     }
 
     for(((intervalStart, intervalEnd), intervalIdx)  <- intervals.zipWithIndex) {
       if ((i.compareTo(intervalStart) >= 0) && (i.compareTo(intervalEnd) <= 0)) {
         return IntervalLocation(
           intervalIdx,
-          algebraicDistance(intervalStart, i),
-          algebraicDistance(i, intervalEnd))
+          signedDistance(intervalStart, i),
+          signedDistance(i, intervalEnd))
       }
     }
 
     val (_, lastTimestamp) = intervals.last
     IntervalLocation(
       intervals.length - 1,
-      algebraicDistance(lastTimestamp, i),
-      algebraicDistance(i, lastTimestamp)) // This look ahead will be negative
+      signedDistance(lastTimestamp, i),
+      signedDistance(i, lastTimestamp)) // This look ahead will be negative
 
   }
 

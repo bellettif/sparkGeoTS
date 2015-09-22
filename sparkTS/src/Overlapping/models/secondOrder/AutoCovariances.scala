@@ -73,7 +73,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
   Estimate the auto-covariance of each column on a small slice of data. (Useful for window based computations).
   The order of the result for each column is gamma(- modelOrder), ..., gamma(0), ..., gamma(modelOrder).
    */
-  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
+  def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
 
     val columns = slice
       .map(_._2)
@@ -90,7 +90,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, mode
   Estimate the auto-covariance of each column on an entire block.
   The order of the result for each column is gamma(- modelOrder), ..., gamma(0), ..., gamma(modelOrder).
    */
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature]= {
+  def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature]= {
 
     computeCovariation(timeSeries)
       .map(normalize)
