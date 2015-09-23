@@ -255,8 +255,11 @@ object RunGenericOverlapping {
       .map(i => gradientFunctionAR(gradientSizes(i)(0)._1, gradientSizes(i)(0)._2, lateralPartitionRows(i), originalLateralRows(i)) _)
       .toArray
 
+    /*
+    The Hessian to the AR calibration is exactly the variance covariance matrix
+     */
     def stepSize(x: Int): Double ={
-      1.0 / ((max(s) + min(s)))
+      1.0 / (max(s) + min(s))
       /*
       val m = min(s)
       val L = 2 * max(s)
