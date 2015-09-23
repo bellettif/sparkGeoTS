@@ -56,7 +56,8 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
 
   def reduce(f: ((KeyT, ValueT), (KeyT, ValueT)) => (KeyT, ValueT)): (KeyT, ValueT)
 
-  def fold(zeroValue: (KeyT, ValueT))(op: ((KeyT, ValueT), (KeyT, ValueT)) => (KeyT, ValueT)): (KeyT, ValueT)
+  def fold[ResultT: ClassTag](zeroValue: ResultT)(f: (KeyT, ValueT) => ResultT,
+                                                  op: (ResultT, ResultT) => ResultT): ResultT
 
   /*
   Directly fold the results of a kernel operation in order to reduce memory burden.

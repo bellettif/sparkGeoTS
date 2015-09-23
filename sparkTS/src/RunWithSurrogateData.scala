@@ -18,7 +18,7 @@ import overlapping.surrogateData.{TSInstant, IndividualRecords}
 
 import scala.math.Ordering
 
-object RunGenericOverlapping {
+object RunWithSurrogateData {
 
   def main(args: Array[String]): Unit ={
 

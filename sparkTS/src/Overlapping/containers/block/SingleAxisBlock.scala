@@ -292,9 +292,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
-  override def fold(zeroValue: (IndexT, ValueT))(op: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT)): (IndexT, ValueT) = {
+  override def fold[ResultT: ClassTag](zeroValue: ResultT)(f: (IndexT, ValueT) => ResultT,
+                                                           op: (ResultT, ResultT) => ResultT): ResultT = {
 
-    data.slice(firstValidIndex, lastValidIndex + 1).fold(zeroValue)(op)
+    data.slice(firstValidIndex, lastValidIndex + 1)
+      .map({case (x, y) => f(x, y)})
+      .fold(zeroValue)(op)
 
   }
 

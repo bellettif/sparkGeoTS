@@ -16,8 +16,14 @@ toXts <- function(df){
   return(xts(df$count, order.by = as.POSIXct(as.character(df[,1]))))
 }
 
+alignXts <- function(df){
+  df <- period.apply(df, endpoints(df, "minutes", 1), sum, na.rm = TRUE )
+  return(align.time(df[endpoints(df, "minutes", 1)], n=60))
+}
+
 allDataFrames = lapply(allDataFrames, deleteFirstColumn)
 allDataFrames = lapply(allDataFrames, toXts)
+allDataFrames = lapply(allDataFrames, alignXts)
 
 mergedDataFrame = allDataFrames[[1]]
 for(i in 2:length(allDataFrames)){
@@ -26,5 +32,6 @@ for(i in 2:length(allDataFrames)){
 
 mergedDataFrame[is.na(mergedDataFrame)] <- 0
 
-write.zoo(mergedDataFrame, outputFile)
+write.zoo(mergedDataFrame, outputFile, sep = '')
 
+print(colMeans(mergedDataFrame)(0, 0))
