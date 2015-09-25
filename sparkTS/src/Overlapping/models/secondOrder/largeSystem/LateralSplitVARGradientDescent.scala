@@ -1,11 +1,11 @@
-package overlapping.models.secondOrder
+package overlapping.models.secondOrder.largeSystem
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
-import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.GradientDescent
+import overlapping.models.secondOrder.SecondOrderEssStat
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.VARGradientDescent
 
 import scala.reflect.ClassTag
 
@@ -24,7 +24,7 @@ class LateralSplitVARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
   val precision: Double,
   val maxIter: Int,
   val start: Array[Array[DenseMatrix[Double]]])
-  extends SecondOrderModel[IndexT, DenseVector[Double]]{
+  extends SecondOrderEssStat[IndexT, DenseVector[Double]]{
 
     val gradientDescents = lossFunctions
       .indices

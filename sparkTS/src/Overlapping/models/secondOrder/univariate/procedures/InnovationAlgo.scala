@@ -1,7 +1,7 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.univariate.procedures
 
 import breeze.linalg._
-import overlapping.models.secondOrder.Signature
+import overlapping.models.secondOrder.univariate.CovSignature
 
 /**
  * Created by Francois Belletti on 7/14/15.
@@ -17,7 +17,7 @@ object InnovationAlgo extends Serializable{
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  def apply(q: Int, autoCov: DenseVector[Double]): Signature ={
+  def apply(q: Int, autoCov: DenseVector[Double]): CovSignature ={
     val thetaEsts = (1 to q).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](q + 1)
 
@@ -33,7 +33,7 @@ object InnovationAlgo extends Serializable{
     }
 
     // Reverse the result so as to have the same convention as in the book
-    Signature(reverse(thetaEsts(q - 1)), varEsts(q))
+    CovSignature(reverse(thetaEsts(q - 1)), varEsts(q))
 
   }
 

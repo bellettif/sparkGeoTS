@@ -1,4 +1,4 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.univariate.procedures
 
 import breeze.linalg._
 

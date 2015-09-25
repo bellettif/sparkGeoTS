@@ -1,4 +1,4 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.multivariate.bayesianEstimators.procedures
 
 import breeze.linalg._
 import breeze.numerics.{abs, sqrt}

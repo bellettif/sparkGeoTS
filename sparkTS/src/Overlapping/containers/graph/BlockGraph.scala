@@ -1,8 +1,8 @@
-package overlapping
+package overlapping.containers.graph
 
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.OverlappingBlock
-import overlapping.containers.graph.OverlappingGraph
+import overlapping.containers.graph.GraphBlock
 
 /**
  * Created by Francois Belletti on 8/6/15.

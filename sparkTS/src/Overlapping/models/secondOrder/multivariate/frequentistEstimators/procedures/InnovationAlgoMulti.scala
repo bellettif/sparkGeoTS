@@ -1,4 +1,4 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures
 
 import breeze.linalg._
 import overlapping.models.secondOrder.Signature

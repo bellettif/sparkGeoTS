@@ -3,10 +3,10 @@ package overlapping.io
 import breeze.linalg.DenseVector
 import breeze.numerics.sqrt
 import org.joda.time.{Interval, DateTime}
-import overlapping.BlockGraph
 import org.apache.spark.{RangePartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block._
+import overlapping.containers.graph.BlockGraph
 
 import scala.math.Ordering
 import scala.reflect.ClassTag

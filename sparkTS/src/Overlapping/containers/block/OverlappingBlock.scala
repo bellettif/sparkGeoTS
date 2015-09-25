@@ -68,6 +68,8 @@ trait OverlappingBlock[KeyT, ValueT] extends Serializable{
                                      zero: ResultT,
                                      op: (ResultT, ResultT) => ResultT): ResultT
 
+
+
   /*
   Same thing, the targets being all the admissible points of the block.
    */

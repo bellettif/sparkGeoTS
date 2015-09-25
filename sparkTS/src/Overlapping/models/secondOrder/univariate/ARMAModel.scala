@@ -1,9 +1,11 @@
-package overlapping.models.secondOrder
+package overlapping.models.secondOrder.univariate
 
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.{InnovationAlgo, Rybicki}
+import overlapping.models.Predictor
+import overlapping.models.secondOrder.Signature
+import overlapping.models.secondOrder.univariate.procedures.{InnovationAlgo, Rybicki}
 
 import scala.reflect.ClassTag
 
@@ -36,7 +38,7 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
   /*
   TODO: there is an issue here whenever most pre-estimation thetas are zero. Need to use another estimation procedure.
    */
-  def computeARMACoeffs(autoCovs: Signature): Signature = {
+  def computeARMACoeffs(autoCovs: CovSignature): CovSignature = {
 
     val signaturePQ = InnovationAlgo(p + q, autoCovs.covariation)
 
@@ -49,11 +51,11 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
 
     val coeffs: DenseVector[Double] = DenseVector.vertcat(coeffsAR, coeffsMA)
 
-    Signature(coeffs, signaturePQ.variation)
+    CovSignature(coeffs, signaturePQ.variation)
 
   }
 
-  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
+  override def windowEstimate(slice: Array[(IndexT, Array[Double])]): Array[CovSignature] = {
 
     super
       .estimate(slice)
@@ -61,15 +63,15 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature] = {
+  override def blockEstimate(block: SingleAxisBlock[IndexT, Array[Double]]): Array[CovSignature] = {
 
     super
-      .estimate(timeSeries)
+      .estimate(block)
       .map(computeARMACoeffs)
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[Signature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[CovSignature]= {
 
     super
       .estimate(timeSeries)

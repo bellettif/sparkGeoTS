@@ -1,9 +1,8 @@
-package overlapping.models.secondOrder
+package overlapping.models.secondOrder.univariate
 
-import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.InnovationAlgo
+import overlapping.models.secondOrder.univariate.procedures.InnovationAlgo
 
 import scala.reflect.ClassTag
 
@@ -13,7 +12,7 @@ import scala.reflect.ClassTag
 class MAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
   extends AutoCovariances[IndexT](deltaT, modelOrder){
 
-  override def estimate(slice: Array[(IndexT, Array[Double])]): Array[Signature] = {
+  override def windowEstimate(slice: Array[(IndexT, Array[Double])]): Array[CovSignature] = {
 
     super
       .estimate(slice)
@@ -21,15 +20,15 @@ class MAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: 
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, Array[Double]]): Array[Signature] = {
+  override def blockEstimate(block: SingleAxisBlock[IndexT, Array[Double]]): Array[CovSignature] = {
 
     super
-      .estimate(timeSeries)
+      .estimate(block)
       .map(x => InnovationAlgo(modelOrder, x.covariation))
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[Signature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[CovSignature]= {
 
     super
       .estimate(timeSeries)

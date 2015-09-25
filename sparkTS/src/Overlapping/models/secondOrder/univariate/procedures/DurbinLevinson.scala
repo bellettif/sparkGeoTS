@@ -1,7 +1,6 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.univariate.procedures
 
 import breeze.linalg._
-import overlapping.models.secondOrder.Signature
 
 /**
  * Created by Francois Belletti on 7/14/15.

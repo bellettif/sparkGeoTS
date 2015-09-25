@@ -6,8 +6,7 @@ package overlapping.containers.tests
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.scalatest.{FlatSpec, Matchers}
-
-import overlapping.models.secondOrder.procedures.Rybicki
+import overlapping.models.secondOrder.univariate.procedures.Rybicki
 
 /**
  * Created by Francois Belletti on 8/4/15.

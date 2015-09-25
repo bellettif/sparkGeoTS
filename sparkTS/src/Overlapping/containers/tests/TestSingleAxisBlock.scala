@@ -266,10 +266,6 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
   }
 
-  /*
-  TODO: rebuild fold
-   */
-  /*
   it should " properly fold elements" in {
 
     val nColumns      = 10
@@ -295,17 +291,20 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val foldFromOverlappingData = overlappingRDD
-      .mapValues(v => v.fold((zeroSecond, zeroArray))({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}))
+      .mapValues(v => v.fold((zeroSecond, zeroArray))(
+        {case (k1, v1) => (k1, v1)},
+        {case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}))
       .map(_._2)
       .reduce({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))})
 
     val foldFromNonOverlappingData = rawTS
-      .fold((zeroSecond, zeroArray))({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))})
+      .fold((zeroSecond, zeroArray))(
+        {case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}
+    )
 
     foldFromOverlappingData._2.deep should be (foldFromNonOverlappingData._2.deep)
 
   }
-  */
 
   it should " properly slide fold elements" in {
 

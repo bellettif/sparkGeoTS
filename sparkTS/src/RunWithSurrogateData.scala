@@ -14,6 +14,8 @@ import overlapping.IntervalSize
 import overlapping.containers.block.{SingleAxisBlock, IntervalSampler}
 import overlapping.io.SingleAxisBlockRDD
 import overlapping.models.secondOrder._
+import overlapping.models.secondOrder.largeSystem.LateralSplitVARGradientDescent
+import overlapping.models.secondOrder.multivariate.frequentistEstimators.CrossCovariance
 import overlapping.surrogateData.{TSInstant, IndividualRecords}
 
 import scala.math.Ordering

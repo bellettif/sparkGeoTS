@@ -11,7 +11,7 @@ import org.joda.time.DateTime
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.io.SingleAxisBlockRDD
 import overlapping.models.firstOrder.MeanEstimator
-import overlapping.models.secondOrder.{CrossCovariance, LateralSplitVARGradientDescent}
+import overlapping.models.secondOrder.multivariate.frequentistEstimators.CrossCovariance
 import overlapping.surrogateData.{IndividualRecords, TSInstant}
 
 import scala.math.Ordering

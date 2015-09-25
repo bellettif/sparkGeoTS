@@ -1,9 +1,9 @@
-package overlapping.models.secondOrder
+package overlapping.models.secondOrder.multivariate.frequentistEstimators
 
-import breeze.linalg.{DenseVector, DenseMatrix}
+import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.{RybickiMulti, DurbinLevinson}
+import overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
 
 import scala.reflect.ClassTag
 

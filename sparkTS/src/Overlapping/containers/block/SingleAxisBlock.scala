@@ -118,6 +118,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     result
   }
 
+
   def slidingFold[ResultT: ClassTag](size: Array[IntervalSize])
                                     (f: Array[(IndexT, ValueT)] => ResultT,
                                      zero: ResultT,
@@ -127,8 +128,8 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
-  def regularSliding[ResultT: ClassTag](size: Array[IntervalSize],
-                                        targets: Array[CompleteLocation[Int]])
+  def sparseSliding[ResultT: ClassTag](size: Array[IntervalSize],
+                                       targets: Array[CompleteLocation[Int]])
                                        (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
     val lookAhead = size.head.lookAhead
@@ -141,10 +142,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
     for(center_location <- targets) {
 
-      begin_index = center_location.k - lookBack.toInt
-      end_index = center_location.k + lookAhead.toInt
+      begin_index = locations.lastIndexWhere(x => signedDistance(x.k, data(center_location.k)._1) < lookBack,
+        center_location.k) + 1
+      end_index = locations.indexWhere(x => signedDistance(data(center_location.k)._1, x.k) >= lookAhead,
+        center_location.k)
 
-      if ((begin_index >= 0) && (end_index <= data.length)) {
+      if ((begin_index != -1) && (end_index != -1)) {
         result = result :+(data(center_location.k)._1, f(data.slice(begin_index, end_index + 1)))
       }
     }
@@ -153,8 +156,8 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
-  def regularSlidingFold[ResultT: ClassTag](size: Array[IntervalSize],
-                                            targets: Array[CompleteLocation[Int]])
+  def sparseSlidingFold[ResultT: ClassTag](size: Array[IntervalSize],
+                                           targets: Array[CompleteLocation[Int]])
                                            (f: Array[(IndexT, ValueT)] => ResultT,
                                             zero: ResultT,
                                             op: (ResultT, ResultT) => ResultT): ResultT = {
@@ -162,17 +165,19 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     val lookAhead = size.head.lookAhead
     val lookBack  = size.head.lookBack
 
-    var begin_index = 0
-    var end_index   = 0
+    var begin_index = -1
+    var end_index   = -1
 
     var result = zero
 
     for(center_location <- targets) {
 
-      begin_index = center_location.k - lookBack.toInt
-      end_index = center_location.k + lookAhead.toInt
+      begin_index = locations.lastIndexWhere(x => signedDistance(x.k, data(center_location.k)._1) < lookBack,
+        center_location.k) + 1
+      end_index = locations.indexWhere(x => signedDistance(data(center_location.k)._1, x.k) >= lookAhead,
+        center_location.k)
 
-      if ((begin_index >= 0) && (end_index <= data.length)) {
+      if ((begin_index != -1) && (end_index != -1)) {
         result = op(result, f(data.slice(begin_index, end_index + 1)))
       }
     }
@@ -195,7 +200,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
         val targetCompleteLocation = locations(firstValidIndex + i)
         CompleteLocation(targetCompleteLocation.partIdx, targetCompleteLocation.originIdx, i)
       })
-      regularSlidingFold(size, selectedLocations)(f, zero, op)
+      sparseSlidingFold(size, selectedLocations)(f, zero, op)
     }
 
   }

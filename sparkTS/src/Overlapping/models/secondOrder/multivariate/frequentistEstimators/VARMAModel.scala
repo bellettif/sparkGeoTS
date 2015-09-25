@@ -1,9 +1,9 @@
-package overlapping.models.secondOrder
+package overlapping.models.secondOrder.multivariate.frequentistEstimators
 
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
-import overlapping.models.secondOrder.procedures.{RybickiMulti, InnovationAlgoMulti, InnovationAlgo, Rybicki}
+import overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures.{InnovationAlgoMulti, RybickiMulti}
 
 import scala.reflect.ClassTag
 

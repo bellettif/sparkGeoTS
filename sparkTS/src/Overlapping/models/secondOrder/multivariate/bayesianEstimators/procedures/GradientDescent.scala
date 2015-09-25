@@ -1,20 +1,19 @@
-package overlapping.models.secondOrder.procedures
+package overlapping.models.secondOrder.multivariate.bayesianEstimators.procedures
 
 import breeze.linalg._
-import breeze.numerics.{abs, sqrt}
+import breeze.numerics.sqrt
 
 /**
  * Created by Francois Belletti on 7/14/15.
  */
 
-object L1ClippedGradientDescent extends Serializable{
+object GradientDescent extends Serializable{
 
   def run[DataT](lossFunction: (Array[DenseMatrix[Double]], DataT) => Double,
                  gradientFunction: (Array[DenseMatrix[Double]], DataT) => Array[DenseMatrix[Double]],
                  gradientSizes: Array[(Int, Int)],
                  stepSize: Int => Double,
                  precision: Double,
-                 lambda: Double,
                  maxIter: Int,
                  start: Array[DenseMatrix[Double]],
                  data: DataT): Array[DenseMatrix[Double]] ={
@@ -36,7 +35,7 @@ object L1ClippedGradientDescent extends Serializable{
 
     var i = 0
 
-    while (firstIter || ((i <= maxIter) && abs(prevLoss - nextLoss) > precision)) {
+    while (firstIter || ((i <= maxIter) && (gradientMagnitude > precision * (1 + nextLoss)))) {
 
       println(i)
       println("Parameters")
@@ -47,29 +46,12 @@ object L1ClippedGradientDescent extends Serializable{
       println("Gradient")
       gradient.foreach(x => {println(x); println()})
 
-      parameters = parameters.indices.toArray.map(x => parameters(x) - (gradient(x) * stepSize(i)))
-
-      for((gradientSize, j) <- gradientSizes.zipWithIndex){
-        for(k <- 0 until gradientSize._1){
-          for(l <- 0 until gradientSize._2){
-            val paramValue = parameters(j)(k, l)
-            if(paramValue < 0){
-              parameters(j)(k, l) = min(0.0, paramValue + stepSize(i) * lambda)
-              gradient(j)(k, l) = (parameters(j)(k, l) - paramValue) / stepSize(i)
-            }
-            if(paramValue > 0){
-              parameters(j)(k, l) = max(0.0, paramValue - stepSize(i) * lambda)
-              gradient(j)(k, l) = (parameters(j)(k, l) - paramValue) / stepSize(i)
-            }
-          }
-        }
-      }
-
       gradientMagnitude = sqrt(gradient.map({case x: DenseMatrix[Double] => sum(x :* x)}).sum)
 
+      parameters = parameters.indices.toArray.map(x => parameters(x) - (gradient(x) * stepSize(i)))
       i = i + 1
       prevLoss = nextLoss
-      nextLoss = lossFunction(parameters, data) + gradient.map({case x: DenseMatrix[Double] => sum(abs(x))}).sum
+      nextLoss = lossFunction(parameters, data)
 
       println("New parameters")
       parameters.foreach(x => {println(x); println()})
