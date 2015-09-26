@@ -9,6 +9,8 @@ import overlapping.models.secondOrder.multivariate.bayesianEstimators.VARGradien
 
 import scala.reflect.ClassTag
 
+/*
+
 /**
  * Created by Francois Belletti on 9/16/15.
  */
@@ -57,3 +59,5 @@ class LateralSplitVARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
 }
+
+*/

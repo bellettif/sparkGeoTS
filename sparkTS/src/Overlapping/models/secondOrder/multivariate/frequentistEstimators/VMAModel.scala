@@ -10,25 +10,30 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
-  extends CrossCovariance[IndexT](deltaT, modelOrder){
+class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](
+    deltaT: Double,
+    q: Int,
+    d: Int,
+    mean: DenseVector[Double]
+  )
+  extends CrossCovariance[IndexT](deltaT, q, d, mean){
 
   def estimateVMAMatrices(crossCovMatrices: Array[DenseMatrix[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
-    InnovationAlgoMulti(modelOrder, crossCovMatrices)
+    InnovationAlgoMulti(q, crossCovMatrices)
 
   }
 
-  override def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    val crossCovMatrices: Array[DenseMatrix[Double]] = super.estimate(slice)._1
+    val crossCovMatrices: Array[DenseMatrix[Double]] = super.windowEstimate(slice)._1
     estimateVMAMatrices(crossCovMatrices)
 
   }
 
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    val crossCovMatrices: Array[DenseMatrix[Double]] = super.estimate(timeSeries)._1
+    val crossCovMatrices: Array[DenseMatrix[Double]] = super.blockEstimate(block)._1
     estimateVMAMatrices(crossCovMatrices)
 
   }

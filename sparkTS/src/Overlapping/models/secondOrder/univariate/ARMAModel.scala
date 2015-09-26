@@ -4,7 +4,6 @@ import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.Predictor
-import overlapping.models.secondOrder.Signature
 import overlapping.models.secondOrder.univariate.procedures.{InnovationAlgo, Rybicki}
 
 import scala.reflect.ClassTag
@@ -12,8 +11,13 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/14/15.
  */
-class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q: Int)
-  extends AutoCovariances[IndexT](deltaT, p + q){
+class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
+  deltaT: Double,
+  p: Int,
+  q: Int,
+  d: Int,
+  mean: DenseVector[Double])
+  extends AutoCovariances[IndexT](deltaT, p + q, d, mean){
 
   /*
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
@@ -55,23 +59,23 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q:
 
   }
 
-  override def windowEstimate(slice: Array[(IndexT, Array[Double])]): Array[CovSignature] = {
+  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): Array[CovSignature] = {
 
     super
-      .estimate(slice)
+      .windowEstimate(slice)
       .map(computeARMACoeffs)
 
   }
 
-  override def blockEstimate(block: SingleAxisBlock[IndexT, Array[Double]]): Array[CovSignature] = {
+  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): Array[CovSignature] = {
 
     super
-      .estimate(block)
+      .blockEstimate(block)
       .map(computeARMACoeffs)
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[CovSignature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[CovSignature]= {
 
     super
       .estimate(timeSeries)

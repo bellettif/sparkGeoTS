@@ -4,6 +4,7 @@ package overlapping.containers.tests
  * Created by Francois Belletti on 8/17/15.
  */
 
+import breeze.linalg.{sum, DenseVector}
 import breeze.stats.distributions.Uniform
 import overlapping.IntervalSize
 
@@ -39,14 +40,14 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       Uniform(-0.5, 0.5),
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val nonOverlappingSeqs = overlappingRDD
@@ -56,14 +57,16 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val transformedData = nonOverlappingSeqs
       .collect()
       .map(_._2.toList)
-      .foldRight(List[(TSInstant, Array[Double])]())(_ ::: _)
+      .foldRight(List[(TSInstant, DenseVector[Double])]())(_ ::: _)
       .toArray
 
     val originalData = rawTS.collect
 
     for(((ts1, data1), (ts2, data2)) <- transformedData.zip(originalData)){
       ts1 should be (ts2)
-      data1.deep should be (data2.map(_ * 2.0).deep)
+      for(j <- 0 until data1.size){
+        data1(j) should be (data2(j) * 2.0)
+      }
     }
 
   }
@@ -80,22 +83,22 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       Uniform(-0.5, 0.5),
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
-      .mapValues(v => v.map({case(k, v_) => v_.sum}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
+      .mapValues(v => v.map({case(k, v_) => sum(v_)}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2._2)
       .reduce(_ + _)
 
-    val directSum = rawTS.map(_._2.sum).reduce(_ + _)
+    val directSum = rawTS.map(x => sum(x._2)).reduce(_ + _)
 
     partitionedSum should be (directSum +- 0.000001)
 
@@ -112,18 +115,18 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
-      .mapValues(v => v.map({case(k, v_) => v_.sum}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
+      .mapValues(v => v.map({case(k, v_) => sum(v_)}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2._2)
       .reduce(_ + _)
 
@@ -143,22 +146,22 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       Uniform(-0.5, 0.5),
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
-      .mapValues(v => v.map({case(k, v_) => v_.sum}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
+      .mapValues(v => v.map({case(k, v_) => sum(v_)}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2._2)
       .reduce(_ + _)
 
-    val directSum = rawTS.map(_._2.sum).reduce(_ + _)
+    val directSum = rawTS.map(x => sum(x._2)).reduce(_ + _)
 
     partitionedSum should be (directSum +- 0.000001)
 
@@ -175,18 +178,18 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val partitionedSum = overlappingRDD
-      .mapValues(v => v.map({case(k, v_) => v_.sum}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
+      .mapValues(v => v.map({case(k, v_) => sum(v_)}).reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2._2)
       .reduce(_ + _)
 
@@ -205,14 +208,14 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val nonOverlappingSeqs = overlappingRDD
@@ -221,14 +224,16 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val transformedData = nonOverlappingSeqs
       .collect()
       .map(_._2.toList)
-      .foldRight(List[(TSInstant, Array[Double])]())(_ ::: _)
+      .foldRight(List[(TSInstant, DenseVector[Double])]())(_ ::: _)
       .toArray
 
     val originalData = rawTS.collect
 
     for(((ts1, data1), (ts2, data2)) <- transformedData.zip(originalData)){
       ts1 should be (ts2)
-      data1.deep should be (data2.deep)
+      for(j <- 0 until data1.size){
+        data1(j) should be (data2(j))
+      }
     }
 
   }
@@ -244,25 +249,27 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val reduceFromOverlappingData = overlappingRDD
-      .mapValues(v => v.reduce({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}))
+      .mapValues(v => v.reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2)
-      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))})
+      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)})
 
     val reduceFromNonOverlappingData = rawTS
-      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))})
+      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)})
 
-    reduceFromOverlappingData._2.deep should be (reduceFromNonOverlappingData._2.deep)
+    for(j <- 0 until reduceFromOverlappingData._2.length){
+      reduceFromOverlappingData._2(j) should be (reduceFromNonOverlappingData._2(j))
+    }
 
   }
 
@@ -274,35 +281,36 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val zeroArray   = Array.fill(nColumns)(0.0)
+    val zeroArray   = DenseVector.zeros[Double](nColumns)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val foldFromOverlappingData = overlappingRDD
       .mapValues(v => v.fold((zeroSecond, zeroArray))(
-        {case (k1, v1) => (k1, v1)},
-        {case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}))
+        {case (k, v) => (k, v)},
+        {case ((k1, v1), (k2, v2)) => (k1, v1 + v2)}))
       .map(_._2)
-      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))})
+      .reduce({case ((k1, v1), (k2, v2)) => (k1, v1 + v2)})
 
     val foldFromNonOverlappingData = rawTS
       .fold((zeroSecond, zeroArray))(
-        {case ((k1, v1), (k2, v2)) => (k1, v1.zip(v2).map({case(x, y) => x + y}))}
-    )
+        {case ((k1, v1), (k2, v2)) => (k1, v1 + v2)})
 
-    foldFromOverlappingData._2.deep should be (foldFromNonOverlappingData._2.deep)
+    for(j <- 0 until foldFromOverlappingData._2.length){
+      foldFromOverlappingData._2(j) should be (foldFromNonOverlappingData._2(j))
+    }
 
   }
 
@@ -320,18 +328,18 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
-    def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
-      data.map(_._2.sum).sum
+    def sumArray(data: Array[(TSInstant, DenseVector[Double])]): Double = {
+      data.map(x => sum(x._2)).sum
     }
 
     val foldFromOverlappingData = overlappingRDD
@@ -357,18 +365,18 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
-    def sumArray(data: Array[(TSInstant, Array[Double])]): Double = {
-      data.map(_._2.sum).sum
+    def sumArray(data: Array[(TSInstant, DenseVector[Double])]): Double = {
+      data.map(x => sum(x._2)).sum
     }
 
     val foldFromOverlappingData = overlappingRDD
@@ -393,14 +401,14 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val overlappingCount = overlappingRDD
@@ -423,14 +431,14 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val filteredOverlappingRDDCount = overlappingRDD
@@ -454,19 +462,19 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       Uniform(-0.5, 0.5),
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS
       .collect()
-      .foldRight(List[(TSInstant, Array[Double])]())(_ :: _)
+      .foldRight(List[(TSInstant, DenseVector[Double])]())(_ :: _)
       .toArray
 
     val slideFromRawTS = flattenedRawTS.sliding(11).toArray
@@ -479,7 +487,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .map(_.map(_._2))
       .collect()
       .map(_.toList)
-      .foldRight(List[Array[(TSInstant, Array[Double])]]())(_ ::: _)
+      .foldRight(List[Array[(TSInstant, DenseVector[Double])]]())(_ ::: _)
       .filter(_.length == 11)
       .toArray
 
@@ -487,7 +495,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       data1.length should be (data2.length)
       for(((ts1, values1), (ts2, values2)) <- data1.zip(data2)) {
         ts1.timestamp.getMillis should be(ts2.timestamp.getMillis)
-        values1.deep should be(values2.deep)
+        for(j <- 0 until values1.size){
+          values1(j) should be(values2(j))
+        }
       }
     }
   }
@@ -504,19 +514,19 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       Uniform(-0.5, 0.5),
       sc)
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
+    implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
+      override def compare(a: (DateTime, DenseVector[Double]), b: (DateTime, DenseVector[Double])) =
         a._1.compareTo(b._1)
     }
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS
       .collect()
-      .foldRight(List[(TSInstant, Array[Double])]())(_ :: _)
+      .foldRight(List[(TSInstant, DenseVector[Double])]())(_ :: _)
       .toArray
 
     val slideFromRawTS = flattenedRawTS.sliding(11).toArray
@@ -532,7 +542,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .map(_.map(_._2))
       .collect()
       .map(_.toList)
-      .foldRight(List[Array[(TSInstant, Array[Double])]]())(_ ::: _)
+      .foldRight(List[Array[(TSInstant, DenseVector[Double])]]())(_ ::: _)
       .filter(_.length == 11)
       .toArray
 
@@ -542,7 +552,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       data1.length should be (data2.length)
       for(((ts1, values1), (ts2, values2)) <- data1.zip(data2)) {
         ts1.timestamp.getMillis should be(ts2.timestamp.getMillis)
-        values1.deep should be(values2.deep)
+        for(j <- 0 until values1.size){
+          values1(j) should be(values2(j))
+        }
       }
     }
 
@@ -567,12 +579,12 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, Array[Double]])], _) =
+    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
     val flattenedRawTS = rawTS
       .collect()
-      .foldRight(List[(TSInstant, Array[Double])]())(_ :: _)
+      .foldRight(List[(TSInstant, DenseVector[Double])]())(_ :: _)
       .toArray
 
     val sliceFromRawTS = flattenedRawTS.sliding(5, 5).toArray
@@ -585,7 +597,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .map(_.map(_._2))
       .collect()
       .map(_.toList)
-      .foldRight(List[Array[(TSInstant, Array[Double])]]())(_ ::: _)
+      .foldRight(List[Array[(TSInstant, DenseVector[Double])]]())(_ ::: _)
       .toArray
 
     sliceFromRawTS.length should be (slicedRDD.length + 1) // We count intervals
@@ -594,7 +606,9 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       data1.length should be (data2.length)
       for(((ts1, values1), (ts2, values2)) <- data1.zip(data2)) {
         ts1.timestamp.getMillis should be(ts2.timestamp.getMillis)
-        values1.deep should be(values2.deep)
+        for(j <- 0 until values1.size){
+          values1(j) should be(values2(j))
+        }
       }
     }
 

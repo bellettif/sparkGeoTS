@@ -51,13 +51,9 @@ object RunWithUberDemandData {
 
     val mean = meanEstimator.estimate(overlappingRDD)
 
-    val centeredTimeSeries = overlappingRDD.mapValues(_.map({case (_, x) => x - mean}))
-
-    //println(mean)
-
-    val crossCovEstimator = new CrossCovariance[TSInstant](deltaTMillis, 1)
+    val crossCovEstimator = new CrossCovariance[TSInstant](deltaTMillis, 1, nColumns, mean)
     val (crossCovMatrices, covMatrix) = crossCovEstimator
-      .estimate(centeredTimeSeries)
+      .estimate(overlappingRDD)
 
     //crossCovMatrices.foreach(x=> {println(x); println()})
 
@@ -66,6 +62,7 @@ object RunWithUberDemandData {
     println()
 
     println(covMatrix(0 until 10, 0 until 10))
+
 
   }
 }

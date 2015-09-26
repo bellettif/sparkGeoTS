@@ -27,9 +27,8 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
      maxLag: Int,
      d: Int,
      mean: DenseVector[Double])
-  extends Serializable
-  with SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
-  with Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
+  extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
+  with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
 
   override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
 
@@ -39,9 +38,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
 
   override def kernel(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], Long) = {
 
-    val nCols  = slice(0)._2.length
-
-    val result = Array.fill(modelOrder.lookBack + modelOrder.lookAhead + 1)(DenseMatrix.zeros[Double](nCols, nCols))
+    val result = Array.fill(modelOrder.lookBack + modelOrder.lookAhead + 1)(DenseMatrix.zeros[Double](d, d))
 
     /*
     The slice is not full size, it shall not be considered in order to avoid redundant computations
@@ -50,13 +47,13 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       return (result, 0L)
     }
 
-    val centerTarget  = slice(modelOrder.lookBack)._2
+    val centerTarget  = slice(modelOrder.lookBack)._2 - mean
 
     for(i <- 0 to modelOrder.lookBack){
       val currentTarget = slice(i)._2 - mean
-      for(c1 <- 0 until nCols){
-        for(c2 <- 0 until nCols){
-          result(i)(c1, c2) += (centerTarget(c1) - mean(c1)) * currentTarget(c2)
+      for(c1 <- 0 until d){
+        for(c2 <- 0 until d){
+          result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
         }
       }
     }

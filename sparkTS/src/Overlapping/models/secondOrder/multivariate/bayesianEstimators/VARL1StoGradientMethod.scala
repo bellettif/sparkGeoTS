@@ -1,5 +1,7 @@
 package overlapping.models.secondOrder.multivariate.bayesianEstimators
 
+/*
+
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
@@ -191,3 +193,5 @@ class VARL1StoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
 }
+
+*/

@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.univariate.procedures
 
 import breeze.linalg._
+import overlapping.models.secondOrder.univariate.CovSignature
 
 /**
  * Created by Francois Belletti on 7/14/15.
@@ -15,7 +16,7 @@ import breeze.linalg._
    */
 object DurbinLevinson extends Serializable{
 
-  def apply(h: Int, autoCov: DenseVector[Double]): Signature ={
+  def apply(h: Int, autoCov: DenseVector[Double]): CovSignature ={
 
     var prevPhiEst          = DenseVector.zeros[Double](1)
     prevPhiEst(0)           = autoCov(1) / autoCov(0)
@@ -35,7 +36,7 @@ object DurbinLevinson extends Serializable{
       prevVarEst = newVarEst
     }
 
-    Signature(prevPhiEst, prevVarEst)
+    CovSignature(prevPhiEst, prevVarEst)
   }
 
 

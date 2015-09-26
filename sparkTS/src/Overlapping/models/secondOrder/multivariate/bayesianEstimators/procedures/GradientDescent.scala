@@ -60,6 +60,12 @@ object GradientDescent extends Serializable{
       println(nextLoss)
       println("-----------------------------")
 
+      if(gradientMagnitude < precision * (1 + nextLoss)){
+        println("---------------------------------------")
+        println("Reached optimum with required precision")
+        println("---------------------------------------")
+      }
+
       firstIter = false
     }
 

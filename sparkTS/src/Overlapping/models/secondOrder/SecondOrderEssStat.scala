@@ -5,11 +5,13 @@ import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.{Predictor, Estimator}
 
+import scala.reflect.ClassTag
+
 
 /**
  * Created by Francois Belletti on 7/10/15.
  */
-trait SecondOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT]
+abstract class SecondOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: ClassTag]
   extends Serializable{
 
   def kernelWidth: IntervalSize

@@ -10,8 +10,14 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/14/15.
  */
-class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q: Int)
-  extends CrossCovariance[IndexT](deltaT, p + q){
+class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
+      deltaT: Double,
+      p: Int,
+      q: Int,
+      d: Int,
+      mean: DenseVector[Double]
+  )
+  extends CrossCovariance[IndexT](deltaT, p + q, d, mean){
 
   /*
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
@@ -32,6 +38,7 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q
       }
     }
     MACoefs
+
   }
 
   /*
@@ -56,19 +63,18 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, p: Int, q
 
   }
 
-  /*
-  override def estimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    computeARMACoeffs(super.estimate(slice)._1)
+  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-  }
-
-  override def estimate(timeSeries: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    computeARMACoeffs(super.estimate(timeSeries)._1)
+    computeARMACoeffs(super.windowEstimate(slice)._1)
 
   }
-  */
+
+  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+
+    computeARMACoeffs(super.blockEstimate(block)._1)
+
+  }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 

@@ -15,39 +15,20 @@ object IndividualRecords {
 
   def generateWhiteNoise(nColumns: Int, nSamples: Int, deltaTMillis: Long,
                          noiseGen: Rand[Double],
-                         sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                         sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseGen.sample(nColumns).toArray))
-    sc.parallelize(rawData).asInstanceOf[RDD[(TSInstant, Array[Double])]]
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseVector(noiseGen.sample(nColumns).toArray)))
+    sc.parallelize(rawData)
   }
 
   def generateOnes(nColumns: Int, nSamples: Int, deltaTMillis: Long,
-                   sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                   sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseVector.ones[Double](nColumns).toArray))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), DenseVector.ones[Double](nColumns)))
     sc.parallelize(rawData)
   }
 
   def generateAR(phis: Array[Double], nColumns:Int, nSamples: Int, deltaTMillis: Long,
-                 noiseGen: Rand[Double],
-                 sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
-
-    val p = phis.length
-
-    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- p until nSamples){
-      for(h <- 1 to p){
-        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
-      }
-    }
-
-    val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
-
-    sc.parallelize(rawData)
-  }
-
-  def generateDenseAR(phis: Array[Double], nColumns:Int, nSamples: Int, deltaTMillis: Long,
                       noiseGen: Rand[Double],
                       sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
 
@@ -175,7 +156,7 @@ object IndividualRecords {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x)copy))
+      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
 
     sc.parallelize(rawData)
   }

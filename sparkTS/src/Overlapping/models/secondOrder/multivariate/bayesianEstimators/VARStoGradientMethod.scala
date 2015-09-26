@@ -5,27 +5,29 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
+import overlapping.models.Estimator
 import overlapping.models.secondOrder.SecondOrderEssStat
 import overlapping.models.secondOrder.multivariate.bayesianEstimators.procedures.GradientDescent
 
 import scala.reflect.ClassTag
 import scala.util.Random
 
+/*
+
 /**
  * Created by Francois Belletti on 9/16/15.
  */
 class VARStoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
-  val modelOrder: Int,
-  val deltaT: Double,
-  val lossFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Double,
-  val gradientFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Array[DenseMatrix[Double]],
-  val gradientSizes: Array[(Int, Int)],
-  val stepSize: Int => Double,
-  val batchSize: Int,
-  val precision: Double,
-  val maxIter: Int,
-  val start: Array[DenseMatrix[Double]])
-  extends SecondOrderEssStat[IndexT, DenseVector[Double]]{
+    val modelOrder: Int,
+    val deltaT: Double,
+    val loss: AutoregressiveLoss[IndexT],
+    val gradient: AutoregressiveGradient[IndexT],
+    val stepSize: Int => Double,
+    val batchSize: Int,
+    val precision: Double,
+    val maxIter: Int,
+    val start: Array[DenseMatrix[Double]])
+  extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   lazy val gradientIndices = gradientSizes.indices.toArray
 
@@ -184,3 +186,5 @@ class VARStoGradientMethod[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
 }
+
+*/

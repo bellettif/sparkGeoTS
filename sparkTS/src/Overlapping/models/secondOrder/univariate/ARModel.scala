@@ -1,5 +1,6 @@
 package overlapping.models.secondOrder.univariate
 
+import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
 
@@ -10,30 +11,35 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
-class ARModel[IndexT <: Ordered[IndexT] : ClassTag](deltaT: Double, modelOrder: Int)
-  extends AutoCovariances[IndexT](deltaT, modelOrder){
+class ARModel[IndexT <: Ordered[IndexT] : ClassTag](
+    deltaT: Double,
+    p: Int,
+    d: Int,
+    mean: DenseVector[Double]
+  )
+  extends AutoCovariances[IndexT](deltaT, p, d, mean){
 
-  override def windowEstimate(slice: Array[(IndexT, Array[Double])]): Array[CovSignature] = {
+  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): Array[CovSignature] = {
 
     super
-      .estimate(slice)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+      .windowEstimate(slice)
+      .map(x => DurbinLevinson(p, x.covariation))
 
   }
 
-  override def blockEstimate(block: SingleAxisBlock[IndexT, Array[Double]]): Array[CovSignature] = {
+  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): Array[CovSignature] = {
 
     super
-      .estimate(block)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+      .blockEstimate(block)
+      .map(x => DurbinLevinson(p, x.covariation))
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, Array[Double]])]): Array[CovSignature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[CovSignature]= {
 
     super
       .estimate(timeSeries)
-      .map(x => DurbinLevinson(modelOrder, x.covariation))
+      .map(x => DurbinLevinson(p, x.covariation))
 
   }
 
