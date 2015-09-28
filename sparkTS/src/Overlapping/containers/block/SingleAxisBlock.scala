@@ -65,9 +65,9 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var begin_index = 0
     var end_index   = 0
 
-    var result = List[(IndexT, ResultT)]()
+    val result = Array.ofDim[(IndexT, ResultT)](targets.length)
 
-    for(center_location <- targets){
+    for((center_location , i) <- targets.zipWithIndex){
       if(end_index != -1) {
 
         begin_index = locations.indexWhere(x => signedDistance(x.k, center_location.k) <= lookBack,
@@ -77,12 +77,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
           end_index)
 
         if ((begin_index != -1) && (end_index != -1))
-          result = result :+(center_location.k, f(data.slice(begin_index, end_index + 1)))
+          result(i) = (center_location.k, f(data.slice(begin_index, end_index + 1)))
 
       }
     }
 
-    new SingleAxisBlock[IndexT, ResultT](result.toArray, targets, signedDistances)
+    new SingleAxisBlock[IndexT, ResultT](result, targets, signedDistances)
 
   }
 

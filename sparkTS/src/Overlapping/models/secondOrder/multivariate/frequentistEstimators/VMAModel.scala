@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.multivariate.frequentistEstimators
 
 import breeze.linalg.{DenseMatrix, DenseVector}
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures.InnovationAlgoMulti
@@ -14,7 +15,7 @@ class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     deltaT: Double,
     q: Int,
     d: Int,
-    mean: DenseVector[Double]
+    mean: Broadcast[DenseVector[Double]]
   )
   extends CrossCovariance[IndexT](deltaT, q, d, mean){
 

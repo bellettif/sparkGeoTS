@@ -56,7 +56,7 @@ object RunWithSurrogateDataMonoBlock {
 
     println("Results of cross cov frequentist estimator")
 
-    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, p, nColumns, DenseVector.zeros(nColumns))
+    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, p, nColumns, sc.broadcast(DenseVector.zeros(nColumns)))
     val (crossCovMatrices, covMatrix) = crossCovEstimator
       .estimate(overlappingRDD)
 
@@ -68,7 +68,7 @@ object RunWithSurrogateDataMonoBlock {
 
     println("Results of AR multivariate frequentist estimator")
 
-    val VAREstimator = new VARModel[TSInstant](1.0, p, nColumns, DenseVector.zeros[Double](nColumns))
+    val VAREstimator = new VARModel[TSInstant](1.0, p, nColumns, sc.broadcast(DenseVector.zeros[Double](nColumns)))
     val (coeffMatricesAR, noiseVarianceAR) = VAREstimator
       .estimate(overlappingRDD)
 
@@ -80,7 +80,7 @@ object RunWithSurrogateDataMonoBlock {
 
     println("Results of MA multivariate frequentist estimator")
 
-    val VMAEstimator = new VMAModel[TSInstant](1.0, p, nColumns, DenseVector.zeros[Double](nColumns))
+    val VMAEstimator = new VMAModel[TSInstant](1.0, p, nColumns, sc.broadcast(DenseVector.zeros[Double](nColumns)))
     val (coeffMatricesMA, noiseVarianceMA) = VMAEstimator
       .estimate(overlappingRDD)
 
@@ -92,7 +92,7 @@ object RunWithSurrogateDataMonoBlock {
 
     println("Results of ARMA multivariate frequentist estimator")
 
-    val VARMAEstimator = new VARMAModel[TSInstant](1.0, p, p, nColumns, DenseVector.zeros[Double](nColumns))
+    val VARMAEstimator = new VARMAModel[TSInstant](1.0, p, p, nColumns, sc.broadcast(DenseVector.zeros[Double](nColumns)))
     val (coeffMatricesARMA, noiseVarianceARMA) = VARMAEstimator
       .estimate(overlappingRDD)
 

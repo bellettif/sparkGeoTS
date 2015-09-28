@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.multivariate.frequentistEstimators
 
 import breeze.linalg._
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
@@ -26,7 +27,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
      deltaT: Double,
      maxLag: Int,
      d: Int,
-     mean: DenseVector[Double])
+     mean: Broadcast[DenseVector[Double]])
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
   with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
 
@@ -47,10 +48,11 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       return (result, 0L)
     }
 
-    val centerTarget  = slice(modelOrder.lookBack)._2 - mean
+    val meanValue = mean.value
+    val centerTarget  = slice(modelOrder.lookBack)._2 - meanValue
 
     for(i <- 0 to modelOrder.lookBack){
-      val currentTarget = slice(i)._2 - mean
+      val currentTarget = slice(i)._2 - meanValue
       for(c1 <- 0 until d){
         for(c2 <- 0 until d){
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)

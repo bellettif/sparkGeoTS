@@ -1,11 +1,9 @@
-package overlapping.models.secondOrder.multivariate.frequentistEstimators
+package overlapping.models.secondOrder.multivariate
 
 import breeze.linalg.{DenseMatrix, DenseVector}
-import org.apache.spark.rdd.RDD
+import org.apache.spark.broadcast.Broadcast
 import overlapping.IntervalSize
-import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.Predictor
-import overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
 
 import scala.reflect.ClassTag
 
@@ -16,8 +14,8 @@ class VARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
     deltaT: Double,
     p: Int,
     d: Int,
-    mean: DenseVector[Double],
-    matrices: Array[DenseMatrix[Double]]
+    mean: Broadcast[DenseVector[Double]],
+    matrices: Broadcast[Array[DenseMatrix[Double]]]
   )
   extends Predictor[IndexT]{
 
@@ -25,9 +23,9 @@ class VARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
 
   override def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = {
 
-    val pred = mean.copy
+    val pred = mean.value.copy
     for(i <- 0 until (data.length - 1)){
-      pred :+= matrices(data.length - 2 - i) * (data(i)._2 - mean)
+      pred :+= matrices.value(data.length - 2 - i) * (data(i)._2 - mean.value)
     }
 
     pred

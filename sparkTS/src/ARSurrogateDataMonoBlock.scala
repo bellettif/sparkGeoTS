@@ -10,7 +10,10 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.io.SingleAxisBlockRDD
-import overlapping.models.firstOrder.MeanEstimator
+import overlapping.models.firstOrder.{SecondMomentEstimator, MeanEstimator}
+import overlapping.models.secondOrder.multivariate.VARPredictor
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
 import overlapping.models.secondOrder.multivariate.bayesianEstimators.{AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent}
 import overlapping.models.secondOrder.multivariate.frequentistEstimators._
 import overlapping.surrogateData.{IndividualRecords, TSInstant}
@@ -21,8 +24,16 @@ object ARSurrogateDataMonoBlock {
 
   def main(args: Array[String]): Unit ={
 
+    /*
+     #################################################
+
+      Generate surrogate data
+
+     ################################################
+     */
+
     val nColumns      = 3
-    val nSamples      = 10000L
+    val nSamples      = 1000000L
     val paddingMillis = 1000L
     val deltaTMillis  = 1L
     val nPartitions   = 8
@@ -49,6 +60,14 @@ object ARSurrogateDataMonoBlock {
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], intervals: Array[(TSInstant, TSInstant)]) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
 
+    /*
+     #################################################
+
+      Estimation of process mean
+
+     ################################################
+     */
+
     val p = ARcoeffs.length
 
     val meanEstimator = new MeanEstimator[TSInstant]()
@@ -59,26 +78,131 @@ object ARSurrogateDataMonoBlock {
     println("Mean = ")
     println(mean)
 
-    val VAREstimator = new VARModel[TSInstant](1.0, p, nColumns, mean)
+    /*
+     #################################################
+
+      Frequentist estimation of AR coeffs
+      and noise variance-covariance matrix
+
+     ################################################
+     */
+
+    val VAREstimator = new VARModel[TSInstant](1.0, p, nColumns, sc.broadcast(mean))
     val (coeffMatricesAR, noiseVarianceAR) = VAREstimator
       .estimate(overlappingRDD)
+
+    //val f1 = Figure()
+    //f1.subplot(0) += image(coeffMatricesAR(0))
+    //f1.saveas("AR_1_surrogate.png")
 
     println("AR estimated model:")
     coeffMatricesAR.foreach(x=> {println(x); println()})
     println(noiseVarianceAR)
     println()
 
-    val predictor = new VARPredictor[TSInstant](deltaTMillis, 1, nColumns, mean, coeffMatricesAR)
+    /*
+     #################################################
 
+      Estimation of ML estimator's Hessian
+
+     ################################################
+     */
+
+    val sigmaEpsDiag: DenseVector[Double] = diag(noiseVarianceAR)
+
+    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, p, nColumns, sc.broadcast(DenseVector.zeros(nColumns)))
+    val (crossCovMatrices, covMatrix) = crossCovEstimator
+      .estimate(overlappingRDD)
+
+    crossCovMatrices.foreach(x=> {println(x); println()})
+
+    val svd.SVD(_, s, _) = svd(covMatrix)
+
+    def stepSize(x: Int): Double ={
+      1.0 / (max(s) * max(sigmaEpsDiag) + min(s) * min(sigmaEpsDiag))
+    }
+
+    /*
+     #################################################
+
+      Setup gradient descent
+
+     ################################################
+     */
+
+    val VARLoss = new DiagonalNoiseARLoss(sigmaEpsDiag, nSamples, sc.broadcast(mean))
+    val VARGrad = new DiagonalNoiseARGrad(sigmaEpsDiag, nSamples, sc.broadcast(mean))
+
+    val VARBayesEstimator = new VARGradientDescent[TSInstant](
+      p,
+      deltaTMillis,
+      new AutoregressiveLoss(
+        p,
+        deltaTMillis,
+        Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+        {case (param, data) => VARLoss(param, data)}),
+      new AutoregressiveGradient(
+        p,
+        deltaTMillis,
+        Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+        {case (param, data) => VARGrad(param, data)}),
+      stepSize,
+      1e-5,
+      1000,
+      Array.fill(p){DenseMatrix.zeros(nColumns, nColumns)}
+    )
+
+    val ARMatrices = VARBayesEstimator.estimate(overlappingRDD)
+
+    /*
+     #################################################
+
+      Setup predictions
+
+     ################################################
+     */
+
+    val predictor = new VARPredictor[TSInstant](
+      deltaTMillis,
+      1,
+      nColumns,
+      sc.broadcast(mean),
+      sc.broadcast(ARMatrices))
+
+    println("Starting predictions")
+    val startTime1 = System.currentTimeMillis()
     val predictions = predictor.predictAll(overlappingRDD)
+    println("Done after " + (System.currentTimeMillis() - startTime1) + " milliseconds")
 
-    println(predictions.map(_._2._2).reduce(_ + _) / predictions.count.toDouble)
+    println("Computing residuals")
+    val startTime2 = System.currentTimeMillis()
+    val residuals = predictor.residualAll(overlappingRDD)
+    println("Done after " + (System.currentTimeMillis() - startTime2) + " milliseconds")
 
-    val sigmaEps = predictions.map({case (k, (_, e)) => e * e.t}).reduce(_ + _) / predictions.count.toDouble
+    println("Computing mean residual")
+    val startTime3 = System.currentTimeMillis()
+    val residualMean = meanEstimator.estimate(residuals)
+    println("Done after " + (System.currentTimeMillis() - startTime3) + " milliseconds")
+    println(residualMean)
 
-    val f2 = Figure()
-    f2.subplot(0) += image(sigmaEps)
-    f2.saveas("image.png")
+    val secondMomentEstimator = new SecondMomentEstimator[TSInstant]()
+
+    println("Computing mean squared residual")
+    val startTime4 = System.currentTimeMillis()
+    val residualSecondMoment = secondMomentEstimator.estimate(residuals)
+    println("Done after " + (System.currentTimeMillis() - startTime4) + " milliseconds")
+    println(residualSecondMoment)
+
+    //println(residualMean)
+    //println(sigmaEps)
+
+    //val f2 = Figure()
+    //f2.subplot(0) += image(sigmaEps)
+    //f2.saveas("sigma_eps_surrogate.png")
+
+    //val f3 = Figure()
+    //f3.subplot(0) += image(noiseVarianceAR)
+    //f3.saveas("noise_variance_AR_surrogate.png")
 
     println()
 
