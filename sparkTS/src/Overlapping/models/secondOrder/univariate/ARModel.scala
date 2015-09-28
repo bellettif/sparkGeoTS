@@ -3,6 +3,7 @@ package overlapping.models.secondOrder.univariate
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
+import overlapping.models.Predictor
 
 import overlapping.models.secondOrder.univariate.procedures.DurbinLevinson
 
@@ -42,5 +43,7 @@ class ARModel[IndexT <: Ordered[IndexT] : ClassTag](
       .map(x => DurbinLevinson(p, x.covariation))
 
   }
+
+
 
 }

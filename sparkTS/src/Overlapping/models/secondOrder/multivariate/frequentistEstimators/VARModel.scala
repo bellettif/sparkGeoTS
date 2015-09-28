@@ -3,6 +3,7 @@ package overlapping.models.secondOrder.multivariate.frequentistEstimators
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
+import overlapping.models.Predictor
 import overlapping.models.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
 
 import scala.reflect.ClassTag

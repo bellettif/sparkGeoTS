@@ -18,13 +18,17 @@ object RybickiMulti extends Serializable{
    */
   def apply(p: Int, d: Int, R: Array[DenseMatrix[Double]], y: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] ={
 
+    if(p == 1){
+      return Array(R(0) \ y(0))
+    }
+
     var prevX = Array.fill(1){DenseMatrix.zeros[Double](d, d)}
     var prevH = Array.fill(1){DenseMatrix.zeros[Double](d, d)}
     var prevG = Array.fill(1){DenseMatrix.zeros[Double](d, d)}
 
     val R_0 = R(p - 1)
-    var R_plus = R.slice(p, 2 * p)
-    val R_minus = R.slice(0, p - 1).reverse
+    var R_plus = if(p > 1) R.slice(p, 2 * p) else Array(R(p))
+    val R_minus = if (p > 1) R.slice(0, p - 1).reverse else Array(R(0))
     /*
     Equation system 2.8.26
      */
