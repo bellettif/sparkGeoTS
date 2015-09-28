@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.univariate
 
 import breeze.linalg.{DenseMatrix, DenseVector}
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.IntervalSize
 import overlapping.containers.block.SingleAxisBlock
@@ -16,7 +17,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
     deltaT: Double,
     maxLag: Int,
     d: Int,
-    mean: DenseVector[Double]
+    mean: Broadcast[DenseVector[Double]]
   )
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[CovSignature], Long)]
   with Estimator[IndexT, DenseVector[Double], Array[CovSignature]]
@@ -30,8 +31,10 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 
   override def kernel(slice: Array[(IndexT, DenseVector[Double])]): (Array[CovSignature], Long) = {
 
-    val tempCovs = Array.fill(modelWidth){DenseVector.zeros[Double](modelWidth)}
-    val tempVars = Array.fill(modelWidth){0.0}
+    val tempCovs = Array.fill(d){DenseVector.zeros[Double](modelWidth)}
+    val tempVars = Array.fill(d){0.0}
+
+    val meanValue = mean.value
 
     /*
     The slice is not full size, it shall not be considered in order to avoid redundant computations
@@ -42,11 +45,11 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 
     for(c <- 0 until d){
 
-      val centerTarget  = slice(modelOrder.lookBack)._2(c) - mean(c)
-      tempVars(c) += centerTarget
+      val centerTarget  = slice(modelOrder.lookBack)._2(c) - meanValue(c)
+      tempVars(c) += centerTarget * centerTarget
 
       for(i <- 0 to modelOrder.lookBack){
-        tempCovs(c)(i) += centerTarget * (slice(i)._2(c) - mean(c))
+        tempCovs(c)(i) += centerTarget * (slice(i)._2(c) - meanValue(c))
       }
 
       for(i <- 1 to modelOrder.lookAhead){

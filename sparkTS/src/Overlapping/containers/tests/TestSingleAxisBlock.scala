@@ -38,6 +38,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
@@ -81,6 +82,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
@@ -144,6 +146,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
@@ -460,6 +463,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
@@ -512,6 +516,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
     val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, DenseVector[Double])] {
@@ -568,8 +573,12 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 200L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = IndividualRecords.generateWhiteNoise(
+      nColumns,
+      nSamples.toInt,
+      deltaTMillis,
       Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {

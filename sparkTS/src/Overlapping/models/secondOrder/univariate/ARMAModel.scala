@@ -1,6 +1,7 @@
 package overlapping.models.secondOrder.univariate
 
 import breeze.linalg._
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.models.Predictor
@@ -16,7 +17,7 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
   p: Int,
   q: Int,
   d: Int,
-  mean: DenseVector[Double])
+  mean: Broadcast[DenseVector[Double]])
   extends AutoCovariances[IndexT](deltaT, p + q, d, mean){
 
   /*

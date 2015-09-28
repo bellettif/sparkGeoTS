@@ -40,6 +40,7 @@ object RunWithSurrogateDataMonoBlock {
       ARcoeffs,
       nColumns, nSamples.toInt, deltaTMillis,
       Gaussian(0.0, 1.0),
+      DenseVector(1.0, 1.0, 1.0),
       sc)
 
     implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
