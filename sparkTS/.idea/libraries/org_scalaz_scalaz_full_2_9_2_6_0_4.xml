@@ -1,0 +1,21 @@
+<component name="libraryTable">
+  <library name="org.scalaz:scalaz-full_2.9.2:6.0.4" type="repository">
+    <properties maven-id="org.scalaz:scalaz-full_2.9.2:6.0.4" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-full_2.9.2/6.0.4/scalaz-full_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-core_2.9.2/6.0.4/scalaz-core_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.9.2/scala-library-2.9.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-scalacheck-binding_2.9.2/6.0.4/scalaz-scalacheck-binding_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scala-tools/testing/scalacheck_2.9.0-1/1.9/scalacheck_2.9.0-1-1.9.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scala-tools/testing/test-interface/0.5/test-interface-0.5.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-http_2.9.2/6.0.4/scalaz-http_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-example_2.9.2/6.0.4/scalaz-example_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-geo_2.9.2/6.0.4/scalaz-geo_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-test-suite_2.9.2/6.0.4/scalaz-test-suite_2.9.2-6.0.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/scalaz/scalaz-geo-scalacheck_2.9.2/6.0.4/scalaz-geo-scalacheck_2.9.2-6.0.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

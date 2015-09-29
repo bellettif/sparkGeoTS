@@ -30,9 +30,9 @@ object SurrogateAR1 {
 
     val filePath = "/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_merged.csv"
 
-    val d             = 100
-    val b             = 3
-    val N             = 200000L
+    val d             = 50
+    val b             = 20
+    val N             = 1000000L
     val paddingMillis = 100L
     val deltaTMillis  = 1L
     val nPartitions   = 8
@@ -101,8 +101,8 @@ object SurrogateAR1 {
     /*
      Estimate process' mean
      */
-    val meanEstimator = new MeanEstimator[TSInstant]()
-    val secondMomentEstimator = new SecondMomentEstimator[TSInstant]()
+    val meanEstimator = new MeanEstimator[TSInstant](d)
+    val secondMomentEstimator = new SecondMomentEstimator[TSInstant](d)
 
     val mean = meanEstimator.estimate(overlappingRDD)
 
@@ -277,7 +277,7 @@ object SurrogateAR1 {
       {case (param, data) => VARGrad(param, data)}),
       stepSize,
       1e-5,
-      1e-3,
+      1e-2,
       100,
       freqVARmatrices
     )

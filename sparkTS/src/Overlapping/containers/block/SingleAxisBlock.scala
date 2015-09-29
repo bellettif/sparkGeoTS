@@ -300,9 +300,12 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
   override def fold[ResultT: ClassTag](zeroValue: ResultT)(f: (IndexT, ValueT) => ResultT,
                                                            op: (ResultT, ResultT) => ResultT): ResultT = {
 
-    data.slice(firstValidIndex, lastValidIndex + 1)
-      .map({case (x, y) => f(x, y)})
-      .fold(zeroValue)(op)
+    var result = zeroValue
+    for(i <- firstValidIndex to lastValidIndex){
+      result = op(result, f(data(i)._1, data(i)._2))
+    }
+
+    result
 
   }
 

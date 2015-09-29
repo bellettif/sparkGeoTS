@@ -32,7 +32,7 @@ object ARSurrogateDataMonoBlock {
      ################################################
      */
 
-    val nColumns      = 3
+    val d             = 3
     val nSamples      = 1000000L
     val paddingMillis = 1000L
     val deltaTMillis  = 1L
@@ -46,7 +46,7 @@ object ARSurrogateDataMonoBlock {
 
     val rawTS = IndividualRecords.generateVAR(
       ARcoeffs,
-      nColumns, nSamples.toInt, deltaTMillis,
+      d, nSamples.toInt, deltaTMillis,
       Gaussian(0.0, 1.0),
       DenseVector(1.0, 1.0, 1.0),
       sc)
@@ -71,7 +71,7 @@ object ARSurrogateDataMonoBlock {
 
     val p = ARcoeffs.length
 
-    val meanEstimator = new MeanEstimator[TSInstant]()
+    val meanEstimator = new MeanEstimator[TSInstant](d)
     val mean = meanEstimator.estimate(overlappingRDD)
 
     println("Results of AR multivariate frequentist estimator")
@@ -88,7 +88,7 @@ object ARSurrogateDataMonoBlock {
      ################################################
      */
 
-    val VAREstimator = new VARModel[TSInstant](1.0, p, nColumns, sc.broadcast(mean))
+    val VAREstimator = new VARModel[TSInstant](1.0, p, d, sc.broadcast(mean))
     val (coeffMatricesAR, noiseVarianceAR) = VAREstimator
       .estimate(overlappingRDD)
 
@@ -111,7 +111,7 @@ object ARSurrogateDataMonoBlock {
 
     val sigmaEpsDiag: DenseVector[Double] = diag(noiseVarianceAR)
 
-    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, p, nColumns, sc.broadcast(DenseVector.zeros(nColumns)))
+    val crossCovEstimator = new CrossCovariance[TSInstant](1.0, p, d, sc.broadcast(DenseVector.zeros(d)))
     val (crossCovMatrices, covMatrix) = crossCovEstimator
       .estimate(overlappingRDD)
 
@@ -140,17 +140,17 @@ object ARSurrogateDataMonoBlock {
       new AutoregressiveLoss(
         p,
         deltaTMillis,
-        Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+        Array.fill(p){DenseMatrix.zeros[Double](d, d)},
         {case (param, data) => VARLoss(param, data)}),
       new AutoregressiveGradient(
         p,
         deltaTMillis,
-        Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+        Array.fill(p){DenseMatrix.zeros[Double](d, d)},
         {case (param, data) => VARGrad(param, data)}),
       stepSize,
       1e-5,
       1000,
-      Array.fill(p){DenseMatrix.zeros(nColumns, nColumns)}
+      Array.fill(p){DenseMatrix.zeros(d, d)}
     )
 
     val ARMatrices = VARBayesEstimator.estimate(overlappingRDD)
@@ -166,7 +166,7 @@ object ARSurrogateDataMonoBlock {
     val predictor = new VARPredictor[TSInstant](
       deltaTMillis,
       1,
-      nColumns,
+      d,
       sc.broadcast(mean),
       sc.broadcast(ARMatrices))
 
@@ -186,7 +186,7 @@ object ARSurrogateDataMonoBlock {
     println("Done after " + (System.currentTimeMillis() - startTime3) + " milliseconds")
     println(residualMean)
 
-    val secondMomentEstimator = new SecondMomentEstimator[TSInstant]()
+    val secondMomentEstimator = new SecondMomentEstimator[TSInstant](d)
 
     println("Computing mean squared residual")
     val startTime4 = System.currentTimeMillis()
