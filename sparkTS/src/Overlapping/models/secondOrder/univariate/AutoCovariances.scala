@@ -1,6 +1,6 @@
 package overlapping.models.secondOrder.univariate
 
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.{reverse, DenseMatrix, DenseVector}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.IntervalSize
@@ -23,9 +23,9 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
   with Estimator[IndexT, DenseVector[Double], Array[CovSignature]]
 {
 
-  def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
+  def kernelWidth = IntervalSize(deltaT * maxLag, 0)
 
-  def modelOrder = ModelSize(maxLag, maxLag)
+  def modelOrder = ModelSize(maxLag, 0)
 
   def zero = (Array.fill(d){CovSignature(DenseVector.zeros[Double](modelWidth), 0.0)}, 0L)
 
@@ -52,10 +52,6 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
         tempCovs(c)(i) += centerTarget * (slice(i)._2(c) - meanValue(c))
       }
 
-      for(i <- 1 to modelOrder.lookAhead){
-        tempCovs(c)(modelOrder.lookBack + i) = tempCovs(c)(modelOrder.lookBack - i)
-      }
-
     }
 
     (tempCovs.zip(tempVars).map({case (x, y) => CovSignature(x, y)}), 1L)
@@ -74,7 +70,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 
     val (covSigns: Array[CovSignature], nSamples: Long) = windowStats(window)
 
-    covSigns.map(x => CovSignature(x.covariation / nSamples.toDouble, x.variation / nSamples.toDouble))
+    covSigns.map(x => CovSignature(reverse(x.covariation) / nSamples.toDouble, x.variation / nSamples.toDouble))
 
   }
 
@@ -83,7 +79,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 
     val (covSigns: Array[CovSignature], nSamples: Long) = blockStats(block)
 
-    covSigns.map(x => CovSignature(x.covariation / nSamples.toDouble, x.variation / nSamples.toDouble))
+    covSigns.map(x => CovSignature(reverse(x.covariation) / nSamples.toDouble, x.variation / nSamples.toDouble))
 
   }
 
@@ -92,7 +88,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 
     val (covSigns: Array[CovSignature], nSamples: Long) = timeSeriesStats(timeSeries)
 
-    covSigns.map(x => CovSignature(x.covariation / nSamples.toDouble, x.variation / nSamples.toDouble))
+    covSigns.map(x => CovSignature(reverse(x.covariation) / nSamples.toDouble, x.variation / nSamples.toDouble))
 
   }
 

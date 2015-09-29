@@ -21,17 +21,19 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     val gradient: AutoregressiveGradient[IndexT],
     val stepSize: Int => Double,
     val precision: Double,
+    val lambda: Double,
     val maxIter: Int,
     val start: Array[DenseMatrix[Double]])
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
-    GradientDescent.run[Array[(IndexT, DenseVector[Double])]](
+    L1ClippedGradientDescent.run[Array[(IndexT, DenseVector[Double])]](
       {case (param, data) => loss.setNewX(param); loss.windowStats(data)},
       {case (param, data) => gradient.setNewX(param); gradient.windowStats(data)},
       gradient.getGradientSize,
       stepSize,
       precision,
+      lambda,
       maxIter,
       start,
       slice
@@ -39,12 +41,13 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
   override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): Array[DenseMatrix[Double]] = {
-    GradientDescent.run[SingleAxisBlock[IndexT, DenseVector[Double]]](
+    L1ClippedGradientDescent.run[SingleAxisBlock[IndexT, DenseVector[Double]]](
       {case (param, data) => loss.setNewX(param); loss.blockStats(data)},
       {case (param, data) => gradient.setNewX(param); gradient.blockStats(data)},
       gradient.getGradientSize,
       stepSize,
       precision,
+      lambda,
       maxIter,
       start,
       block
@@ -55,12 +58,13 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
 
     timeSeries.persist(MEMORY_AND_DISK)
 
-    val parameters = GradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
+    val parameters = L1ClippedGradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
       {case (param, data) => loss.setNewX(param); loss.timeSeriesStats(data)},
       {case (param, data) => gradient.setNewX(param); gradient.timeSeriesStats(data)},
       gradient.getGradientSize,
       stepSize,
       precision,
+      lambda,
       maxIter,
       start,
       timeSeries

@@ -32,21 +32,21 @@ object L1TruncatedGradientDescent extends Serializable{
 
     var gradientMagnitude = 0.0
 
-    println("Initial loss")
-    println(prevLoss)
+    //println("Initial loss")
+    //println(prevLoss)
 
     var i = 0
 
     while (firstIter || ((i <= maxIter) && abs(prevLoss - nextLoss) > precision)) {
 
-      println(i)
-      println("Parameters")
-      parameters.foreach(x => {println(x); println()})
+      //println(i)
+      //println("Parameters")
+      //parameters.foreach(x => {println(x); println()})
 
       gradient = gradientFunction(parameters, data)
 
-      println("Gradient")
-      gradient.foreach(x => {println(x); println()})
+      //println("Gradient")
+      //gradient.foreach(x => {println(x); println()})
 
       parameters = parameters.indices.toArray.map(x => parameters(x) - (gradient(x) * stepSize(i)))
 
@@ -72,12 +72,12 @@ object L1TruncatedGradientDescent extends Serializable{
       prevLoss = nextLoss
       nextLoss = lossFunction(parameters, data) + gradient.map({case x: DenseMatrix[Double] => sum(abs(x))}).sum
 
-      println("New parameters")
-      parameters.foreach(x => {println(x); println()})
+      //println("New parameters")
+      //parameters.foreach(x => {println(x); println()})
 
-      println("Loss")
-      println(nextLoss)
-      println("-----------------------------")
+      //println("Loss")
+      //println(nextLoss)
+      //println("-----------------------------")
 
       firstIter = false
     }

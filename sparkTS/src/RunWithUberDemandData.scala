@@ -13,6 +13,9 @@ import overlapping.containers.block.SingleAxisBlock
 import overlapping.io.SingleAxisBlockRDD
 import overlapping.models.firstOrder.{SecondMomentEstimator, MeanEstimator}
 import overlapping.models.secondOrder.multivariate.VARPredictor
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.{VARL1GradientDescent, AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent}
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
+import overlapping.models.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
 import overlapping.models.secondOrder.multivariate.frequentistEstimators.{VARModel, CrossCovariance}
 import overlapping.models.secondOrder.univariate.{ARPredictor, ARModel}
 import overlapping.surrogateData.{IndividualRecords, TSInstant}
@@ -78,11 +81,15 @@ object RunWithUberDemandData {
     println(residualMeanAR)
     println(trace(residualSecondMomentAR))
 
+    val f1 = Figure()
+    f1.subplot(0) += image(residualSecondMomentAR)
+    f1.saveas("residuals_AR.png")
+
     /*
     Multivariate analysis
      */
     val freqVAREstimator = new VARModel[TSInstant](deltaTMillis, 1, nColumns, sc.broadcast(mean))
-    val (freqVARmatrices, _) = freqVAREstimator.estimate(overlappingRDD)
+    val (freqVARmatrices, covMatrix) = freqVAREstimator.estimate(overlappingRDD)
 
     val predictorVAR = new VARPredictor[TSInstant](
       deltaTMillis,
@@ -98,6 +105,77 @@ object RunWithUberDemandData {
 
     println(residualMeanVAR)
     println(trace(residualSecondMomentVAR))
+
+    val f2 = Figure()
+    f2.subplot(0) += image(residualSecondMomentVAR)
+    f2.saveas("residuals_VAR.png")
+
+    val f3 = Figure()
+    f3.subplot(0) += image(freqVARmatrices(0))
+    f3.saveas("coeffs_VAR.png")
+
+    /*
+    Multivariate Bayesian analysis
+     */
+    val VARLoss = new DiagonalNoiseARLoss(diag(residualSecondMomentVAR), nSamples, sc.broadcast(mean))
+    val VARGrad = new DiagonalNoiseARGrad(diag(residualSecondMomentVAR), nSamples, sc.broadcast(mean))
+
+    val svd.SVD(_, s, _) = svd(covMatrix)
+
+    def stepSize(x: Int): Double ={
+      1.0 / (max(s) * max(diag(residualSecondMomentVAR)) + min(s) * min(diag(residualSecondMomentVAR)))
+    }
+
+    val VARBayesEstimator = new VARGradientDescent[TSInstant](
+      p,
+      deltaTMillis,
+      new AutoregressiveLoss(
+      p,
+      deltaTMillis,
+      Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+      {case (param, data) => VARLoss(param, data)}),
+      new AutoregressiveGradient(
+      p,
+      deltaTMillis,
+      Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+      {case (param, data) => VARGrad(param, data)}),
+      stepSize,
+      1e-5,
+      1000,
+      freqVARmatrices
+    )
+
+    val bayesianVAR = VARBayesEstimator.estimate(overlappingRDD)
+
+    val f4 = Figure()
+    f4.subplot(0) += image(bayesianVAR(0))
+    f4.saveas("coeffs_bayesian_VAR.png")
+
+    val sparseVARBayesEstimator = new VARL1GradientDescent[TSInstant](
+      p,
+      deltaTMillis,
+      new AutoregressiveLoss(
+      p,
+      deltaTMillis,
+      Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+      {case (param, data) => VARLoss(param, data)}),
+      new AutoregressiveGradient(
+      p,
+      deltaTMillis,
+      Array.fill(p){DenseMatrix.zeros[Double](nColumns, nColumns)},
+      {case (param, data) => VARGrad(param, data)}),
+      stepSize,
+      1e-5,
+      1e-2,
+      1000,
+      freqVARmatrices
+    )
+
+    val sparseBayesianVAR = sparseVARBayesEstimator.estimate(overlappingRDD)
+
+    val f5 = Figure()
+    f5.subplot(0) += image(sparseBayesianVAR(0))
+    f5.saveas("coeffs_sparse_bayesian_VAR.png")
 
 
   }
