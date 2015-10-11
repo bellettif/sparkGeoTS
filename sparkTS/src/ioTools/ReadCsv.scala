@@ -3,7 +3,7 @@ package ioTools
 import breeze.linalg.DenseVector
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import overlapping.surrogateData.TSInstant
+import overlapping.timeSeries._
 
 import scala.io
 

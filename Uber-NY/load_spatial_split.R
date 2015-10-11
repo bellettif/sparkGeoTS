@@ -31,9 +31,12 @@ mergeAllFiles <- function(inputFolder, outputFile){
   
   mergedDataFrame[is.na(mergedDataFrame)] <- 0
   
-  write.zoo(mergedDataFrame, outputFile, sep = '')
+  write.zoo(mergedDataFrame, outputFile, sep = ',')
 
 }
+
+mergeAllFiles('/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_apr/',
+              '/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_apr.csv')
 
 mergeAllFiles('/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_in_sample/',
               '/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_in_sample.csv')

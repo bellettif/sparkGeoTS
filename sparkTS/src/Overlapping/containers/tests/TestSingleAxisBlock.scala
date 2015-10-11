@@ -7,16 +7,17 @@ package overlapping.containers.tests
 import breeze.linalg.{sum, DenseVector}
 import breeze.stats.distributions.Uniform
 import overlapping.IntervalSize
+import overlapping.containers.SingleAxisBlock
 
 import scala.math._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkContext, SparkConf}
-import org.joda.time.DateTime
 import org.scalatest.{Matchers, FlatSpec}
-import overlapping.containers.block.SingleAxisBlock
-import overlapping.io.SingleAxisBlockRDD
-import overlapping.surrogateData.{TSInstant, IndividualRecords}
 
+import overlapping.containers._
+import overlapping.timeSeries._
+
+import org.joda.time.DateTime
 import scala.math.Ordering
 
 /**

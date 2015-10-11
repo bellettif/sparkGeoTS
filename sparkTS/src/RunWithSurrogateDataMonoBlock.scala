@@ -2,6 +2,8 @@
  * Created by cusgadmin on 6/9/15.
  */
 
+/*
+
 import breeze.linalg._
 import breeze.numerics.sqrt
 import breeze.stats.distributions.{Gaussian, Uniform}
@@ -13,10 +15,10 @@ import org.joda.time.DateTime
 import overlapping.IntervalSize
 import overlapping.containers.block.{SingleAxisBlock, IntervalSampler}
 import overlapping.io.SingleAxisBlockRDD
-import overlapping.models.secondOrder._
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.{VARGradientDescent, AutoregressiveGradient, AutoregressiveLoss, VARL1GradientDescent}
-import overlapping.models.secondOrder.multivariate.frequentistEstimators.{VARMAModel, VMAModel, VARModel, CrossCovariance}
-import overlapping.surrogateData.{TSInstant, IndividualRecords}
+import overlapping.timeSeries.secondOrder._
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.{VARGradientDescent, AutoregressiveGradient, AutoregressiveLoss, VARL1GradientDescent}
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.{VARMAModel, VMAModel, VARModel, CrossCovariance}
+import overlapping.timeSeries.surrogateData.{TSInstant, IndividualRecords}
 
 import scala.math.Ordering
 
@@ -175,3 +177,5 @@ object RunWithSurrogateDataMonoBlock {
 
   }
 }
+
+*/

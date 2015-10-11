@@ -1,18 +1,19 @@
-package overlapping.containers.block
+/*
+
+package overlapping
 
 import breeze.linalg.DenseVector
-
 import scala.reflect.ClassTag
 
 /**
  * Implementation of the replicator in the case of an ordered index as in time series.
  */
 class SingleAxisDenseLateralReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
-  (
-    override val intervals: Array[(IndexT, IndexT)],
-    override val signedDistance: (IndexT, IndexT) => Double,
-    override val padding: (Double, Double),
-    lateralPartitions: Array[Array[Int]]
+(
+  override val intervals: Array[(IndexT, IndexT)],
+  override val signedDistance: (IndexT, IndexT) => Double,
+  override val padding: (Double, Double),
+  lateralPartitions: Array[Array[Int]]
   )
   extends SingleAxisReplicator[IndexT, DenseVector[ValueT]](intervals, signedDistance, padding){
 
@@ -63,3 +64,5 @@ class SingleAxisDenseLateralReplicator[IndexT <: Ordered[IndexT], ValueT: ClassT
   }
 
 }
+
+*/

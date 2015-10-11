@@ -2,6 +2,8 @@
  * Created by cusgadmin on 6/9/15.
  */
 
+/*
+
 import breeze.linalg._
 import breeze.plot._
 import breeze.stats.distributions.Gaussian
@@ -10,13 +12,13 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import overlapping.containers.block.SingleAxisBlock
 import overlapping.io.SingleAxisBlockRDD
-import overlapping.models.firstOrder.{SecondMomentEstimator, MeanEstimator}
-import overlapping.models.secondOrder.multivariate.VARPredictor
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.{AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent}
-import overlapping.models.secondOrder.multivariate.frequentistEstimators._
-import overlapping.surrogateData.{IndividualRecords, TSInstant}
+import overlapping.timeSeries.firstOrder.{SecondMomentEstimator, MeanEstimator}
+import overlapping.timeSeries.secondOrder.multivariate.VARPredictor
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.{AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent}
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators._
+import overlapping.timeSeries.surrogateData.{IndividualRecords, TSInstant}
 
 import scala.math.Ordering
 
@@ -209,3 +211,5 @@ object ARSurrogateDataMonoBlock {
 
   }
 }
+
+*/

@@ -1,21 +1,18 @@
-package overlapping.containers.block
+/*
 
-import overlapping.containers.Replicator
+package overlapping
 
-import scala.collection.mutable
 import scala.reflect.ClassTag
-
-import collection.mutable.{ HashMap, MultiMap, Set }
 
 /**
  * Implementation of the replicator in the case of an ordered index as in time series.
  */
 class SingleAxisLateralReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
-  (
-    override val intervals: Array[(IndexT, IndexT)],
-    override val signedDistance: (IndexT, IndexT) => Double,
-    override val padding: (Double, Double),
-    lateralPartitions: Array[Array[Int]]
+(
+  override val intervals: Array[(IndexT, IndexT)],
+  override val signedDistance: (IndexT, IndexT) => Double,
+  override val padding: (Double, Double),
+  lateralPartitions: Array[Array[Int]]
   )
   extends SingleAxisReplicator[IndexT, Array[ValueT]](intervals, signedDistance, padding){
 
@@ -69,3 +66,5 @@ class SingleAxisLateralReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
 
 
 }
+
+*/

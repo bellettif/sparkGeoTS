@@ -5,22 +5,20 @@ package showcase
  */
 
 import breeze.linalg._
-import breeze.plot.{Figure, image}
+import breeze.plot._
+
 import ioTools.ReadCsv
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
-import overlapping.containers.block.SingleAxisBlock
-import overlapping.io.SingleAxisBlockRDD
-import overlapping.models.firstOrder.procedures.RbfSmoothing
-import overlapping.models.firstOrder.{MeanProfileEstimator, MeanEstimator, SecondMomentEstimator}
-import overlapping.models.secondOrder.multivariate.VARPredictor
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.{AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent, VARL1GradientDescent}
-import overlapping.models.secondOrder.multivariate.frequentistEstimators.VARModel
-import overlapping.models.secondOrder.univariate.{ARModel, ARPredictor}
-import overlapping.surrogateData.TSInstant
+
+import overlapping._
+import containers._
+import overlapping.timeSeries.firstOrder.{MeanEstimator, MeanProfileEstimator}
+import overlapping.timeSeries.secondOrder.multivariate.{VARPredictor, VARModel}
+import overlapping.timeSeries.secondOrder.univariate.{ARPredictor, ARModel}
+import timeSeries._
 
 import scala.math.Ordering
 
@@ -39,14 +37,18 @@ object UberDemandData {
     ##########################################
      */
 
-    val inSampleFilePath = "/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_merged.csv"
+    val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/demand_data/jan_earnings_HD.csv"
     val inSampleData = ReadCsv(inSampleFilePath, 0, "yyyy-MM-dd HH:mm:ss", true)
 
     val d             = inSampleData.head._2.length
     val nSamples      = inSampleData.length
-    val paddingMillis = 6000000L // 100 minutes
-    val deltaTMillis  = 60000L // 1 minute
+    val paddingMillis = 60L * 1000L // 1 minute
+    val deltaTMillis  = paddingMillis * 10L // 10 minutes
     val nPartitions   = 8
+
+    println(nSamples + " samples")
+    println(d + " dimensions")
+    println()
 
     val inSampleData_ = sc.parallelize(inSampleData)
 
@@ -60,6 +62,11 @@ object UberDemandData {
     val (rawTimeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, inSampleData_)
 
+    exit(0)
+
+    val meanEstimator = new MeanEstimator[TSInstant](d)
+    val secondMomentEstimator = new SecondMomentEstimator[TSInstant](d)
+
     /*
     ############################################
 
@@ -68,7 +75,6 @@ object UberDemandData {
     ############################################
      */
 
-    /*
     def hashFunction(x: TSInstant): Int = {
       (x.timestamp.getDayOfWeek - 1) * 24 * 60 + (x.timestamp.getMinuteOfDay - 1)
     }
@@ -91,9 +97,21 @@ object UberDemandData {
 
     val seasonalProfile = sc.broadcast(meanProfile)
 
-    val rawInSampleNoSeason = inSampleData_
-    //val rawInSampleNoSeason = inSampleData_.map({case (k, v) => (k, v - seasonalProfile.value(hashFunction(k)))})
-    */
+    val rawInSampleNoSeason = inSampleData_.map({case (k, v) => (k, v - seasonalProfile.value(hashFunction(k)))})
+
+    val meanRaw = meanEstimator.estimate(rawTimeSeries)
+    val secondMomentRaw = secondMomentEstimator.estimate(rawTimeSeries)
+
+    println("First and second moments with seasonality")
+    println(meanRaw)
+    println(secondMomentRaw)
+
+    val fPoissonRaw = Figure()
+    val pPoissonRaw = fPoissonRaw.subplot(0)
+    pPoissonRaw += scatter(meanRaw, diag(secondMomentRaw) - (meanRaw :* meanRaw), x => 0.001)
+    pPoissonRaw.xlabel = "mean"
+    pPoissonRaw.ylabel = "variance"
+    fPoissonRaw.saveas("PoissonRaw.png")
 
     /*
      ##################################################
@@ -104,12 +122,10 @@ object UberDemandData {
      */
 
     val (inSampleTimeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
-      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, inSampleData_)
-
-    val meanEstimator = new MeanEstimator[TSInstant](d)
-    val secondMomentEstimator = new SecondMomentEstimator[TSInstant](d)
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawInSampleNoSeason)
 
     val mean = meanEstimator.estimate(inSampleTimeSeries)
+    val secondMoment = secondMomentEstimator.estimate(inSampleTimeSeries)
 
     /*
     ###################################################
@@ -152,7 +168,12 @@ object UberDemandData {
 
     #################################################
      */
-    val freqVAREstimator = new VARModel[TSInstant](deltaTMillis, 1, d, sc.broadcast(mean))
+    val freqVAREstimator = new VARModel[TSInstant](
+      deltaTMillis,
+      p,
+      d,
+      sc.broadcast(mean))
+
     val (freqVARMatrices, covMatrix) = freqVAREstimator.estimate(inSampleTimeSeries)
 
     val svd.SVD(_, sVAR, _) = svd(freqVARMatrices(0))
@@ -186,7 +207,11 @@ object UberDemandData {
 
     /*
     /*
+    ############################################
+
     Multivariate Bayesian analysis
+
+    ############################################
      */
     val VARLoss = new DiagonalNoiseARLoss(diag(residualSecondMomentVAR), nSamples, sc.broadcast(mean))
     val VARGrad = new DiagonalNoiseARGrad(diag(residualSecondMomentVAR), nSamples, sc.broadcast(mean))
@@ -213,7 +238,7 @@ object UberDemandData {
       stepSize,
       1e-5,
       1000,
-      freqVARmatrices
+      freqVARMatrices
     )
 
     val bayesianVAR = VARBayesEstimator.estimate(inSampleTimeSeries)
@@ -238,8 +263,8 @@ object UberDemandData {
       stepSize,
       1e-5,
       1e-2,
-      1000,
-      freqVARmatrices
+      100,
+      freqVARMatrices
     )
 
     val sparseBayesianVAR = sparseVARBayesEstimator.estimate(inSampleTimeSeries)
@@ -249,6 +274,7 @@ object UberDemandData {
     f5.saveas("coeffs_sparse_bayesian_VAR.png")
 
     */
+
 
   }
 }

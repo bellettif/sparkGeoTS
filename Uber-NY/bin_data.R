@@ -48,5 +48,6 @@ binData <- function(targetData, outputFolder){
   }
 }
 
+binData(df.apr, '/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_apr/')
 binData(df.inSample, '/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_in_sample/')
 binData(df.outOfSample, '/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_out_of_sample/')

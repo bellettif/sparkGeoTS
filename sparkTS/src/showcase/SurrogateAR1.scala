@@ -5,24 +5,27 @@ package showcase
  */
 
 import breeze.linalg._
+import breeze.linalg.svd.SVD
 import breeze.numerics.abs
 import breeze.plot.{Figure, image}
 import breeze.stats.distributions.Gaussian
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.joda.time.DateTime
-import overlapping.containers.block.SingleAxisBlock
-import overlapping.io.SingleAxisBlockRDD
-import overlapping.models.firstOrder.{MeanEstimator, SecondMomentEstimator}
-import overlapping.models.secondOrder.multivariate.VARPredictor
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.{VARL1GradientDescent, AutoregressiveGradient, AutoregressiveLoss, VARGradientDescent}
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
-import overlapping.models.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseARLoss
-import overlapping.models.secondOrder.multivariate.frequentistEstimators.{CrossCovariance, VARModel}
-import overlapping.models.secondOrder.univariate.{ARModel, ARPredictor, AutoCovariances}
-import overlapping.surrogateData.{IndividualRecords, TSInstant}
 
+import org.joda.time.DateTime
+import overlapping.containers.{SingleAxisBlockRDD, SingleAxisBlock}
+import overlapping.timeSeries.firstOrder.MeanEstimator
+import overlapping.timeSeries.secondOrder.AutoregressiveGradient
+import overlapping.timeSeries.secondOrder.multivariate._
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.lossFunctions.AutoregressiveLoss
+import overlapping.timeSeries.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
+import overlapping.timeSeries.secondOrder.univariate.{ARPredictor, AutoCovariances, ARModel}
 import scala.math.Ordering
+
+import overlapping._
+import timeSeries._
+
 
 object SurrogateAR1 {
 
@@ -42,6 +45,7 @@ object SurrogateAR1 {
 
     val A = DenseMatrix.rand[Double](d, d)
 
+    /*
     for(i <- 0 until d){
       for(j <- 0 until d){
         if(abs(i - j) > b){
@@ -49,6 +53,7 @@ object SurrogateAR1 {
         }
       }
     }
+    */
 
     /*
     for(i <- 0 until d){
@@ -185,8 +190,14 @@ object SurrogateAR1 {
     println(trace(residualSecondMomentVAR))
     println()
 
+    val SVD(_, sVar, _) = svd(freqVARmatrices(0))
+
+    println("VAR stability")
+    println(max(sVar))
+    println(min(sVar))
+
     val f4 = Figure()
-    f4.subplot(0) += image(residualSecondMomentAR)
+    f4.subplot(0) += image(residualSecondMomentVAR)
     f4.saveas("cov_freq_VAR_residuals.png")
 
     /*

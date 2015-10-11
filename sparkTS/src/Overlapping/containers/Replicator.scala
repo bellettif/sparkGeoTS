@@ -1,9 +1,4 @@
-package overlapping.containers
-
-import org.apache.spark.Partitioner
-
-import scala.math._
-import scala.reflect.ClassTag
+package overlapping
 
 /**
   *  A replicator creates overlapping data in overlapping blocks
