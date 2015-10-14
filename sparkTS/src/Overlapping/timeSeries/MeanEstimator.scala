@@ -1,18 +1,17 @@
-package overlapping.timeSeries.firstOrder
+package overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.{Estimator, FirstOrderEssStat}
 
 /**
  * Created by Francois Belletti on 9/23/15.
  */
-class MeanEstimator[IndexT <: Ordered[IndexT]](val d: Int)
+class MeanEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseVector[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseVector[Double]]{
 
-  override def zero = (DenseVector.zeros[Double](d), 0L)
+  override def zero = (DenseVector.zeros[Double](config.d), 0L)
 
   override def kernel(datum: (IndexT,  DenseVector[Double])):  (DenseVector[Double], Long) = {
     (datum._2, 1L)
@@ -24,14 +23,6 @@ class MeanEstimator[IndexT <: Ordered[IndexT]](val d: Int)
 
   def normalize(x: (DenseVector[Double], Long)): DenseVector[Double] = {
     x._1 / x._2.toDouble
-  }
-
-  override def windowEstimate(window: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = {
-    normalize(windowStats(window))
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): DenseVector[Double] = {
-    normalize(blockStats(block))
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): DenseVector[Double] = {

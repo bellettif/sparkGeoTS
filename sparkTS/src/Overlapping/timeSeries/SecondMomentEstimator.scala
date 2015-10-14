@@ -8,11 +8,11 @@ import overlapping.containers.SingleAxisBlock
 /**
  * Created by Francois Belletti on 9/23/15.
  */
-class SecondMomentEstimator[IndexT <: Ordered[IndexT]](val d: Int)
+class SecondMomentEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseMatrix[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseMatrix[Double]]{
 
-  override def zero = (DenseMatrix.zeros[Double](d, d), 0L)
+  override def zero = (DenseMatrix.zeros[Double](config.d, config.d), 0L)
 
   override def kernel(datum: (IndexT,  DenseVector[Double])):  (DenseMatrix[Double], Long) = {
     (datum._2 * datum._2.t, 1L)
@@ -24,14 +24,6 @@ class SecondMomentEstimator[IndexT <: Ordered[IndexT]](val d: Int)
 
   def normalize(x: (DenseMatrix[Double], Long)): DenseMatrix[Double] = {
     x._1 / x._2.toDouble
-  }
-
-  override def windowEstimate(window: Array[(IndexT, DenseVector[Double])]): DenseMatrix[Double] = {
-    normalize(windowStats(window))
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): DenseMatrix[Double] = {
-    normalize(blockStats(block))
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): DenseMatrix[Double] = {

@@ -7,11 +7,10 @@ import overlapping.timeSeries.TSInstant
 /**
  * Created by Francois Belletti on 9/28/15.
  */
-class DiagonalNoiseARLoss(
+class DiagonalNoiseARLoss[IndexT <: Ordered[IndexT]](
    val sigmaEps: DenseVector[Double],
    val nSamples: Long,
-   val mean: Broadcast[DenseVector[Double]]
-  )
+   val mean: Broadcast[DenseVector[Double]])
   extends Serializable{
 
   val d = sigmaEps.size
@@ -19,7 +18,7 @@ class DiagonalNoiseARLoss(
   precisionMatrix :/= sigmaEps
 
   def apply(params: Array[DenseMatrix[Double]],
-            data: Array[(TSInstant, DenseVector[Double])]): Double = {
+            data: Array[(IndexT, DenseVector[Double])]): Double = {
 
     val p = params.length
     var totError = 0.0

@@ -1,11 +1,11 @@
-package overlapping.timeSeries.secondOrder.multivariate
+package overlapping.timeSeries
 
 import breeze.linalg._
+import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping._
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.{Estimator, ModelSize, SecondOrderEssStat}
 
 import scala.reflect.ClassTag
 
@@ -13,22 +13,24 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/10/15.
  */
 
-/*
+/**
 Here we expect the number of dimensions to be the same for all records.
 
 The autocovoriance is ordered as follows
 
 -modelOrder ... 0 ... modelOrder
-
-
  */
+
 class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
-     deltaT: Double,
-     maxLag: Int,
-     d: Int,
-     mean: Broadcast[DenseVector[Double]])
+    maxLag: Int,
+    mean: Option[DenseVector[Double]] = None)
+    (implicit config: TSConfig, sc: SparkContext)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
   with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
+
+  val d = config.d
+  val deltaT = config.deltaT
+  val bcMean = sc.broadcast(if (mean.isDefined) mean.get else DenseVector.zeros[Double](d))
 
   override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
 
@@ -47,7 +49,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       return (result, 0L)
     }
 
-    val meanValue = mean.value
+    val meanValue = bcMean.value
     val centerTarget  = slice(modelOrder.lookBack)._2 - meanValue
 
     for(i <- 0 to modelOrder.lookBack){
@@ -72,28 +74,6 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
 
   def normalize(r: (Array[DenseMatrix[Double]], Long)): Array[DenseMatrix[Double]] = {
     r._1.map(_ / r._2.toDouble)
-  }
-
-  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]):
-    (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    val covarianceMatrices = normalize(
-      windowStats(slice)
-    )
-
-    (covarianceMatrices, covarianceMatrices(modelOrder.lookBack))
-
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]):
-    (Array[DenseMatrix[Double]], DenseMatrix[Double])={
-
-    val covarianceMatrices = normalize(
-      blockStats(block)
-    )
-
-    (covarianceMatrices, covarianceMatrices(modelOrder.lookBack))
-
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):

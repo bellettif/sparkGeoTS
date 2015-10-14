@@ -1,4 +1,4 @@
-package overlapping.timeSeries.secondOrder.univariate
+package overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 

@@ -21,30 +21,14 @@ abstract class SecondOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: Cl
 
   def zero: ResultT
 
-  def kernel(slice: Array[(IndexT, ValueT)]): ResultT = ???
+  def kernel(slice: Array[(IndexT, ValueT)]): ResultT
 
-  def reducer(r1: ResultT, r2: ResultT): ResultT = ???
-
-  def windowStats(window: Array[(IndexT, ValueT)]): ResultT = {
-
-    window
-      .sliding(modelWidth)
-      .map(kernel)
-      .reduce(reducer)
-
-  }
-
-  def blockStats(block: SingleAxisBlock[IndexT, ValueT]): ResultT = {
-
-    block
-      .slidingFold(Array(kernelWidth))(kernel, zero, reducer)
-
-  }
+  def reducer(r1: ResultT, r2: ResultT): ResultT
 
   def timeSeriesStats(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]): ResultT = {
 
     timeSeries
-      .mapValues(blockStats)
+      .mapValues(_.slidingFold(Array(kernelWidth))(kernel, zero, reducer))
       .map(_._2)
       .fold(zero)(reducer)
 

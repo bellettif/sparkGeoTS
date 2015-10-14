@@ -1,7 +1,9 @@
 package overlapping.containers
 
 import org.apache.spark.rdd.RDD
+import org.joda.time.DateTime
 
+import scala.math.Ordering
 import scala.reflect.ClassTag
 
 /**
@@ -13,24 +15,36 @@ import scala.reflect.ClassTag
  */
 object IntervalSampler{
 
-  /*
-  Sample out a small data set from the complete data and
-  devise intervals so that about the same number of data points
-  sit on the intervals.
+  /**
+   * Sample out a small data set from the complete data and
+   * devise intervals so that about the same number of data points
+   * belong to each interval.
+   *
+   * @param nIntervals Number of intervals desired
+   * @param sampleSize Number of samples used to decide interval lengths
+   * @param sourceRDD Data
+   * @param count If n samples is already known, avoids recomputation
+   * @param withReplacement Sample with or without replacement
+   * @param ordering An ordering on the data
+   * @tparam T Value type
+   * @return An array of intervals (begin, end)
    */
-  def sampleAndComputeIntervals[T: ClassTag](nIntervals: Int,
-                                             sampleSize: Int,
-                                             withReplacement: Boolean,
-                                             sourceRDD: RDD[T])
-                               (implicit ordering: Ordering[T]): Array[(T, T)] = {
-    val fraction    = sampleSize.toDouble / sourceRDD.count().toDouble
+  def sampleAndComputeIntervals[T: ClassTag](
+      nIntervals: Int,
+      sampleSize: Int,
+      sourceRDD: RDD[T],
+      count: Option[Long],
+      withReplacement: Boolean = false)
+      (implicit ordering: Ordering[T]): Array[(T, T)] = {
+
+    val fraction = sampleSize.toDouble / count.getOrElse(sourceRDD.count()).toDouble
 
     val stride = sampleSize / nIntervals
 
     val sortedKeys: Array[T]  = sourceRDD
       .sample(withReplacement, fraction)
+      .sortBy(x => x)
       .collect()
-      .sortWith(ordering.lt)
       .sliding(1, stride)
       .map(_.apply(0))
       .toArray

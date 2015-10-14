@@ -2,7 +2,6 @@ package overlapping.timeSeries.secondOrder.univariate.Procedures
 
 import breeze.linalg._
 import overlapping.timeSeries._
-import overlapping.timeSeries.secondOrder.univariate.CovSignature
 
 /**
  * Created by Francois Belletti on 7/14/15.

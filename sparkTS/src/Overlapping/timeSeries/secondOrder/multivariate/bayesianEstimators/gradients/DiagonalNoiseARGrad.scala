@@ -8,11 +8,10 @@ import overlapping.timeSeries._
 /**
  * Created by Francois Belletti on 9/28/15.
  */
-class DiagonalNoiseARGrad(
+class DiagonalNoiseARGrad[IndexT <: Ordered[IndexT]](
    val sigmaEps: DenseVector[Double],
    val nSamples: Long,
-   val mean: Broadcast[DenseVector[Double]]
-   )
+   val mean: Broadcast[DenseVector[Double]])
   extends Serializable{
 
   val d = sigmaEps.size
@@ -20,7 +19,7 @@ class DiagonalNoiseARGrad(
   precisionMatrix :/= sigmaEps
 
   def apply(params: Array[DenseMatrix[Double]],
-            data: Array[(TSInstant, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
+            data: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
 
     val p = params.length
     val totGradient   = Array.fill(p){DenseMatrix.zeros[Double](d, d)}

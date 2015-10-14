@@ -1,7 +1,7 @@
-package overlapping.timeSeries.secondOrder.multivariate
+package overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
-import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
 import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
@@ -12,12 +12,10 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/13/15.
  */
 class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
-    deltaT: Double,
     p: Int,
-    d: Int,
-    mean: Broadcast[DenseVector[Double]]
-  )
-  extends CrossCovariance[IndexT](deltaT, p, d, mean){
+    mean: Option[DenseVector[Double]] = None)
+    (implicit config: TSConfig, sc: SparkContext)
+  extends CrossCovariance[IndexT](p, mean){
 
   def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
     val nCols = covMatrix.rows
@@ -34,20 +32,6 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
     }
 
     (coeffMatrices, noiseVariance)
-  }
-
-  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    val (crossCovMatrices, covMatrix) = super.windowEstimate(slice)
-    estimateVARMatrices(crossCovMatrices, covMatrix)
-
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    val (crossCovMatrices, covMatrix) = super.blockEstimate(block)
-    estimateVARMatrices(crossCovMatrices, covMatrix)
-
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {

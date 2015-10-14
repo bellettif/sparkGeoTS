@@ -5,26 +5,23 @@ package showcase
  */
 
 import breeze.linalg._
-import breeze.plot._
 
 import ioTools.ReadCsv
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.joda.time.DateTime
 
 import overlapping._
 import containers._
-import overlapping.timeSeries.firstOrder.{MeanEstimator, MeanProfileEstimator}
-import overlapping.timeSeries.secondOrder.multivariate.{VARPredictor, VARModel}
-import overlapping.timeSeries.secondOrder.univariate.{ARPredictor, ARModel}
 import timeSeries._
-
-import scala.math.Ordering
 
 object UberDemandData {
 
   def main(args: Array[String]): Unit = {
+
+    implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
+
+    implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     val sc = new SparkContext(conf)
@@ -37,11 +34,11 @@ object UberDemandData {
     ##########################################
      */
 
-    val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/demand_data/jan_earnings_HD.csv"
-    val inSampleData = ReadCsv(inSampleFilePath, 0, "yyyy-MM-dd HH:mm:ss", true)
+    val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/demand_data/2013-01-31.csv"
 
-    val d             = inSampleData.head._2.length
-    val nSamples      = inSampleData.length
+    val (inSampleData_, d, nSamples) = ReadCsv(sc, inSampleFilePath)
+
+
     val paddingMillis = 60L * 1000L // 1 minute
     val deltaTMillis  = paddingMillis * 10L // 10 minutes
     val nPartitions   = 8
@@ -50,20 +47,10 @@ object UberDemandData {
     println(d + " dimensions")
     println()
 
-    val inSampleData_ = sc.parallelize(inSampleData)
-
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
-        a._1.compareTo(b._1)
-    }
-
-    val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
-
     val (rawTimeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
-      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, inSampleData_)
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, inSampleData_)
 
-    exit(0)
-
+    /*
     val meanEstimator = new MeanEstimator[TSInstant](d)
     val secondMomentEstimator = new SecondMomentEstimator[TSInstant](d)
 
@@ -275,6 +262,7 @@ object UberDemandData {
 
     */
 
+    */
 
   }
 }

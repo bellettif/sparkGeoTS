@@ -1,29 +1,30 @@
-package overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.lossFunctions
+package overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import overlapping._
-import overlapping.timeSeries.{ModelSize, SecondOrderEssStat}
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
 class AutoregressiveLoss[IndexT <: Ordered[IndexT]](
-  val p: Int,
-  val deltaT: Double,
-  val x : Array[DenseMatrix[Double]],
-  val lossFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Double
-)
+  p: Int,
+  lossFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Double,
+  dim: Option[Int] = None)
+  (implicit config: TSConfig)
 extends SecondOrderEssStat[IndexT, DenseVector[Double], Double]
 {
 
-  def kernelWidth = IntervalSize(p * deltaT, 0)
+  val d = dim.getOrElse(config.d)
+  val x = Array.fill(p){DenseMatrix.zeros[Double](d, d)}
+
+  def kernelWidth = IntervalSize(p * config.deltaT, 0)
 
   def modelOrder = ModelSize(p, 0)
 
   def zero = 0.0
 
   def setNewX(newX: Array[DenseMatrix[Double]]) = {
-    for(i <- x.indices){
+    for(i <- newX.indices){
       x(i) := newX(i)
     }
   }

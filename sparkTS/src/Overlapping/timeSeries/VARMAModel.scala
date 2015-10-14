@@ -1,6 +1,7 @@
-package overlapping.timeSeries.secondOrder.multivariate
+package overlapping.timeSeries
 
 import breeze.linalg._
+import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
@@ -12,13 +13,11 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/14/15.
  */
 class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
-      deltaT: Double,
-      p: Int,
-      q: Int,
-      d: Int,
-      mean: Broadcast[DenseVector[Double]]
-  )
-  extends CrossCovariance[IndexT](deltaT, p + q, d, mean){
+    p: Int,
+    q: Int,
+    mean: Option[DenseVector[Double]] = None)
+  (implicit config: TSConfig, sc: SparkContext)
+  extends CrossCovariance[IndexT](p + q, mean){
 
   /*
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
@@ -61,19 +60,6 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     val coeffMatrices: Array[DenseMatrix[Double]] = coeffsAR ++ coeffsMA
 
     (coeffMatrices, noiseVariance)
-
-  }
-
-
-  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    computeARMACoeffs(super.windowEstimate(slice)._1)
-
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
-
-    computeARMACoeffs(super.blockEstimate(block)._1)
 
   }
 

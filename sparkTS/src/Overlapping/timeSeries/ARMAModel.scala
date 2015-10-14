@@ -1,10 +1,10 @@
-package overlapping.timeSeries.secondOrder.univariate
+package overlapping.timeSeries
 
 import breeze.linalg._
-import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.univariate.Procedures.{Rybicki, InnovationAlgo}
+import overlapping.timeSeries.secondOrder.univariate.Procedures.{InnovationAlgo, Rybicki}
 
 import scala.reflect.ClassTag
 
@@ -13,12 +13,11 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/14/15.
  */
 class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
-  deltaT: Double,
-  p: Int,
-  q: Int,
-  d: Int,
-  mean: Broadcast[DenseVector[Double]])
-  extends AutoCovariances[IndexT](deltaT, p + q, d, mean){
+    p: Int,
+    q: Int,
+    mean: Option[DenseVector[Double]] = None)
+   (implicit config: TSConfig, sc: SparkContext)
+  extends AutoCovariances[IndexT](p + q, mean){
 
   /*
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
@@ -57,22 +56,6 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     val coeffs: DenseVector[Double] = DenseVector.vertcat(coeffsAR, coeffsMA)
 
     CovSignature(coeffs, signaturePQ.variation)
-
-  }
-
-  override def windowEstimate(slice: Array[(IndexT, DenseVector[Double])]): Array[CovSignature] = {
-
-    super
-      .windowEstimate(slice)
-      .map(computeARMACoeffs)
-
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): Array[CovSignature] = {
-
-    super
-      .blockEstimate(block)
-      .map(computeARMACoeffs)
 
   }
 

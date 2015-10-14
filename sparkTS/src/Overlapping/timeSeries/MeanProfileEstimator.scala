@@ -1,9 +1,8 @@
-package overlapping.timeSeries.firstOrder
+package overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.{Estimator, FirstOrderEssStat}
 
 import scala.collection.mutable
 
@@ -14,8 +13,8 @@ import scala.collection.mutable
 
 
 class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
-    val d: Int,
     val hashFct: IndexT => Int)
+    (implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], mutable.HashMap[Int, (DenseVector[Double], Long)]]
   with Estimator[IndexT, DenseVector[Double], mutable.HashMap[Int, DenseVector[Double]]]{
 
@@ -34,7 +33,7 @@ class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
   mutable.HashMap[Int, (DenseVector[Double], Long)] = {
 
     for(k <- map2.keySet){
-        map1(k) = merge(map2(k), map1.getOrElse(k, (DenseVector.zeros[Double](d), 0L)))
+        map1(k) = merge(map2(k), map1.getOrElse(k, (DenseVector.zeros[Double](config.d), 0L)))
     }
 
     map1
@@ -43,14 +42,6 @@ class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
 
   def normalize(map: mutable.HashMap[Int, (DenseVector[Double], Long)]): mutable.HashMap[Int, DenseVector[Double]] = {
     map.map({case (k, (v1, v2)) => (k, v1 / v2.toDouble)})
-  }
-
-  override def windowEstimate(window: Array[(IndexT, DenseVector[Double])]): mutable.HashMap[Int, DenseVector[Double]] = {
-    normalize(windowStats(window))
-  }
-
-  override def blockEstimate(block: SingleAxisBlock[IndexT, DenseVector[Double]]): mutable.HashMap[Int, DenseVector[Double]] = {
-    normalize(blockStats(block))
   }
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): mutable.HashMap[Int, DenseVector[Double]] = {

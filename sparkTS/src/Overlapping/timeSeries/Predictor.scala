@@ -13,39 +13,18 @@ trait Predictor[IndexT <: Ordered[IndexT]]
 
   def size: Array[IntervalSize]
 
-  def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = ???
+  def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double]
 
   def residualKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = {
     data(data.length - 1)._2 - predictKernel(data)
   }
 
-  def predictBlock(block: SingleAxisBlock[IndexT, DenseVector[Double]]):
-    SingleAxisBlock[IndexT, DenseVector[Double]] = {
-
-    block.sliding(size)(predictKernel)
-
-  }
-
-  def residualBlock(block: SingleAxisBlock[IndexT, DenseVector[Double]]):
-  SingleAxisBlock[IndexT, DenseVector[Double]] = {
-
-    block.sliding(size)(residualKernel)
-
-  }
-
-  def predictAll(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
-    RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
-
-    timeSeries
-      .mapValues(predictBlock)
-
-  }
-
-  def residualAll(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
+  def estimateResiduals(
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
   RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
 
     timeSeries
-      .mapValues(residualBlock)
+      .mapValues(_.sliding(size)(residualKernel))
 
   }
 

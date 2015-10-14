@@ -1,4 +1,4 @@
-package overlapping.containers.tests
+package tests
 
 /**
  * Created by Francois Belletti on 8/17/15.

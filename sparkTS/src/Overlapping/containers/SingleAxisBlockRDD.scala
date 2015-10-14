@@ -1,7 +1,10 @@
 package overlapping.containers
 
+import breeze.linalg.DenseVector
 import breeze.numerics.sqrt
 import org.apache.spark.rdd.RDD
+import org.joda.time.DateTime
+import overlapping.timeSeries.TSInstant
 
 import scala.math.Ordering
 import scala.reflect.ClassTag
@@ -13,21 +16,27 @@ import scala.reflect.ClassTag
  */
 object SingleAxisBlockRDD {
 
-  /*
-  This will devise approximatively balanced intervals to partition the raw data along.
-  Partitions will be created, overlaps materialized and the data within each block
-  will be sorted.
+  /**
+   * This will devise approximatively balanced intervals to partition the raw data along.
+   * Partitions will be created, overlaps materialized and the data within each block will be sorted.
+   *
+   * @param padding Backward and forward padding the overlapping partitioning will provide.
+   * @param nPartitions Number of partitions desired.
+   * @param recordRDD Input data.
+   * @param signedDistance Signed distance function between timestamps.
+   * @tparam IndexT Timestamp type.
+   * @tparam ValueT Data type.
+   * @return The resulting overlapping block RDD and and array of intervals (begin, end).
    */
-  def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag](padding: (Double, Double),
-                                                         signedDistance: (IndexT, IndexT) => Double,
-                                                         nPartitions: Int,
-                                                         recordRDD: RDD[(IndexT, ValueT)]):
-    (RDD[(Int, SingleAxisBlock[IndexT, ValueT])], Array[(IndexT, IndexT)]) = {
+  def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag](
+      padding: (Double, Double),
+      nPartitions: Int,
+      recordRDD: RDD[(IndexT, ValueT)])
+      (implicit signedDistance: (IndexT, IndexT) => Double): (RDD[(Int, SingleAxisBlock[IndexT, ValueT])], Array[(IndexT, IndexT)]) = {
 
     case class KeyValue(k: IndexT, v: ValueT)
-    /*
-      Sort the record RDD with respect to time
-     */
+
+    // Sort the record RDD with respect to time
     implicit val kvOrdering = new Ordering[(IndexT, ValueT)] {
       override def compare(a: (IndexT, ValueT), b: (IndexT, ValueT)) =
         a._1.compareTo(b._1)
@@ -39,8 +48,8 @@ object SingleAxisBlockRDD {
       .sampleAndComputeIntervals(
         nPartitions,
         sqrt(nSamples).toInt,
-        true,
-        recordRDD)
+        recordRDD,
+        Some(nSamples))
       .map({ case ((k1, v1), (k2, v2)) => (k1, k2) })
 
     val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, signedDistance, padding)
@@ -54,16 +63,24 @@ object SingleAxisBlockRDD {
 
   }
 
-  /*
-  This is to build an RDD with predefined partitioning intervals. This is useful
-  so that two OverlappingBlock RDDs have corresponding overlapping blocks mapped on the
-  same key.
+  /**
+   * This is to build an RDD with predefined partitioning intervals.
+   * This is useful so that two OverlappingBlock RDDs have
+   * corresponding overlapping blocks mapped on the same key.
+   *
+   * @param padding Backward and forward padding in distance metric (usually milli seconds).
+   * @param signedDistance The distance to use.
+   * @param intervals
+   * @param recordRDD
+   * @tparam IndexT
+   * @tparam ValueT
+   * @return
    */
-  def fromIntervals[IndexT <: Ordered[IndexT], ValueT: ClassTag](padding: (Double, Double),
-                                                                 signedDistance: (IndexT, IndexT) => Double,
-                                                                 intervals: Array[(IndexT, IndexT)],
-                                                                 recordRDD: RDD[(IndexT, ValueT)]):
-    RDD[(Int, SingleAxisBlock[IndexT, ValueT])] = {
+  def fromIntervals[IndexT <: Ordered[IndexT], ValueT: ClassTag](
+      padding: (Double, Double),
+      intervals: Array[(IndexT, IndexT)],
+      recordRDD: RDD[(IndexT, ValueT)])
+      (implicit signedDistance: (IndexT, IndexT) => Double): RDD[(Int, SingleAxisBlock[IndexT, ValueT])] = {
 
     case class KeyValue(k: IndexT, v: ValueT)
 

@@ -1,23 +1,25 @@
-package overlapping.timeSeries.secondOrder
+package overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import overlapping._
-import overlapping.timeSeries.{ModelSize, SecondOrderEssStat}
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
 class AutoregressiveGradient[IndexT <: Ordered[IndexT]](
-  val p: Int,
-  val deltaT: Double,
-  val x : Array[DenseMatrix[Double]],
-  val gradientFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Array[DenseMatrix[Double]])
+    p: Int,
+    gradientFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Array[DenseMatrix[Double]],
+    dim: Option[Int] = None)
+    (implicit config: TSConfig)
 extends SecondOrderEssStat[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]
 {
 
+  val d = dim.getOrElse(config.d)
+  val x = Array.fill(p){DenseMatrix.zeros[Double](d, d)}
+
   val gradientSizes = x.map(y => (y.rows, y.cols))
 
-  def kernelWidth = IntervalSize(p * deltaT, 0)
+  def kernelWidth = IntervalSize(p * config.deltaT, 0)
 
   def modelOrder = ModelSize(p, 0)
 

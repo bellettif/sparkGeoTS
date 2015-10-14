@@ -6,28 +6,20 @@ package showcase
 
 import breeze.linalg._
 import breeze.linalg.svd.SVD
-import breeze.numerics.abs
 import breeze.plot.{Figure, image}
 import breeze.stats.distributions.Gaussian
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-import org.joda.time.DateTime
-import overlapping.containers.{SingleAxisBlockRDD, SingleAxisBlock}
-import overlapping.timeSeries.firstOrder.MeanEstimator
-import overlapping.timeSeries.secondOrder.AutoregressiveGradient
-import overlapping.timeSeries.secondOrder.multivariate._
-import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
-import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.lossFunctions.AutoregressiveLoss
-import overlapping.timeSeries.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
-import overlapping.timeSeries.secondOrder.univariate.{ARPredictor, AutoCovariances, ARModel}
-import scala.math.Ordering
-
 import overlapping._
+import containers._
 import timeSeries._
 
-
 object SurrogateAR1 {
+
+  implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
+
+  implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
   def main(args: Array[String]): Unit = {
 
@@ -44,6 +36,8 @@ object SurrogateAR1 {
     val sc = new SparkContext(conf)
 
     val A = DenseMatrix.rand[Double](d, d)
+
+    /*
 
     /*
     for(i <- 0 until d){
@@ -93,15 +87,8 @@ object SurrogateAR1 {
     f1.subplot(0) += image(diag(noiseMagnitudes))
     f1.saveas("noise_magnitudes.png")
 
-    implicit val DateTimeOrdering = new Ordering[(DateTime, Array[Double])] {
-      override def compare(a: (DateTime, Array[Double]), b: (DateTime, Array[Double])) =
-        a._1.compareTo(b._1)
-    }
-
-    val signedDistance = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
-
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
-      SingleAxisBlockRDD((paddingMillis, paddingMillis), signedDistance, nPartitions, rawTS)
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
     /*
      Estimate process' mean
@@ -162,29 +149,13 @@ object SurrogateAR1 {
       sc.broadcast(mean))
     val (crossCovariances, covMatrix) = crossCovarianceEstimator.estimate(overlappingRDD)
 
-    val freqVAREstimator = new VARModel[TSInstant](
-      deltaTMillis,
-      p,
-      d,
-      sc.broadcast(mean))
 
-    val (freqVARmatrices, _) = freqVAREstimator.estimate(overlappingRDD)
 
     val f3 = Figure()
     f3.subplot(0) += image(freqVARmatrices(0))
     f3.saveas("freq_VAR_coeffs.png")
 
-    val predictorVAR = new VARPredictor[TSInstant](
-      deltaTMillis,
-      p,
-      d,
-      sc.broadcast(mean),
-      sc.broadcast(freqVARmatrices))
 
-    val predictionsVAR = predictorVAR.predictAll(overlappingRDD)
-    val residualsVAR = predictorVAR.residualAll(overlappingRDD)
-    val residualMeanVAR = meanEstimator.estimate(residualsVAR)
-    val residualSecondMomentVAR = secondMomentEstimator.estimate(residualsVAR)
 
     println("VAR residuals")
     println(trace(residualSecondMomentVAR))
@@ -217,22 +188,12 @@ object SurrogateAR1 {
         + min(s) * min(sigmaEpsilon))
     }
 
-    val VARLoss = new DiagonalNoiseARLoss(sigmaEpsilon, N, sc.broadcast(mean))
-    val VARGrad = new DiagonalNoiseARGrad(sigmaEpsilon, N, sc.broadcast(mean))
+
+
 
     val VARBayesEstimator = new VARGradientDescent[TSInstant](
       p,
-      deltaTMillis,
-      new AutoregressiveLoss(
-        p,
-        deltaTMillis,
-        Array.fill(p){DenseMatrix.zeros[Double](d, d)},
-        {case (param, data) => VARLoss(param, data)}),
-      new AutoregressiveGradient(
-        p,
-        deltaTMillis,
-        Array.fill(p){DenseMatrix.zeros[Double](d, d)},
-        {case (param, data) => VARGrad(param, data)}),
+      d,
       stepSize,
       1e-5,
       100,
@@ -279,13 +240,7 @@ object SurrogateAR1 {
       new AutoregressiveLoss(
       p,
       deltaTMillis,
-      Array.fill(p){DenseMatrix.zeros[Double](d, d)},
-      {case (param, data) => VARLoss(param, data)}),
-      new AutoregressiveGradient(
-      p,
-      deltaTMillis,
-      Array.fill(p){DenseMatrix.zeros[Double](d, d)},
-      {case (param, data) => VARGrad(param, data)}),
+      ,
       stepSize,
       1e-5,
       1e-2,
@@ -318,6 +273,8 @@ object SurrogateAR1 {
     val f8= Figure()
     f8.subplot(0) += image(residualSecondMomentSparseVAR)
     f8.saveas("cov_sparse_VAR_residuals.png")
+
+    */
 
 
   }
