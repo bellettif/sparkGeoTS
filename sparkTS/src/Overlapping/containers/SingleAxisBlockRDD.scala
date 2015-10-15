@@ -1,7 +1,7 @@
 package overlapping.containers
 
-import breeze.linalg.DenseVector
-import breeze.numerics.sqrt
+import breeze.linalg.{min, DenseVector}
+import breeze.numerics.{log, sqrt}
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import overlapping.timeSeries.TSInstant
@@ -28,19 +28,13 @@ object SingleAxisBlockRDD {
    * @tparam ValueT Data type.
    * @return The resulting overlapping block RDD and and array of intervals (begin, end).
    */
-  def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag](
+  def apply[IndexT <: Ordered[IndexT] : ClassTag, ValueT: ClassTag](
       padding: (Double, Double),
       nPartitions: Int,
       recordRDD: RDD[(IndexT, ValueT)])
       (implicit signedDistance: (IndexT, IndexT) => Double): (RDD[(Int, SingleAxisBlock[IndexT, ValueT])], Array[(IndexT, IndexT)]) = {
 
-    case class KeyValue(k: IndexT, v: ValueT)
-
-    // Sort the record RDD with respect to time
-    implicit val kvOrdering = new Ordering[(IndexT, ValueT)] {
-      override def compare(a: (IndexT, ValueT), b: (IndexT, ValueT)) =
-        a._1.compareTo(b._1)
-    }
+    println("Starting to create overlapping block RDD")
 
     val nSamples = recordRDD.count()
 
@@ -50,10 +44,11 @@ object SingleAxisBlockRDD {
         sqrt(nSamples).toInt,
         recordRDD,
         Some(nSamples))
-      .map({ case ((k1, v1), (k2, v2)) => (k1, k2) })
 
     val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, signedDistance, padding)
     val partitioner = new BlockIndexPartitioner(intervals.length)
+
+    println("Replicator and partitioner set up done.")
 
     (recordRDD
       .flatMap({ case (k, v) => replicator.replicate(k, v) })

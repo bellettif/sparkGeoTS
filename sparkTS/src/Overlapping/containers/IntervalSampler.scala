@@ -29,25 +29,29 @@ object IntervalSampler{
    * @tparam T Value type
    * @return An array of intervals (begin, end)
    */
-  def sampleAndComputeIntervals[T: ClassTag](
+  def sampleAndComputeIntervals[IndexT <: Ordered[IndexT]: ClassTag, ValueT: ClassTag](
       nIntervals: Int,
       sampleSize: Int,
-      sourceRDD: RDD[T],
+      sourceRDD: RDD[(IndexT, ValueT)],
       count: Option[Long],
-      withReplacement: Boolean = false)
-      (implicit ordering: Ordering[T]): Array[(T, T)] = {
+      withReplacement: Boolean = false): Array[(IndexT, IndexT)] = {
 
     val fraction = sampleSize.toDouble / count.getOrElse(sourceRDD.count()).toDouble
 
     val stride = sampleSize / nIntervals
 
-    val sortedKeys: Array[T]  = sourceRDD
+    println("Sampling")
+
+    val sortedKeys: Array[IndexT]  = sourceRDD
       .sample(withReplacement, fraction)
+      .map(_._1)
       .sortBy(x => x)
       .collect()
       .sliding(1, stride)
-      .map(_.apply(0))
+      .map(_.head)
       .toArray
+
+    println("Done sampling")
 
     sortedKeys.zip(sortedKeys.drop(1))
   }

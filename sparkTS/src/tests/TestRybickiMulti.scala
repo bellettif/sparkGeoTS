@@ -13,7 +13,7 @@ import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.pro
  */
 class TestRybickiMulti extends FlatSpec with Matchers{
 
-  "The Akaike procedure " should " properly solve a block Toeplitz system" in {
+  "The Rybicki procedure " should " properly solve a block Toeplitz system" in {
 
     val p           = 3
     val d           = 1
@@ -29,16 +29,7 @@ class TestRybickiMulti extends FlatSpec with Matchers{
       }
     }
 
-    blockArray.foreach(println)
-    println()
-    println(blockToeplitzMatrix)
-    println()
-
     val x = RybickiMulti(p, d, blockArray, y)
-
-    println(x.length)
-    x.foreach(x => println(x.rows + " " + x.cols))
-    println()
 
     val xMatrix = DenseMatrix.zeros[Double](d * p, d)
     val yMatrix = DenseMatrix.zeros[Double](d * p, d)
@@ -49,10 +40,6 @@ class TestRybickiMulti extends FlatSpec with Matchers{
     }
 
     val yCheck: DenseMatrix[Double] = blockToeplitzMatrix * xMatrix
-
-    println(yCheck)
-    println()
-    println(yMatrix)
 
     for(i <- 0 until d * p){
       for(j <- 0 until d){

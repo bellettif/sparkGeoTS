@@ -15,29 +15,14 @@ abstract class FirstOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: Cla
 
   def zero: ResultT
 
-  def kernel(datum: (IndexT, ValueT)): ResultT = ???
+  def kernel(datum: (IndexT, ValueT)): ResultT
 
-  def reducer(r1: ResultT, r2: ResultT): ResultT = ???
-
-  def windowStats(window: Array[(IndexT, ValueT)]): ResultT = {
-
-    window
-      .map(kernel)
-      .reduce(reducer)
-
-  }
-
-  def blockStats(block: SingleAxisBlock[IndexT, ValueT]): ResultT = {
-
-    block
-      .fold(zero)({case (x, y) => kernel(x, y)}, reducer)
-
-  }
+  def reducer(r1: ResultT, r2: ResultT): ResultT
 
   def timeSeriesStats(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]): ResultT = {
 
     timeSeries
-      .mapValues(blockStats)
+      .mapValues(_.fold(zero)({case (x, y) => kernel(x, y)}, reducer))
       .map(_._2)
       .fold(zero)(reducer)
 
