@@ -26,8 +26,8 @@ object SurrogateAR1 {
 
     val filePath = "/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_merged.csv"
 
-    val d             = 50
-    val b             = 15
+    val d             = 30
+    val b             = 25
     val N             = 100000L
     val paddingMillis = 100L
     val deltaTMillis  = 1L
@@ -38,12 +38,11 @@ object SurrogateAR1 {
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     implicit val sc = new SparkContext(conf)
 
-    val A = DenseMatrix.rand[Double](d, d) + (DenseMatrix.eye[Double](d) * 0.2)
+    val A = DenseMatrix.rand[Double](d, d) + (DenseMatrix.eye[Double](d) * 0.1)
 
     val svd.SVD(_, sA, _) = svd(A)
     A :*= 1.0 / (max(sA) * 1.1)
 
-    /*
     for(i <- 0 until d){
       for(j <- 0 until d){
         if(abs(i - j) > b){
@@ -51,7 +50,6 @@ object SurrogateAR1 {
         }
       }
     }
-    */
 
     val ARcoeffs = Array(A)
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
@@ -76,17 +74,10 @@ object SurrogateAR1 {
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
-    println("Done creating overlapping block rdd.")
-
     /*
      Estimate process' mean
      */
-    val meanEstimator = new MeanEstimator[TSInstant]()
-    val secondMomentEstimator = new SecondMomentEstimator[TSInstant]()
-
-    val mean = meanEstimator.estimate(overlappingRDD)
-
-    println("Done computing mean.")
+    val mean = MeanEstimator(overlappingRDD)
 
     /*
     ################################
@@ -106,7 +97,7 @@ object SurrogateAR1 {
 
     val predictorAR = new ARPredictor[TSInstant](vectorsAR.map(x => x.covariation), Some(mean))
     val residualsAR = predictorAR.estimateResiduals(overlappingRDD)
-    val residualSecondMomentAR = secondMomentEstimator.estimate(residualsAR)
+    val residualSecondMomentAR = SecondMomentEstimator(residualsAR)
 
     println("AR error")
     println(trace(residualSecondMomentAR))
@@ -138,7 +129,7 @@ object SurrogateAR1 {
 
     val predictorFrequentistVAR = new VARPredictor[TSInstant](freqVARMatrices, Some(mean))
     val residualFrequentistVAR = predictorFrequentistVAR.estimateResiduals(overlappingRDD)
-    val residualSecondMomentFrequentistVAR = secondMomentEstimator.estimate(residualFrequentistVAR)
+    val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
 
     println("Frequentist VAR residuals")
     println(trace(residualSecondMomentFrequentistVAR))
@@ -159,7 +150,7 @@ object SurrogateAR1 {
     val predictorBayesianVAR = new VARPredictor[TSInstant](denseVARMatrices, Some(mean))
 
     val residualsBayesianVAR = predictorBayesianVAR.estimateResiduals(overlappingRDD)
-    val residualSecondMomentBayesianVAR = secondMomentEstimator.estimate(residualsBayesianVAR)
+    val residualSecondMomentBayesianVAR = SecondMomentEstimator(residualsBayesianVAR)
 
     println("Bayesian VAR residuals")
     println(trace(residualSecondMomentBayesianVAR))
@@ -193,7 +184,7 @@ object SurrogateAR1 {
       Some(mean))
 
     val residualsSparseVAR = predictorSparseVAR.estimateResiduals(overlappingRDD)
-    val residualSecondMomentSparseVAR = secondMomentEstimator.estimate(residualsSparseVAR)
+    val residualSecondMomentSparseVAR = SecondMomentEstimator(residualsSparseVAR)
 
     println("Sparse VAR residuals")
     println(trace(residualSecondMomentSparseVAR))

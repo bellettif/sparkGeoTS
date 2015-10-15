@@ -6,8 +6,7 @@ import org.apache.spark.Partitioner
  * This computes partition hash value based on complete locations simply
  * by retrieving the first element of the complete location.
  *
- * @param numPartitions
- *
+ * @param numPartitions The number of partitions desired by the user.
  *
  */
 class BlockIndexPartitioner(override val numPartitions: Int)

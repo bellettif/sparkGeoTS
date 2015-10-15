@@ -25,8 +25,6 @@ object IntervalSampler{
    * @param sourceRDD Data
    * @param count If n samples is already known, avoids recomputation
    * @param withReplacement Sample with or without replacement
-   * @param ordering An ordering on the data
-   * @tparam T Value type
    * @return An array of intervals (begin, end)
    */
   def sampleAndComputeIntervals[IndexT <: Ordered[IndexT]: ClassTag, ValueT: ClassTag](
@@ -40,8 +38,6 @@ object IntervalSampler{
 
     val stride = sampleSize / nIntervals
 
-    println("Sampling")
-
     val sortedKeys: Array[IndexT]  = sourceRDD
       .sample(withReplacement, fraction)
       .map(_._1)
@@ -50,8 +46,6 @@ object IntervalSampler{
       .sliding(1, stride)
       .map(_.head)
       .toArray
-
-    println("Done sampling")
 
     sortedKeys.zip(sortedKeys.drop(1))
   }

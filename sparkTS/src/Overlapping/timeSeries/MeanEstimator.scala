@@ -7,6 +7,34 @@ import overlapping.containers.SingleAxisBlock
 /**
  * Created by Francois Belletti on 9/23/15.
  */
+
+object MeanEstimator{
+
+  /**
+   * Compute the mean of a Time Series RDD.
+   *
+   * @param timeSeries Input data.
+   * @param config Configuration of input data.
+   * @tparam IndexT Timestamp type.
+   * @return Dimension-wise mean.
+   */
+  def apply[IndexT <: Ordered[IndexT]](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
+      (implicit config: TSConfig): DenseVector[Double] ={
+
+    val estimator = new MeanEstimator[IndexT]()
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
+/**
+ * This class is dedicated to estimating the mean of a distributed time series.
+ *
+ * @param config Configuration of the data.
+ * @tparam IndexT Timestamp type.
+ */
 class MeanEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseVector[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseVector[Double]]{

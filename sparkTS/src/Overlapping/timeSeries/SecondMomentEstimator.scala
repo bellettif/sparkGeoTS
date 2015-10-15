@@ -8,6 +8,28 @@ import overlapping.containers.SingleAxisBlock
 /**
  * Created by Francois Belletti on 9/23/15.
  */
+
+object SecondMomentEstimator{
+
+  /**
+   * Compute the second moment of a Time Series RDD.
+   *
+   * @param timeSeries Input data.
+   * @param config Configuration of input data.
+   * @tparam IndexT Timestamp type.
+   * @return Second moment matrix.
+   */
+  def apply[IndexT <: Ordered[IndexT]](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
+      (implicit config: TSConfig): DenseMatrix[Double] ={
+
+    val estimator = new SecondMomentEstimator[IndexT]()
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 class SecondMomentEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseMatrix[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseMatrix[Double]]{

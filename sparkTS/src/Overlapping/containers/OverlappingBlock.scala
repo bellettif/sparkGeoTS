@@ -11,26 +11,37 @@ import scala.reflect.ClassTag
  */
 trait OverlappingBlock[KeyT, ValueT] extends Serializable{
 
-  /*
-   Raw data
-    */
+  /**
+   * Raw data.
+   *
+   * @return Raw representation of data (with padding).
+   */
   def data: Array[(KeyT, ValueT)]
 
-  /*
-   Locations that keep track of the current partition index and the original
-   partition index. Redundant elements will have different partition index
-   and original partition index.
-    */
+  /**
+   * Locations that keep track of the current partition index and the original partition index.
+   * Redundant elements will have different partition index and original partition index.
+   *
+   * @return Partition aware representation of keys.
+   */
   def locations: Array[CompleteLocation[KeyT]] // Can be evenly spaced or not
 
-  /*
-   Array of distance functions (one per layout axis).
+  /**
+   * Array of distance functions (one per layout axis).
+   *
+   * @return The distance functions.
    */
   def signedDistances: Array[((KeyT, KeyT) => Double)]
 
-  /*
-  Apply the kernel f with a window width of size (array of sizes, one per layout axis),
-  centering the kernel computation on the targets.
+  /**
+   * Apply the kernel f with a window width of size (array of sizes, one per layout axis),
+   * centering the kernel computation on the targets.
+   *
+   * @param size Width of kernel window.
+   * @param targets Targets the kernel computations will be centered about.
+   * @param f The kernel function that will be applied to each kernel window.
+   * @tparam ResultT Kernel return type
+   * @return A time series with the resulting kernel computations. (Padding not guaranteed).
    */
   def sliding[ResultT: ClassTag](
       size: Array[IntervalSize],
