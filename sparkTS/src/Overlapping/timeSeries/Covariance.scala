@@ -12,9 +12,24 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/10/15.
  */
 
-/*
-Estimator of the instantaneous covariance of the process.
- */
+object Covariance{
+
+  /**
+   *  Estimator of the instantaneous covariance of the process E[X_t transpose(X_t)].
+   */
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      mean: Option[DenseVector[Double]] = None)
+    (implicit config: TSConfig, sc: SparkContext): DenseMatrix[Double] ={
+
+    val estimator = new Covariance[IndexT](mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
+
 class Covariance[IndexT <: Ordered[IndexT] : ClassTag](
      mean: Option[DenseVector[Double]] = None)
     (implicit config: TSConfig, sc: SparkContext)

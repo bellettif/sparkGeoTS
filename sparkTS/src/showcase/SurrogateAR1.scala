@@ -5,7 +5,6 @@ package showcase
  */
 
 import breeze.linalg._
-import breeze.linalg.svd.SVD
 import breeze.numerics.abs
 import breeze.plot.{Figure, image}
 import breeze.stats.distributions.Gaussian
@@ -74,10 +73,7 @@ object SurrogateAR1 {
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
-    /*
-     Estimate process' mean
-     */
-    val mean = MeanEstimator(overlappingRDD)
+
 
     /*
     ################################
@@ -87,16 +83,10 @@ object SurrogateAR1 {
     ################################
      */
     val p = 1
-
-    val autoCovEstimator = new AutoCovariances[TSInstant](p, Some(mean))
-    val autocovariances = autoCovEstimator.estimate(overlappingRDD)
-
-    val freqAREstimator = new ARModel[TSInstant](p, Some(mean))
-    val vectorsAR = freqAREstimator.estimate(overlappingRDD)
-
-
-    val predictorAR = new ARPredictor[TSInstant](vectorsAR.map(x => x.covariation), Some(mean))
-    val residualsAR = predictorAR.estimateResiduals(overlappingRDD)
+    val mean = MeanEstimator(overlappingRDD)
+    val autocovariances = AutoCovariances(overlappingRDD, p)
+    val vectorsAR = ARModel(overlappingRDD, p, Some(mean))
+    val residualsAR = ARPredictor(overlappingRDD, vectorsAR.map(x => x.covariation), Some(mean))
     val residualSecondMomentAR = SecondMomentEstimator(residualsAR)
 
     println("AR error")
@@ -115,9 +105,7 @@ object SurrogateAR1 {
     ##################################
      */
 
-
-    val freqVAREstimator = new VARModel[TSInstant](p)
-    val (freqVARMatrices, _) = freqVAREstimator.estimate(overlappingRDD)
+    val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
 
     println("Frequentist estimation error")
     println(sum((freqVARMatrices(0) - ARcoeffs(0)) :* (freqVARMatrices(0) - ARcoeffs(0))))
@@ -127,17 +115,14 @@ object SurrogateAR1 {
     f4.subplot(0) += image(freqVARMatrices(0))
     f4.saveas("frequentist_VAR_coeffs.png")
 
-    val predictorFrequentistVAR = new VARPredictor[TSInstant](freqVARMatrices, Some(mean))
-    val residualFrequentistVAR = predictorFrequentistVAR.estimateResiduals(overlappingRDD)
+    val residualFrequentistVAR = VARPredictor(overlappingRDD, freqVARMatrices, Some(mean))
     val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
 
     println("Frequentist VAR residuals")
     println(trace(residualSecondMomentFrequentistVAR))
     println()
 
-
-    val VARBayesEstimator = new VARGradientDescent[TSInstant](p)
-    val denseVARMatrices = VARBayesEstimator.estimate(overlappingRDD)
+    val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
 
     println("Bayesian estimation error")
     println(sum((denseVARMatrices(0) - ARcoeffs(0)) :* (denseVARMatrices(0) - ARcoeffs(0))))
@@ -147,9 +132,7 @@ object SurrogateAR1 {
     f5.subplot(0) += image(denseVARMatrices(0))
     f5.saveas("bayesian_VAR_coeffs.png")
 
-    val predictorBayesianVAR = new VARPredictor[TSInstant](denseVARMatrices, Some(mean))
-
-    val residualsBayesianVAR = predictorBayesianVAR.estimateResiduals(overlappingRDD)
+    val residualsBayesianVAR = VARPredictor(overlappingRDD, denseVARMatrices, Some(mean))
     val residualSecondMomentBayesianVAR = SecondMomentEstimator(residualsBayesianVAR)
 
     println("Bayesian VAR residuals")
@@ -168,9 +151,7 @@ object SurrogateAR1 {
     ################################
      */
 
-    val VARSparseEstimator = new VARL1GradientDescent[TSInstant](p, 1e-2)
-
-    val sparseVARMatrices = VARSparseEstimator.estimate(overlappingRDD)
+    val sparseVARMatrices = VARL1GradientDescent(overlappingRDD, p, 1e-2)
 
     println("Sparse Bayesian estimation error")
     println(sum((sparseVARMatrices(0) - ARcoeffs(0)) :* (sparseVARMatrices(0) - ARcoeffs(0))))
@@ -179,11 +160,7 @@ object SurrogateAR1 {
     f7.subplot(0) += image(sparseVARMatrices(0))
     f7.saveas("sparse_VAR_coeffs.png")
 
-    val predictorSparseVAR = new VARPredictor[TSInstant](
-      sparseVARMatrices,
-      Some(mean))
-
-    val residualsSparseVAR = predictorSparseVAR.estimateResiduals(overlappingRDD)
+    val residualsSparseVAR = VARPredictor(overlappingRDD, sparseVARMatrices, Some(mean))
     val residualSecondMomentSparseVAR = SecondMomentEstimator(residualsSparseVAR)
 
     println("Sparse VAR residuals")

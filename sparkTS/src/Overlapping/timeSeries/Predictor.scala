@@ -20,8 +20,7 @@ trait Predictor[IndexT <: Ordered[IndexT]]
   }
 
   def estimateResiduals(
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
-  RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
 
     timeSeries
       .mapValues(_.sliding(size)(residualKernel))

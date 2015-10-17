@@ -3,13 +3,30 @@ package overlapping.timeSeries
 import breeze.linalg.DenseVector
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.rdd.RDD
 import overlapping._
+import overlapping.containers.SingleAxisBlock
 
 import scala.reflect.ClassTag
 
 /**
  * Created by Francois Belletti on 7/13/15.
  */
+object ARPredictor{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      matrices: Array[DenseVector[Double]],
+      mean: Option[DenseVector[Double]])
+      (implicit sc: SparkContext, config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+
+    val predictor = new ARPredictor[IndexT](matrices, mean)
+    predictor.estimateResiduals(timeSeries)
+
+  }
+
+}
+
 class ARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
     matrices: Array[DenseVector[Double]],
     mean: Option[DenseVector[Double]])

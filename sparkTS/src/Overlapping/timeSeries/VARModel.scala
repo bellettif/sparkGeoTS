@@ -11,6 +11,21 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
+object VARModel{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      p: Int,
+      mean: Option[DenseVector[Double]] = None)
+      (implicit config: TSConfig, sc: SparkContext): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+
+    val estimator = new VARModel[IndexT](p, mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     mean: Option[DenseVector[Double]] = None)

@@ -18,7 +18,7 @@ object ARModel{
       timeSeries : RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       p: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): Array[CovSignature] ={
+      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] ={
 
     val estimator = new ARModel[IndexT](p, mean)
 
@@ -34,7 +34,7 @@ class ARModel[IndexT <: Ordered[IndexT] : ClassTag](
     (implicit config: TSConfig, sc: SparkContext)
   extends AutoCovariances[IndexT](p, mean){
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[CovSignature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {
 
     super
       .estimate(timeSeries)

@@ -12,13 +12,29 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
+
+object MAModel{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      q: Int,
+      mean: Option[DenseVector[Double]] = None)
+      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] ={
+
+    val estimator = new MAModel[IndexT](q, mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 class MAModel[IndexT <: Ordered[IndexT] : ClassTag](
     q: Int,
     mean: Option[DenseVector[Double]] = None)
     (implicit config: TSConfig, sc: SparkContext)
   extends AutoCovariances[IndexT](q, mean){
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[CovSignature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {
 
     super
       .estimate(timeSeries)

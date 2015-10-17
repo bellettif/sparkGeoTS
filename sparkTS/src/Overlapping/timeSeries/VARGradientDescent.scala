@@ -14,6 +14,24 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 9/16/15.
  */
+
+object VARGradientDescent{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      p: Int,
+      precision: Double = 1e-6,
+      maxIter: Int = 1000)
+      (implicit sc: SparkContext, config: TSConfig): Array[DenseMatrix[Double]] = {
+
+      val estimator = new VARGradientDescent[IndexT](p, precision, maxIter)
+      estimator.estimate(timeSeries)
+
+  }
+
+}
+
+
 class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     precision: Double = 1e-6,

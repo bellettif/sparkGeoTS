@@ -3,11 +3,9 @@ package overlapping.timeSeries
 import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel._
 import overlapping.containers.SingleAxisBlock
 import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
 import overlapping.timeSeries.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
-import overlapping.timeSeries.{AutoregressiveGradient, AutoregressiveLoss}
 import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.procedures.{GradientDescent, L1ClippedGradientDescent}
 
 import scala.reflect.ClassTag
@@ -15,6 +13,24 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 9/16/15.
  */
+object VARL1GradientDescent{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      p: Int,
+      lambda: Double,
+      precision: Double = 1e-6,
+      maxIter: Int = 1000)
+      (implicit sc: SparkContext, config: TSConfig): Array[DenseMatrix[Double]] = {
+
+    val estimator = new VARL1GradientDescent[IndexT](p, lambda, precision, maxIter)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
+
 class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     lambda: Double,
@@ -58,15 +74,15 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     val gradSizes = kernelizedGrad.getGradientSize
 
     L1ClippedGradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
-    {case (param, data) => kernelizedLoss.setNewX(param); kernelizedLoss.timeSeriesStats(data)},
-    {case (param, data) => kernelizedGrad.setNewX(param); kernelizedGrad.timeSeriesStats(data)},
-    gradSizes,
-    stepSize,
-    precision,
-    lambda,
-    maxIter,
-    freqVARMatrices,
-    timeSeries
+      {case (param, data) => kernelizedLoss.setNewX(param); kernelizedLoss.timeSeriesStats(data)},
+      {case (param, data) => kernelizedGrad.setNewX(param); kernelizedGrad.timeSeriesStats(data)},
+      gradSizes,
+      stepSize,
+      precision,
+      lambda,
+      maxIter,
+      freqVARMatrices,
+      timeSeries
     )
 
   }

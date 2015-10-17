@@ -13,6 +13,21 @@ import scala.reflect.ClassTag
  * Created by Francois Belletti on 7/10/15.
  */
 
+object CrossCovariance{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      maxLag: Int,
+      mean: Option[DenseVector[Double]] = None)
+      (implicit config: TSConfig, sc: SparkContext): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
+
+    val estimator = new CrossCovariance[IndexT](maxLag, mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 /**
 Here we expect the number of dimensions to be the same for all records.
 
@@ -42,9 +57,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
 
     val result = Array.fill(modelOrder.lookBack + modelOrder.lookAhead + 1)(DenseMatrix.zeros[Double](d, d))
 
-    /*
-    The slice is not full size, it shall not be considered in order to avoid redundant computations
-     */
+    // The slice is not full size, it shall not be considered in order to avoid redundant computations
     if(slice.length != modelWidth){
       return (result, 0L)
     }
@@ -68,7 +81,9 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
     (result, 1L)
   }
 
-  override def reducer(x: (Array[DenseMatrix[Double]], Long), y: (Array[DenseMatrix[Double]], Long)): (Array[DenseMatrix[Double]], Long) ={
+  override def reducer(
+      x: (Array[DenseMatrix[Double]], Long),
+      y: (Array[DenseMatrix[Double]], Long)): (Array[DenseMatrix[Double]], Long) ={
     (x._1.zip(y._1).map({case (u, v) => u :+ v}), x._2 + y._2)
   }
 

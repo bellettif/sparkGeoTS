@@ -17,7 +17,7 @@ object InnovationAlgo extends Serializable{
   Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 238)
   TODO: shield procedure against the following edge cases, autoCov.size < 1, autoCov(0) = 0.0
    */
-  def apply(q: Int, autoCov: DenseVector[Double]): CovSignature ={
+  def apply(q: Int, autoCov: DenseVector[Double]): SecondOrderSignature ={
     val thetaEsts = (1 to q).toArray.map(DenseVector.zeros[Double])
     val varEsts   = DenseVector.zeros[Double](q + 1)
 
@@ -33,7 +33,7 @@ object InnovationAlgo extends Serializable{
     }
 
     // Reverse the result so as to have the same convention as in the book
-    CovSignature(reverse(thetaEsts(q - 1)), varEsts(q))
+    SecondOrderSignature(reverse(thetaEsts(q - 1)), varEsts(q))
 
   }
 

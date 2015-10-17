@@ -13,6 +13,22 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/13/15.
  */
+
+object VMAModel{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      q: Int,
+      mean: Option[DenseVector[Double]] = None)
+      (implicit config: TSConfig, sc: SparkContext): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+
+    val estimator = new VMAModel[IndexT](q, mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     q: Int,
     mean: Option[DenseVector[Double]] = None)
@@ -31,6 +47,5 @@ class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     estimateVMAMatrices(crossCovMatrices)
 
   }
-
 
 }

@@ -16,7 +16,7 @@ import overlapping.timeSeries._
    */
 object DurbinLevinson extends Serializable{
 
-  def apply(h: Int, autoCov: DenseVector[Double]): CovSignature ={
+  def apply(h: Int, autoCov: DenseVector[Double]): SecondOrderSignature ={
 
     var prevPhiEst          = DenseVector.zeros[Double](1)
     prevPhiEst(0)           = autoCov(1) / autoCov(0)
@@ -36,7 +36,7 @@ object DurbinLevinson extends Serializable{
       prevVarEst = newVarEst
     }
 
-    CovSignature(prevPhiEst, prevVarEst)
+    SecondOrderSignature(prevPhiEst, prevVarEst)
   }
 
 

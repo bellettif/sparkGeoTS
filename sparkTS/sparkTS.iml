@@ -19,5 +19,6 @@
     <orderEntry type="library" name="org.scalatest:scalatest_2.10:2.0" level="project" />
     <orderEntry type="library" name="org.scalanlp:breeze_2.10:0.11-M0" level="project" />
     <orderEntry type="library" name="org.scalaz:scalaz-full_2.9.2:6.0.4" level="project" />
+    <orderEntry type="library" name="edu.berkeley.cs.amplab:keystoneml_2.10:0.2" level="project" />
   </component>
 </module>

@@ -12,6 +12,22 @@ import scala.reflect.ClassTag
 /**
  * Created by Francois Belletti on 7/14/15.
  */
+object ARMAModel{
+
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      p: Int,
+      q: Int,
+      mean: Option[DenseVector[Double]] = None)
+      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] = {
+
+    val estimator = new ARMAModel[IndexT](p, q, mean)
+    estimator.estimate(timeSeries)
+
+  }
+
+}
+
 class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     q: Int,
@@ -42,7 +58,7 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
   /*
   TODO: there is an issue here whenever most pre-estimation thetas are zero. Need to use another estimation procedure.
    */
-  def computeARMACoeffs(autoCovs: CovSignature): CovSignature = {
+  def computeARMACoeffs(autoCovs: SecondOrderSignature): SecondOrderSignature = {
 
     val signaturePQ = InnovationAlgo(p + q, autoCovs.covariation)
 
@@ -55,11 +71,11 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
 
     val coeffs: DenseVector[Double] = DenseVector.vertcat(coeffsAR, coeffsMA)
 
-    CovSignature(coeffs, signaturePQ.variation)
+    SecondOrderSignature(coeffs, signaturePQ.variation)
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[CovSignature]= {
+  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {
 
     super
       .estimate(timeSeries)
