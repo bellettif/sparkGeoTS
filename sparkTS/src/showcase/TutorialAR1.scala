@@ -15,7 +15,7 @@ import overlapping._
 import containers._
 import timeSeries._
 
-object SurrogateAR1 {
+object TutorialAR1 {
 
   implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
@@ -25,14 +25,14 @@ object SurrogateAR1 {
 
     val filePath = "/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_merged.csv"
 
-    val d             = 30
-    val b             = 25
-    val N             = 100000L
+    val d = 30
+    val b = 25
+    val N = 100000L
     val paddingMillis = 100L
-    val deltaTMillis  = 1L
-    val nPartitions   = 8
+    val deltaTMillis = 1L
+    val nPartitions = 8
 
-    implicit val config = TSConfig(deltaTMillis, d, N)
+    implicit val config = TSConfig(deltaTMillis, d, N, paddingMillis.toDouble)
 
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     implicit val sc = new SparkContext(conf)
@@ -42,9 +42,9 @@ object SurrogateAR1 {
     val svd.SVD(_, sA, _) = svd(A)
     A :*= 1.0 / (max(sA) * 1.1)
 
-    for(i <- 0 until d){
-      for(j <- 0 until d){
-        if(abs(i - j) > b){
+    for (i <- 0 until d) {
+      for (j <- 0 until d) {
+        if (abs(i - j) > b) {
           A(i, j) = 0.0
         }
       }
@@ -108,10 +108,10 @@ object SurrogateAR1 {
     val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
 
     println("Frequentist estimation error")
-    println(sum((freqVARMatrices(0) - ARcoeffs(0)) :* (freqVARMatrices(0) - ARcoeffs(0))))
+    println(sum(abs(freqVARMatrices(0) - ARcoeffs(0))))
     println()
 
-    val f4= Figure()
+    val f4 = Figure()
     f4.subplot(0) += image(freqVARMatrices(0))
     f4.saveas("frequentist_VAR_coeffs.png")
 
@@ -125,10 +125,10 @@ object SurrogateAR1 {
     val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
 
     println("Bayesian estimation error")
-    println(sum((denseVARMatrices(0) - ARcoeffs(0)) :* (denseVARMatrices(0) - ARcoeffs(0))))
+    println(sum(abs(denseVARMatrices(0) - ARcoeffs(0))))
     println()
 
-    val f5= Figure()
+    val f5 = Figure()
     f5.subplot(0) += image(denseVARMatrices(0))
     f5.saveas("bayesian_VAR_coeffs.png")
 
@@ -139,7 +139,7 @@ object SurrogateAR1 {
     println(trace(residualSecondMomentBayesianVAR))
     println()
 
-    val f6= Figure()
+    val f6 = Figure()
     f6.subplot(0) += image(residualSecondMomentBayesianVAR)
     f6.saveas("cov_bayesian_VAR_residuals.png")
 
@@ -153,10 +153,10 @@ object SurrogateAR1 {
 
     val sparseVARMatrices = VARL1GradientDescent(overlappingRDD, p, 1e-2)
 
-    println("Sparse Bayesian estimation error")
-    println(sum((sparseVARMatrices(0) - ARcoeffs(0)) :* (sparseVARMatrices(0) - ARcoeffs(0))))
+    println("Sparse Bayesian L1 estimation error")
+    println(mean(abs(sparseVARMatrices(0) - ARcoeffs(0))))
     println()
-    val f7= Figure()
+    val f7 = Figure()
     f7.subplot(0) += image(sparseVARMatrices(0))
     f7.saveas("sparse_VAR_coeffs.png")
 
@@ -167,7 +167,7 @@ object SurrogateAR1 {
     println(trace(residualSecondMomentSparseVAR))
     println()
 
-    val f8= Figure()
+    val f8 = Figure()
     f8.subplot(0) += image(residualSecondMomentSparseVAR)
     f8.saveas("cov_sparse_VAR_residuals.png")
 

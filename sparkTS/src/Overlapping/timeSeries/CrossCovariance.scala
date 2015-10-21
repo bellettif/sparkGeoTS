@@ -45,6 +45,11 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
 
   val d = config.d
   val deltaT = config.deltaT
+
+  if(deltaT * maxLag > config.padding){
+    throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
+  }
+
   val bcMean = sc.broadcast(if (mean.isDefined) mean.get else DenseVector.zeros[Double](d))
 
   override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)

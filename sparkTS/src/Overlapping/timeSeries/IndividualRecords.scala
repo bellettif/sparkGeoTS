@@ -36,7 +36,7 @@ object IndividualRecords {
     sc.parallelize(rawData)
   }
 
-  def generateAR(phis: Array[Double],
+  def generateAR(phis: Array[DenseVector[Double]],
                  nColumns:Int,
                  nSamples: Int,
                  deltaTMillis: Long,
@@ -44,73 +44,74 @@ object IndividualRecords {
                  magnitudes: DenseVector[Double],
                  sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
 
-    val p = phis.length
+    val d = phis.length
+    val p = phis(0).length
 
-    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- p until nSamples){
-      for(h <- 1 to p){
-        noiseMatrix(i, ::) :+= (magnitudes.t :* noiseMatrix(i - h, ::)) :* phis(h - 1)
+    val phiMatrices = Array.fill(p)(DenseMatrix.zeros[Double](d, d))
+
+    for(i <- 0 until p){
+      for(j <- 0 until d){
+        phiMatrices(i)(j, j) = phis(j)(i)
       }
     }
 
-    val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
+    generateVAR(phiMatrices, nColumns, nSamples, deltaTMillis, noiseGen, magnitudes, sc)
 
-    sc.parallelize(rawData)
   }
 
-  def generateMA(thetas: Array[Double],
+  def generateMA(thetas: Array[DenseVector[Double]],
                  nColumns: Int,
                  nSamples: Int,
                  deltaTMillis: Long,
                  noiseGen: Rand[Double],
                  magnitudes: DenseVector[Double],
                  sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
-    val q = thetas.length
 
-    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- (nSamples - 1) to q by -1){
-      for(h <- 1 to q) {
-        noiseMatrix(i, ::) :+= (magnitudes.t :* noiseMatrix(i - h, ::)) :* thetas(h - 1)
+    val d = thetas.length
+    val p = thetas(0).length
+
+    val thetaMatrices = Array.fill(p)(DenseMatrix.zeros[Double](d, d))
+
+    for(i <- 0 until p){
+      for(j <- 0 until d){
+        thetaMatrices(i)(j, j) = thetas(j)(i)
       }
     }
 
-    val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.copy))
-
-    sc.parallelize(rawData)
+    generateVMA(thetaMatrices, nColumns, nSamples, deltaTMillis, noiseGen, magnitudes, sc)
 
   }
 
-  def generateARMA(phis: Array[Double],
-                   thetas: Array[Double],
+  def generateARMA(phis: Array[DenseVector[Double]],
+                   thetas: Array[DenseVector[Double]],
                    nColumns: Int,
                    nSamples: Int,
                    deltaTMillis: Long,
                    noiseGen: Rand[Double],
                    magnitudes: DenseVector[Double],
-                   sc: SparkContext): RDD[(TSInstant, Array[Double])] = {
+                   sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
 
-    val q = thetas.length
-    val p = phis.length
 
-    val noiseMatrix = new DenseMatrix(nSamples, nColumns, noiseGen.sample(nSamples * nColumns).toArray)
-    for(i <- (nSamples - 1) to q by -1){
-      for(h <- 1 to q) {
-        noiseMatrix(i, ::) :+= (magnitudes.t :* noiseMatrix(i - h, ::)) :* thetas(h - 1)
+    val d = thetas.length
+    val p = thetas(0).length
+
+    val phiMatrices = Array.fill(p)(DenseMatrix.zeros[Double](d, d))
+
+    for(i <- 0 until p){
+      for(j <- 0 until d){
+        phiMatrices(i)(j, j) = phis(j)(i)
       }
     }
 
-    for(i <- p until nSamples){
-      for(h <- 1 to p){
-        noiseMatrix(i, ::) :+= (noiseMatrix(i - h, ::) :* phis(h - 1))
+    val thetaMatrices = Array.fill(p)(DenseMatrix.zeros[Double](d, d))
+
+    for(i <- 0 until p){
+      for(j <- 0 until d){
+        thetaMatrices(i)(j, j) = thetas(j)(i)
       }
     }
 
-    val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(x, ::).t.toArray))
-
-    sc.parallelize(rawData)
+    generateVARMA(phiMatrices, thetaMatrices, nColumns, nSamples, deltaTMillis, noiseGen, magnitudes, sc)
 
   }
 

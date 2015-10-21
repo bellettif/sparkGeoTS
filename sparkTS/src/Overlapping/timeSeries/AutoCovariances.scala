@@ -37,6 +37,11 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
 {
 
   val deltaT = config.deltaT
+
+  if(deltaT * maxLag > config.padding){
+    throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
+  }
+
   val d = config.d
   val bcMean = sc.broadcast(mean.getOrElse(DenseVector.zeros[Double](d)))
 

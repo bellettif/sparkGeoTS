@@ -43,6 +43,10 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
   val N = config.nSamples
   val deltaT = config.deltaT
 
+  if(deltaT * p > config.padding){
+    throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
+  }
+
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[DenseMatrix[Double]] = {
 
     val meanEstimator = new MeanEstimator[IndexT]()

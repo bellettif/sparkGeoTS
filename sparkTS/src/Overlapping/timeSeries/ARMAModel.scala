@@ -10,7 +10,7 @@ import scala.reflect.ClassTag
 
 
 /**
- * Created by Francois Belletti on 7/14/15.
+ * Will return AR coeffs followed by MA coeffs.
  */
 object ARMAModel{
 

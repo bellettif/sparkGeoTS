@@ -90,6 +90,7 @@ object SingleAxisBlockRDD {
   }
 
   /*
+  What follows concerns data spatial partitioning for high dimensional studies
 
   def splitArray[IndexT <: Ordered[IndexT], ValueT: ClassTag](mainAxisPadding: (Double, Double),
                                                               mainAxisSignedDistance: (IndexT, IndexT) => Double,
