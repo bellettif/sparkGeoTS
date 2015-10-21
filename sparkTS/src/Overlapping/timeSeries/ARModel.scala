@@ -14,14 +14,14 @@ import scala.reflect.ClassTag
  */
 object ARModel{
 
-  def apply[IndexT <: Ordered[IndexT]: ClassTag](
+  def apply[IndexT <: Ordered[IndexT] : ClassTag](
       timeSeries : RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       p: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] ={
+      (implicit config: TSConfig): Array[SecondOrderSignature] ={
 
+    implicit val sc = timeSeries.context
     val estimator = new ARModel[IndexT](p, mean)
-
     estimator.estimate(timeSeries)
 
   }

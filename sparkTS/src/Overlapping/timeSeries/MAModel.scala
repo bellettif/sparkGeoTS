@@ -19,8 +19,9 @@ object MAModel{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       q: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] ={
+      (implicit config: TSConfig): Array[SecondOrderSignature] ={
 
+    implicit val sc = timeSeries.context
     val estimator = new MAModel[IndexT](q, mean)
     estimator.estimate(timeSeries)
 

@@ -22,8 +22,9 @@ object VARGradientDescent{
       p: Int,
       precision: Double = 1e-6,
       maxIter: Int = 1000)
-      (implicit sc: SparkContext, config: TSConfig): Array[DenseMatrix[Double]] = {
+      (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
+      implicit val sc = timeSeries.context
       val estimator = new VARGradientDescent[IndexT](p, precision, maxIter)
       estimator.estimate(timeSeries)
 
@@ -36,7 +37,7 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     precision: Double = 1e-6,
     maxIter: Int = 1000)
-    (implicit sc: SparkContext, config: TSConfig)
+    (implicit config: TSConfig, sc: SparkContext)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   val d = config.d

@@ -20,8 +20,9 @@ object VMAModel{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       q: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+      (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
+    implicit val sc = timeSeries.context
     val estimator = new VMAModel[IndexT](q, mean)
     estimator.estimate(timeSeries)
 

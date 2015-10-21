@@ -18,8 +18,9 @@ object ARPredictor{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       matrices: Array[DenseVector[Double]],
       mean: Option[DenseVector[Double]])
-      (implicit sc: SparkContext, config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+      (implicit config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
 
+    implicit val sc = timeSeries.context
     val predictor = new ARPredictor[IndexT](matrices, mean)
     predictor.estimateResiduals(timeSeries)
 
@@ -30,7 +31,7 @@ object ARPredictor{
 class ARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
     matrices: Array[DenseVector[Double]],
     mean: Option[DenseVector[Double]])
-    (implicit sc: SparkContext, config: TSConfig)
+    (implicit config: TSConfig, sc: SparkContext)
   extends Predictor[IndexT]{
 
   val p = matrices(0).length

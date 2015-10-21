@@ -23,11 +23,9 @@ object TutorialAR1 {
 
   def main(args: Array[String]): Unit = {
 
-    val filePath = "/users/cusgadmin/traffic_data/uber-ny/uber_spatial_bins_20x20_merged.csv"
-
     val d = 30
     val b = 25
-    val N = 100000L
+    val N = 1000000L
     val paddingMillis = 100L
     val deltaTMillis = 1L
     val nPartitions = 8
@@ -42,6 +40,7 @@ object TutorialAR1 {
     val svd.SVD(_, sA, _) = svd(A)
     A :*= 1.0 / (max(sA) * 1.1)
 
+    /*
     for (i <- 0 until d) {
       for (j <- 0 until d) {
         if (abs(i - j) > b) {
@@ -49,6 +48,7 @@ object TutorialAR1 {
         }
       }
     }
+    */
 
     val ARcoeffs = Array(A)
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
@@ -107,7 +107,7 @@ object TutorialAR1 {
 
     val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
 
-    println("Frequentist estimation error")
+    println("Frequentist L1 estimation error")
     println(sum(abs(freqVARMatrices(0) - ARcoeffs(0))))
     println()
 
@@ -154,7 +154,7 @@ object TutorialAR1 {
     val sparseVARMatrices = VARL1GradientDescent(overlappingRDD, p, 1e-2)
 
     println("Sparse Bayesian L1 estimation error")
-    println(mean(abs(sparseVARMatrices(0) - ARcoeffs(0))))
+    println(sum(abs(sparseVARMatrices(0) - ARcoeffs(0))))
     println()
     val f7 = Figure()
     f7.subplot(0) += image(sparseVARMatrices(0))

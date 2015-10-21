@@ -19,8 +19,9 @@ object CrossCovariance{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       maxLag: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
+      (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
+    implicit val sc = timeSeries.context
     val estimator = new CrossCovariance[IndexT](maxLag, mean)
     estimator.estimate(timeSeries)
 

@@ -20,8 +20,9 @@ object Covariance{
   def apply[IndexT <: Ordered[IndexT] : ClassTag](
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext): DenseMatrix[Double] ={
+    (implicit config: TSConfig): DenseMatrix[Double] ={
 
+    implicit val sc = timeSeries.context
     val estimator = new Covariance[IndexT](mean)
     estimator.estimate(timeSeries)
 

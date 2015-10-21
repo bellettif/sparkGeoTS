@@ -18,8 +18,9 @@ object VARPredictor{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       matrices: Array[DenseMatrix[Double]],
       mean: Option[DenseVector[Double]])
-     (implicit sc: SparkContext, config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+     (implicit config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
 
+    implicit val sc = timeSeries.context
     val predictor = new VARPredictor[IndexT](matrices, mean)
     predictor.estimateResiduals(timeSeries)
 

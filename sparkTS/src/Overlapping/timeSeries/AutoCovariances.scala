@@ -18,8 +18,9 @@ object AutoCovariances {
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       maxLag: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] = {
+      (implicit config: TSConfig): Array[SecondOrderSignature] = {
 
+    implicit val sc = timeSeries.context
     val estimator  = new AutoCovariances[IndexT](maxLag, mean)
     estimator.estimate(timeSeries)
 

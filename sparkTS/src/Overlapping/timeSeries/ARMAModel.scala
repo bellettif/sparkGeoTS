@@ -19,8 +19,9 @@ object ARMAModel{
       p: Int,
       q: Int,
       mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig, sc: SparkContext): Array[SecondOrderSignature] = {
+      (implicit config: TSConfig): Array[SecondOrderSignature] = {
 
+    implicit val sc = timeSeries.context
     val estimator = new ARMAModel[IndexT](p, q, mean)
     estimator.estimate(timeSeries)
 
