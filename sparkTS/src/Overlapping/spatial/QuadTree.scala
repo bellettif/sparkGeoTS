@@ -42,22 +42,22 @@ class QuadTree[T: ClassTag](
 
     NE = Some(new QuadTree[T](
       splitLon, splitLat, maxLon, maxLat,
-      nSampleMatrix(splitCol until nCols, splitRow until nRows),
+      nSampleMatrix(splitRow until nRows, splitCol until nCols),
       minNSamples))
 
     SE = Some(new QuadTree[T](
       minLon, splitLat, splitLon, maxLat,
-      nSampleMatrix(splitCol until nCols, 0 until splitRow),
+      nSampleMatrix(0 until splitRow, splitCol until nCols),
       minNSamples))
 
     SW = Some(new QuadTree[T](
       minLon, minLat, splitLon, splitLat,
-      nSampleMatrix(0 until splitCol, 0 until splitRow),
+      nSampleMatrix(0 until splitRow, 0 until splitCol),
       minNSamples))
 
     NW = Some(new QuadTree[T](
       splitLon, minLat, maxLon, splitLat,
-      nSampleMatrix(0 until splitCol, splitRow until nRows),
+      nSampleMatrix(splitRow until nRows, 0 until splitCol),
       minNSamples))
 
   }
@@ -81,6 +81,16 @@ class QuadTree[T: ClassTag](
     }
 
     return NW.get.align(lon, lat)
+
+  }
+
+  def getLeafLocations(): Array[(Double, Double)] = {
+
+    if(NE.isEmpty){
+      return Array((splitLon, splitLat))
+    }
+
+    NE.get.getLeafLocations() ++ SE.get.getLeafLocations() ++ SW.get.getLeafLocations() ++ NW.get.getLeafLocations()
 
   }
 

@@ -24,7 +24,7 @@ object UberDemandData {
     implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
-    val sc = new SparkContext(conf)
+    implicit val sc = new SparkContext(conf)
 
     /*
     ##########################################
@@ -36,7 +36,7 @@ object UberDemandData {
 
     val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/demand_data/2013-01-31.csv"
 
-    val (inSampleData_, d, nSamples) = ReadCsv(sc, inSampleFilePath)
+    val (inSampleData_, d, nSamples) = ReadCsv.TS(inSampleFilePath)
 
 
     val paddingMillis = 60L * 1000L // 1 minute

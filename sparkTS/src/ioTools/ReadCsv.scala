@@ -53,18 +53,88 @@ object ReadCsv {
    * @param sep
    * @return
    */
-  def apply(
-      sc: SparkContext,
+  def TS(
       filePath: String,
       indexCol: Int = 0,
       dateTimeFormat: String = "yyyy-MM-dd HH:mm:ss",
       header: Boolean = true,
-      sep: String = ","): (RDD[(TSInstant, DenseVector[Double])], Int, Long) = {
+      sep: String = ",")
+      (implicit sc: SparkContext): (RDD[(TSInstant, DenseVector[Double])], Int, Long) = {
 
     val data = sc.textFile(filePath)
 
     val rdd = data
       .map(parseRow(_, indexCol, sep, dateTimeFormat))
+      .filter(_.nonEmpty)
+      .map(_.get)
+
+    val nSamples = rdd.count
+
+    val temp = rdd.takeSample(true, 1, 42)
+
+    val nDims = rdd.takeSample(true, 1, 42)(0)._2.length
+
+    (rdd, nDims, nSamples)
+
+  }
+
+  /**
+   * For geo-temporal indexing
+   * @param row
+   * @param timeIndexCol
+   * @param lonIndexCol
+   * @param latIndexCol
+   * @param sep
+   * @param dateTimeFormat
+   * @return
+   */
+  def parseRow(
+      row: String,
+      timeIndexCol: Int,
+      lonIndexCol: Int,
+      latIndexCol: Int,
+      sep: String,
+      dateTimeFormat: String): Option[((TSInstant, Double, Double), DenseVector[Double])] ={
+
+    val splitRow = row.split(sep).map(_.trim)
+    val dataColumns = splitRow.indices.filter(i => (i != timeIndexCol) && (i != lonIndexCol) && (i != latIndexCol)).toArray
+
+    Try {
+      val timestamp = DateTime.parse(splitRow(timeIndexCol), DateTimeFormat.forPattern(dateTimeFormat))
+      val lon = splitRow(lonIndexCol).toDouble
+      val lat = splitRow(latIndexCol).toDouble
+      val rowData = DenseVector(dataColumns.map(i => splitRow(i).toDouble))
+      return Some(((new TSInstant(timestamp), lon, lat), rowData))
+    }.toOption
+
+  }
+
+  /**
+   * For geo-temporal indexing.
+   * @param sc
+   * @param filePath
+   * @param timeIndexCol
+   * @param lonIndexCol
+   * @param latIndexCol
+   * @param dateTimeFormat
+   * @param header
+   * @param sep
+   * @return
+   */
+  def geoTS(
+      filePath: String,
+      timeIndexCol: Int = 0,
+      lonIndexCol: Int = 1,
+      latIndexCol: Int = 2,
+      dateTimeFormat: String = "yyyy-MM-dd HH:mm:ss",
+      header: Boolean = true,
+      sep: String = ",")
+      (implicit sc: SparkContext): (RDD[((TSInstant, Double, Double), DenseVector[Double])], Int, Long) = {
+
+    val data = sc.textFile(filePath)
+
+    val rdd = data
+      .map(parseRow(_, timeIndexCol, lonIndexCol, latIndexCol, sep, dateTimeFormat))
       .filter(_.nonEmpty)
       .map(_.get)
 
