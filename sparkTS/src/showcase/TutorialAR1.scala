@@ -25,7 +25,7 @@ object TutorialAR1 {
 
     val d = 30
     val b = 25
-    val N = 1000000L
+    val N = 10000L
     val paddingMillis = 100L
     val deltaTMillis = 1L
     val nPartitions = 8
@@ -73,7 +73,7 @@ object TutorialAR1 {
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
-
+    overlappingRDD.mapValues(_.sliding(Array(IntervalSize(-10, 10)))(x => x))
 
     /*
     ################################

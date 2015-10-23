@@ -33,9 +33,6 @@ object SingleAxisBlock{
 }
 
 
-/**
- * Created by Francois Belletti on 8/7/15.
- */
 class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     val data: Array[(IndexT, ValueT)],
     val locations: Array[CompleteLocation[IndexT]],
@@ -56,6 +53,28 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
+  def getWindowIndex(beginIndex: Int, endIndex: Int, t: IndexT, lookBack: Double, lookAhead: Double): (Int, Int) ={
+
+    var begin_index = beginIndex
+    var end_index = endIndex
+
+    begin_index = locations.indexWhere(x => signedDistance(x.k, t) <= lookBack,
+      begin_index)
+
+    end_index = locations.indexWhere(x => signedDistance(t, x.k) > lookAhead,
+      end_index)
+
+    if (end_index == -1) {
+      end_index = data.length - 1
+    }
+
+    end_index = locations.lastIndexWhere(x => signedDistance(t, x.k) <= lookAhead,
+      end_index)
+
+    (begin_index, end_index)
+
+  }
+
 
   override def sliding[ResultT: ClassTag](
       size: Array[IntervalSize],
@@ -69,23 +88,128 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var end_index   = 0
 
     val result = Array.ofDim[(IndexT, ResultT)](targets.length)
+    var valid_results = Array.fill(targets.length)(false).zipWithIndex
 
     for((center_location , i) <- targets.zipWithIndex){
-      if(end_index != -1) {
 
-        begin_index = locations.indexWhere(x => signedDistance(x.k, center_location.k) <= lookBack,
-          begin_index)
+      if(end_index != 1) {
 
-        end_index = locations.indexWhere(x => signedDistance(center_location.k, x.k) >= lookAhead,
-          end_index)
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
 
-        if ((begin_index != -1) && (end_index != -1))
+        if ((begin_index != -1) && (end_index != -1)) {
           result(i) = (center_location.k, f(data.slice(begin_index, end_index + 1)))
+          valid_results(i) = (true, i)
+        }
 
       }
+
     }
 
-    new SingleAxisBlock[IndexT, ResultT](result, targets, signedDistances)
+    valid_results = valid_results.filter(x => x._1)
+
+    new SingleAxisBlock[IndexT, ResultT](
+      valid_results.map(i => result(i._2)),
+      valid_results.map(i => targets(i._2)),
+      signedDistances)
+
+  }
+
+  def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
+        size: Array[IntervalSize],
+        targets: Array[CompleteLocation[IndexT]])
+       (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+        init: MemType): SingleAxisBlock[IndexT, ResultT] = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    val result = Array.ofDim[(IndexT, ResultT)](targets.length)
+    var valid_results = Array.fill(targets.length)(false).zipWithIndex
+    var mem = init
+
+    for((center_location , i) <- targets.zipWithIndex){
+
+      if(end_index != 1) {
+
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
+
+        if ((begin_index != -1) && (end_index != -1)) {
+          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
+          mem = temp_mem
+          result(i) = (center_location.k, temp_res)
+
+          valid_results(i) = (true, i)
+        }
+
+      }
+
+    }
+
+    valid_results = valid_results.filter(x => x._1)
+
+    new SingleAxisBlock[IndexT, ResultT](
+      valid_results.map(i => result(i._2)),
+      valid_results.map(i => targets(i._2)),
+      signedDistances)
+
+  }
+
+  def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
+        size: Array[IntervalSize])
+       (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+        init: MemType): SingleAxisBlock[IndexT, ResultT] = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    val valid_locations = locations.slice(firstValidIndex, lastValidIndex + 1)
+    val result = Array.ofDim[(IndexT, ResultT)](valid_locations.length)
+    var mem = init
+
+    var data_idx = 0
+    var result_idx = 0
+
+    while(data_idx <= lastValidIndex){
+
+      val center_location = locations(data_idx)
+
+      if(end_index != -1){
+
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
+
+        if ((begin_index != -1) && (end_index != -1)) {
+          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
+          mem = temp_mem
+
+          if(data_idx >= firstValidIndex) {
+            result(result_idx) = (center_location.k, temp_res)
+            result_idx += 1
+          }
+
+        }
+
+      }
+
+      data_idx += 1
+
+    }
+
+    new SingleAxisBlock[IndexT, ResultT](
+      result,
+      valid_locations.slice(0, result_idx),
+      signedDistances.slice(0, result_idx))
 
   }
 
@@ -104,18 +228,19 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var result = zero
 
     for(center_location <- targets){
+
       if(end_index != -1) {
 
-        begin_index = locations.indexWhere(x => signedDistance(x.k, center_location.k) <= lookBack,
-          begin_index)
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
 
-        end_index = locations.indexWhere(x => signedDistance(center_location.k, x.k) >= lookAhead,
-          end_index)
-
-        if ((begin_index != -1) && (end_index != -1))
+        if ((begin_index != -1) && (end_index != -1)) {
           result = op(result, f(data.slice(begin_index, end_index + 1)))
+        }
 
       }
+
     }
 
     result
@@ -166,6 +291,91 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
+  def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
+      size: Array[IntervalSize],
+      targets: Array[CompleteLocation[IndexT]])
+     (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      zero: ResultT,
+      op: (ResultT, ResultT) => ResultT,
+      init: MemType): ResultT = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    var result = zero
+    var mem = init
+
+    for((center_location , i) <- targets.zipWithIndex){
+
+      if(end_index != -1) {
+
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
+
+        if ((begin_index != -1) && (end_index != -1)) {
+          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
+          mem = temp_mem
+          result = op(result, temp_res)
+        }
+
+      }
+    }
+
+    result
+
+  }
+
+  def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
+      size: Array[IntervalSize])
+     (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      zero: ResultT,
+      op: (ResultT, ResultT) => ResultT,
+      init: MemType): ResultT = {
+
+    val lookAhead = size.head.lookAhead
+    val lookBack  = size.head.lookBack
+
+    var begin_index = 0
+    var end_index   = 0
+
+    var result = zero
+    var mem = init
+
+    var data_idx = 0
+
+    while(data_idx <= lastValidIndex){
+
+      val center_location = locations(data_idx)
+
+      if(end_index != -1) {
+
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        begin_index = begin_index_
+        end_index = end_index_
+
+        if ((begin_index != -1) && (end_index != -1)) {
+          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
+          mem = temp_mem
+
+          if(data_idx >= firstValidIndex) {
+            result = op(result, temp_res)
+          }
+
+        }
+
+      }
+
+      data_idx += 1
+
+    }
+
+    result
+
+  }
 
   def slicingWindowFold[ResultT: ClassTag](cutPredicates: Array[(IndexT, IndexT) => Boolean])(
       f: Array[(IndexT, ValueT)] => ResultT,
@@ -212,9 +422,17 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
   }
 
+  /**
+   *
+   * @param f
+   * @tparam ResultT
+   * @return
+   */
   override def map[ResultT: ClassTag](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
 
-    new SingleAxisBlock[IndexT, ResultT](data.map({case (k, v) => (k, f(k, v))}), locations, signedDistances)
+    val result = new SingleAxisBlock[IndexT, ResultT](data.map({case (k, v) => (k, f(k, v))}), locations, signedDistances)
+
+    result
 
   }
 

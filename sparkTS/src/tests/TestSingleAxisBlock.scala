@@ -16,9 +16,7 @@ import overlapping.timeSeries._
 
 import org.joda.time.DateTime
 
-/**
- * Created by Francois Belletti on 8/4/15.
- */
+
 class TestSingleAxisBlock extends FlatSpec with Matchers{
 
   implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
@@ -264,7 +262,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
   it should " properly slide fold elements" in {
 
     val nColumns      = 10
-    val nSamples      = 80000L
+    val nSamples      = 10000L
     val paddingMillis = 20L
     val deltaTMillis  = 1L
     val nPartitions   = 8
@@ -287,7 +285,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .map(_._2)
       .reduce(_ + _)
 
-    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2) * nColumns)
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2 * 2) * nColumns)
 
   }
 
@@ -319,7 +317,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .map(_._2)
       .reduce(_ + _)
 
-    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2) * nColumns)
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2 * 2) * nColumns)
 
   }
 
@@ -403,6 +401,8 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       .foldRight(List[Array[(TSInstant, DenseVector[Double])]]())(_ ::: _)
       .filter(_.length == 11)
       .toArray
+
+    println("Done")
 
     for((data1, data2) <- slideFromRawTS.zip(slidingRDD)){
       data1.length should be (data2.length)
@@ -517,5 +517,64 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
 
   }
 
+  it should " properly slide fold elements with memory" in {
+
+    val nColumns      = 10
+    val nSamples      = 80000L
+    val paddingMillis = 20L
+    val deltaTMillis  = 1L
+    val nPartitions   = 8
+
+    val zeroArray   = Array.fill(nColumns)(0.0)
+    val zeroSecond  = TSInstant(new DateTime(0L))
+
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      sc)
+
+    val (overlappingRDD, _) =
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
+
+    def sumArray(data: Array[(TSInstant, DenseVector[Double])], state: Double): (Double, Double) = {
+      (data.map(x => sum(x._2)).sum * state, state)
+    }
+
+    val foldFromOverlappingData = overlappingRDD
+      .mapValues(v => v.slidingFoldWithMemory(Array(IntervalSize(1.0, 1.0)))(sumArray, 0.0, (x: Double, y: Double) => x + y, 1.5))
+      .map(_._2)
+      .reduce(_ + _)
+
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2 * 2) * nColumns * 1.5)
+
+  }
+
+  it should " properly slide fold elements with memory and exteral targets" in {
+
+    val nColumns      = 10
+    val nSamples      = 80000L
+    val paddingMillis = 20L
+    val deltaTMillis  = 1L
+    val nPartitions   = 8
+
+    val zeroArray   = Array.fill(nColumns)(0.0)
+    val zeroSecond  = TSInstant(new DateTime(0L))
+
+    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+      sc)
+
+    val (overlappingRDD, _) =
+      SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
+
+    def sumArray(data: Array[(TSInstant, DenseVector[Double])], state: Double): (Double, Double) = {
+      (data.map(x => sum(x._2)).sum * state, state)
+    }
+
+    val foldFromOverlappingData = overlappingRDD
+      .mapValues(v => v.slidingFoldWithMemory(Array(IntervalSize(1.0, 1.0)), v.locations.slice(v.firstValidIndex, v.lastValidIndex + 1))(sumArray, 0.0, (x: Double, y: Double) => x + y, 1.5))
+      .map(_._2)
+      .reduce(_ + _)
+
+    foldFromOverlappingData should be ((3 * (nSamples - 2) + 2 * 2) * nColumns * 1.5)
+
+  }
 
 }
