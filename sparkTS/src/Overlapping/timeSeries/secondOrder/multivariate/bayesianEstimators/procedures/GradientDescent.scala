@@ -53,6 +53,8 @@ object GradientDescent extends Serializable{
       prevLoss = nextLoss
       nextLoss = lossFunction(parameters, data)
 
+      println(nextLoss)
+
       //println("New parameters")
       //parameters.foreach(x => {println(x); println()})
 

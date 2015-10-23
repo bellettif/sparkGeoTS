@@ -25,11 +25,7 @@ object Stability {
       bigMatrix(0 until d, i * d until (i + 1) * d) := coeffs(i)
     }
 
-    println(bigMatrix)
-
-    val Eig(er, ei, _) = linalg.eig(bigMatrix)
-
-    max(sqrt((er :* er) + (ei :* ei)))
+    max(abs(linalg.eig(bigMatrix).eigenvalues))
 
   }
 

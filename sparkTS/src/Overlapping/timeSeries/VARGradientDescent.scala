@@ -1,6 +1,7 @@
 package overlapping.timeSeries
 
 import breeze.linalg._
+import breeze.numerics.abs
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
@@ -20,7 +21,7 @@ object VARGradientDescent{
   def apply[IndexT <: Ordered[IndexT] : ClassTag](
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
       p: Int,
-      precision: Double = 1e-6,
+      precision: Double = 1e-4,
       maxIter: Int = 1000)
       (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
@@ -35,7 +36,7 @@ object VARGradientDescent{
 
 class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
-    precision: Double = 1e-6,
+    precision: Double = 1e-4,
     maxIter: Int = 1000)
     (implicit config: TSConfig, sc: SparkContext)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
@@ -50,24 +51,32 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[DenseMatrix[Double]] = {
 
-    val meanEstimator = new MeanEstimator[IndexT]()
-    val mean = meanEstimator.estimate(timeSeries)
+    val mean = MeanEstimator(timeSeries)
 
-    val freqVAREstimator = new VARModel[IndexT](p, Some(mean))
-    val (freqVARMatrices, _) = freqVAREstimator.estimate(timeSeries)
+    val (freqVARMatrices, noiseVariance) = VARModel(timeSeries, p, Some(mean))
 
+    /*
     val predictorVAR = new VARPredictor[IndexT](freqVARMatrices, Some(mean))
     val residualsVAR = predictorVAR.estimateResiduals(timeSeries)
 
     val secondMomentEstimator = new SecondMomentEstimator[IndexT]()
     val residualSecondMomentVAR = secondMomentEstimator.estimate(residualsVAR)
     val sigmaEpsilon = diag(residualSecondMomentVAR)
+    */
 
-    val covEstimator = new Covariance[IndexT](Some(mean))
-    val covMatrix = covEstimator.estimate(timeSeries)
-    val svd.SVD(_, s, _) = svd(covMatrix)
+    val sigmaEpsilon = diag(noiseVariance)
+
+    /*
+    Redundant computation of cross-cov Matrix, need to do something about that
+     */
+    val (crossCovMatrices, _) = CrossCovariance(timeSeries, p, Some(mean))
+
+    val allEigenValues = crossCovMatrices.map(x => abs(eig(x).eigenvalues))
+    val maxEig = max(allEigenValues.map(x => max(x)))
+    val minEig = min(allEigenValues.map(x => min(x)))
+
     def stepSize(x: Int): Double ={
-      1.0 / (max(s) * max(sigmaEpsilon) + min(s) * min(sigmaEpsilon))
+      1.9 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
     }
 
     val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))

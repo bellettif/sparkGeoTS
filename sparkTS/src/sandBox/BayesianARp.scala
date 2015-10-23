@@ -22,7 +22,7 @@ object BayesianARp {
 
   def main(args: Array[String]): Unit = {
 
-    val d = 1
+    val d = 3
     val N = 10000L
     val paddingMillis = 100L
     val deltaTMillis = 1L
@@ -38,12 +38,10 @@ object BayesianARp {
 
     val maxEigen = Stability(ARCoeffs)
 
-    println(maxEigen)
-
     while(Stability(ARCoeffs) >= 1.0) {
       println(Stability(ARCoeffs))
       for (i <- 0 until p) {
-        ARCoeffs(i) :/= (i + 1) * 1.2
+        ARCoeffs(i) :/= 1.2
       }
     }
 
@@ -60,18 +58,8 @@ object BayesianARp {
       noiseMagnitudes,
       sc)
 
-    val f0 = Figure()
-    f0.subplot(0) += image(ARCoeffs(0))
-    f0.saveas("AR_coeffs.png")
-
-    val f1 = Figure()
-    f1.subplot(0) += image(diag(noiseMagnitudes))
-    f1.saveas("noise_magnitudes.png")
-
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
-
-
 
     /*
     ################################
@@ -90,10 +78,6 @@ object BayesianARp {
     println(trace(residualSecondMomentAR))
     println()
 
-    val f2 = Figure()
-    f2.subplot(0) += image(residualSecondMomentAR)
-    f2.saveas("cov_freq_AR_residuals.png")
-
     /*
     ##################################
 
@@ -108,10 +92,6 @@ object BayesianARp {
     println(sum(abs(freqVARMatrices(0) - ARCoeffs(0))))
     println()
 
-    val f4 = Figure()
-    f4.subplot(0) += image(freqVARMatrices(0))
-    f4.saveas("frequentist_VAR_coeffs.png")
-
     val residualFrequentistVAR = VARPredictor(overlappingRDD, freqVARMatrices, Some(mean))
     val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
 
@@ -121,13 +101,9 @@ object BayesianARp {
 
     val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
 
-    println("Bayesian estimation error")
+    println("Bayesian L1 estimation error")
     println(sum(abs(denseVARMatrices(0) - ARCoeffs(0))))
     println()
-
-    val f5 = Figure()
-    f5.subplot(0) += image(denseVARMatrices(0))
-    f5.saveas("bayesian_VAR_coeffs.png")
 
     val residualsBayesianVAR = VARPredictor(overlappingRDD, denseVARMatrices, Some(mean))
     val residualSecondMomentBayesianVAR = SecondMomentEstimator(residualsBayesianVAR)
@@ -135,10 +111,6 @@ object BayesianARp {
     println("Bayesian VAR residuals")
     println(trace(residualSecondMomentBayesianVAR))
     println()
-
-    val f6 = Figure()
-    f6.subplot(0) += image(residualSecondMomentBayesianVAR)
-    f6.saveas("cov_bayesian_VAR_residuals.png")
 
     /*
     ################################
@@ -148,14 +120,12 @@ object BayesianARp {
     ################################
      */
 
+    /*
     val sparseVARMatrices = VARL1GradientDescent(overlappingRDD, p, 1e-2)
 
     println("Sparse Bayesian L1 estimation error")
     println(sum(abs(sparseVARMatrices(0) - ARCoeffs(0))))
     println()
-    val f7 = Figure()
-    f7.subplot(0) += image(sparseVARMatrices(0))
-    f7.saveas("sparse_VAR_coeffs.png")
 
     val residualsSparseVAR = VARPredictor(overlappingRDD, sparseVARMatrices, Some(mean))
     val residualSecondMomentSparseVAR = SecondMomentEstimator(residualsSparseVAR)
@@ -163,11 +133,7 @@ object BayesianARp {
     println("Sparse VAR residuals")
     println(trace(residualSecondMomentSparseVAR))
     println()
-
-    val f8 = Figure()
-    f8.subplot(0) += image(residualSecondMomentSparseVAR)
-    f8.saveas("cov_sparse_VAR_residuals.png")
-
+    */
 
   }
 }
