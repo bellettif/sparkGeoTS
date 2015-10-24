@@ -37,8 +37,7 @@ object TutorialAR1 {
 
     val A = DenseMatrix.rand[Double](d, d) + (DenseMatrix.eye[Double](d) * 0.1)
 
-    val svd.SVD(_, sA, _) = svd(A)
-    A :*= 1.0 / (max(sA) * 1.1)
+    A :*= 1.0 / (max(abs(eig(A).eigenvalues)) * 1.1)
 
     /*
     for (i <- 0 until d) {
@@ -51,9 +50,9 @@ object TutorialAR1 {
     */
 
     val ARcoeffs = Array(A)
-    val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
+    val noiseMagnitudes = DenseVector.ones[Double](d)
 
-    val rawTS = IndividualRecords.generateVAR(
+    val rawTS = Surrogate.generateVAR(
       ARcoeffs,
       d,
       N.toInt,

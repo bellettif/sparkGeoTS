@@ -1,6 +1,6 @@
 package overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients
 
-import breeze.linalg.{DenseVector, DenseMatrix}
+import breeze.linalg.{diag, DenseVector, DenseMatrix}
 import org.apache.spark.broadcast.Broadcast
 
 import overlapping.timeSeries._
@@ -18,6 +18,8 @@ class DiagonalNoiseARGrad[IndexT <: Ordered[IndexT]](
   val precisionMatrix = DenseVector.ones[Double](d)
   precisionMatrix :/= sigmaEps
 
+  val precisionMatrixAsDiag = diag(precisionMatrix)
+
   def apply(params: Array[DenseMatrix[Double]],
             data: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
 
@@ -27,23 +29,18 @@ class DiagonalNoiseARGrad[IndexT <: Ordered[IndexT]](
 
     val meanValue = mean.value
 
-    for(i <- p until data.length){
-      prevision := 0.0
-      for(h <- 1 to p){
-        prevision += params(h - 1) * (data(i - h)._2 - meanValue)
-      }
-      for(h <- 1 to p){
-        totGradient(h - 1) :-= (data(i)._2 - prevision) * (data(i - h)._2 - meanValue).t
-      }
+    for(h <- 1 to p){
+      prevision += params(h - 1) * (data(p - h)._2 - meanValue)
     }
 
-    for(h <- 1 to p) {
-      for(i <- 0 until d) {
-        totGradient(h - 1)(i, ::) :*= precisionMatrix(i) * 2.0 / nSamples.toDouble
-      }
+    val normError = precisionMatrixAsDiag * (data(p)._2 - prevision)
+
+    for(h <- 1 to p){
+      totGradient(h - 1) :-= normError * (data(p - h)._2 - meanValue).t * 2.0 / nSamples.toDouble
     }
 
     totGradient
+
   }
 
 }

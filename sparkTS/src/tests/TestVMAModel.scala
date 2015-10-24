@@ -32,7 +32,7 @@ class TestVMAModel extends FlatSpec with Matchers{
     val MAcoeffs = (0 until p).toArray.map(x => DenseMatrix.rand[Double](d, d) * 0.05 + (DenseMatrix.eye[Double](d) * 0.20 / p.toDouble * (p - x).toDouble))
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
 
-    val rawTS = IndividualRecords.generateVMA(
+    val rawTS = Surrogate.generateVMA(
       MAcoeffs,
       d,
       N.toInt,

@@ -6,15 +6,13 @@ package sandBox
 
 import breeze.linalg._
 import breeze.numerics.abs
-import breeze.plot.{Figure, image}
 import breeze.stats.distributions.Gaussian
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import overlapping._
 import overlapping.containers._
 import overlapping.timeSeries._
 
-object BayesianARp {
+object BayesianMAp {
 
   implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
@@ -33,20 +31,20 @@ object BayesianARp {
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     implicit val sc = new SparkContext(conf)
 
-    val ARCoeffs = Array(
+    val MACoeffs = Array(
       DenseMatrix((0.30, 0.0, 0.0), (0.0, -0.20, 0.0), (0.0, 0.0, -0.45)),
       DenseMatrix((0.12, 0.0, 0.0), (0.0, 0.08, 0.0), (0.0, 0.0, 0.45)),
       DenseMatrix((-0.08, 0.0, 0.0), (0.0, 0.05, 0.0), (0.0, 0.0, 0.00))
     )
 
-    val p = ARCoeffs.length
+    val p = MACoeffs.length
 
-    println(Stability(ARCoeffs))
+    println(Stability(MACoeffs))
 
     val noiseMagnitudes = DenseVector.ones[Double](d)
 
-    val rawTS = Surrogate.generateVAR(
-      ARCoeffs,
+    val rawTS = Surrogate.generateVMA(
+      MACoeffs,
       d,
       N.toInt,
       deltaTMillis,
@@ -58,23 +56,6 @@ object BayesianARp {
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
     /*
-    ################################
-
-    Monovariate analysis
-
-    ################################
-     */
-    val mean = MeanEstimator(overlappingRDD)
-    val autocovariances = AutoCovariances(overlappingRDD, p)
-    val vectorsAR = ARModel(overlappingRDD, p, Some(mean))
-    val residualsAR = ARPredictor(overlappingRDD, vectorsAR.map(x => x.covariation), Some(mean))
-    val residualSecondMomentAR = SecondMomentEstimator(residualsAR)
-
-    println("AR error")
-    println(trace(residualSecondMomentAR))
-    println()
-
-    /*
     ##################################
 
     Multivariate analysis
@@ -82,31 +63,22 @@ object BayesianARp {
     ##################################
      */
 
-    val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
+    val (freqVMAMatrices, _) = VMAModel(overlappingRDD, p)
+
+    freqVMAMatrices.foreach({x => println(x); println()})
 
     println("Frequentist L1 estimation error")
-    println(sum(abs(freqVARMatrices(0) - ARCoeffs(0))))
+    println(sum(abs(freqVMAMatrices(0) - MACoeffs(0))))
     println()
 
-    val residualFrequentistVAR = VARPredictor(overlappingRDD, freqVARMatrices, Some(mean))
-    val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
+    val denseVMAMatrices = VMAGradientDescent(overlappingRDD, p)
 
-    println("Frequentist VAR residuals")
-    println(trace(residualSecondMomentFrequentistVAR))
-    println()
-
-    val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
+    denseVMAMatrices.foreach({x => println(x); println()})
 
     println("Bayesian L1 estimation error")
-    println(sum(abs(denseVARMatrices(0) - ARCoeffs(0))))
+    println(sum(abs(denseVMAMatrices(0) - MACoeffs(0))))
     println()
 
-    val residualsBayesianVAR = VARPredictor(overlappingRDD, denseVARMatrices, Some(mean))
-    val residualSecondMomentBayesianVAR = SecondMomentEstimator(residualsBayesianVAR)
-
-    println("Bayesian VAR residuals")
-    println(trace(residualSecondMomentBayesianVAR))
-    println()
 
     /*
     ################################

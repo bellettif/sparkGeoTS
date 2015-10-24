@@ -34,7 +34,7 @@ class TestVARMAModel extends FlatSpec with Matchers{
     val MAcoeffs = (0 until q).toArray.map(x => DenseMatrix.rand[Double](d, d) * 0.05 + (DenseMatrix.eye[Double](d) * 0.20 / q.toDouble * (q - x).toDouble))
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
 
-    val rawTS = IndividualRecords.generateVARMA(
+    val rawTS = Surrogate.generateVARMA(
       ARcoeffs,
       MAcoeffs,
       d,

@@ -26,8 +26,10 @@ extends SecondOrderEssStat[IndexT, DenseVector[Double], Array[DenseMatrix[Double
   def zero = gradientSizes.map({case (nRows, nCols) => DenseMatrix.zeros[Double](nRows, nCols)})
 
   def setNewX(newX: Array[DenseMatrix[Double]]) = {
+    val maxEigenValue = Stability(newX)
+
     for(i <- x.indices){
-      x(i) := newX(i)
+      x(i) := newX(i) / maxEigenValue
     }
   }
 

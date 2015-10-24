@@ -4,19 +4,16 @@ import breeze.linalg._
 import breeze.numerics.abs
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel._
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.{DiagonalNoiseMAGrad, DiagonalNoiseARGrad}
+import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.lossFunctions.DiagonalNoiseMALoss
 import overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.procedures.GradientDescent
 import overlapping.timeSeries.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
 
 import scala.reflect.ClassTag
 
-/**
- * Created by Francois Belletti on 9/16/15.
- */
 
-object VARGradientDescent{
+object VMAGradientDescent{
 
   def apply[IndexT <: Ordered[IndexT] : ClassTag](
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
@@ -25,18 +22,17 @@ object VARGradientDescent{
       maxIter: Int = 100)
       (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
-      implicit val sc = timeSeries.context
-      val estimator = new VARGradientDescent[IndexT](p, precision, maxIter)
-      estimator.estimate(timeSeries)
+    implicit val sc = timeSeries.context
+    val estimator = new VMAGradientDescent[IndexT](p, precision, maxIter)
+    estimator.estimate(timeSeries)
 
   }
 
 }
 
-
-class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
-    p: Int,
-    precision: Double = 1e-6,
+class VMAGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
+    q: Int,
+    precision: Double = 1e-4,
     maxIter: Int = 1000)
     (implicit config: TSConfig, sc: SparkContext)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
@@ -45,7 +41,7 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
   val N = config.nSamples
   val deltaT = config.deltaT
 
-  if(deltaT * p > config.padding){
+  if(deltaT * q > config.padding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
 
@@ -53,7 +49,7 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
 
     val mean = MeanEstimator(timeSeries)
 
-    val (freqVARMatrices, noiseVariance) = VARModel(timeSeries, p, Some(mean))
+    val (freqVMAMatrices, noiseVariance) = VMAModel(timeSeries, q, Some(mean))
 
     /*
     val predictorVAR = new VARPredictor[IndexT](freqVARMatrices, Some(mean))
@@ -69,21 +65,21 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     /*
     Redundant computation of cross-cov Matrix, need to do something about that
      */
-    val (crossCovMatrices, _) = CrossCovariance(timeSeries, p, Some(mean))
+    val (crossCovMatrices, _) = CrossCovariance(timeSeries, q, Some(mean))
 
     val allEigenValues = crossCovMatrices.map(x => abs(eig(x).eigenvalues))
     val maxEig = max(allEigenValues.map(x => max(x)))
     val minEig = min(allEigenValues.map(x => min(x)))
 
     def stepSize(x: Int): Double ={
-      2.0 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
+      0.9 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
     }
 
-    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
-    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
+    val VMALoss = new DiagonalNoiseMALoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
+    val VMAGrad = new DiagonalNoiseMAGrad[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
 
-    val kernelizedLoss = new AutoregressiveLoss[IndexT](p, VARLoss.apply)
-    val kernelizedGrad = new AutoregressiveGradient[IndexT](p, VARGrad.apply)
+    val kernelizedLoss = new MemoryLoss[IndexT](q, VMALoss.apply)
+    val kernelizedGrad = new MemoryGradient[IndexT](q, VMAGrad.apply)
 
     val gradSizes = kernelizedGrad.getGradientSize
 
@@ -94,7 +90,7 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
       stepSize,
       precision,
       maxIter,
-      freqVARMatrices,
+      freqVMAMatrices,
       timeSeries
     )
 

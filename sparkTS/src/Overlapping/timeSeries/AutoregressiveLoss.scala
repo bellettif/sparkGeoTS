@@ -24,8 +24,10 @@ extends SecondOrderEssStat[IndexT, DenseVector[Double], Double]
   def zero = 0.0
 
   def setNewX(newX: Array[DenseMatrix[Double]]) = {
-    for(i <- newX.indices){
-      x(i) := newX(i)
+    val maxEigenValue = Stability(newX)
+
+    for(i <- x.indices){
+      x(i) := newX(i) / maxEigenValue
     }
   }
 

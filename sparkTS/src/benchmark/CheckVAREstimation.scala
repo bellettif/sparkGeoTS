@@ -45,7 +45,7 @@ object CheckVAREstimation {
     val ARcoeffs = Array(A)
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.10)
 
-    val rawTS = IndividualRecords.generateVAR(
+    val rawTS = Surrogate.generateVAR(
       ARcoeffs,
       d,
       N0.toInt,
@@ -130,7 +130,7 @@ object CheckVAREstimation {
 
     config = TSConfig(deltaTMillis, d, N1, paddingMillis.toDouble)
 
-    val newRawTS = IndividualRecords.generateVAR(
+    val newRawTS = Surrogate.generateVAR(
       ARcoeffs,
       d,
       N1.toInt,

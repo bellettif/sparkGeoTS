@@ -32,7 +32,7 @@ class TestVARModelBayesian extends FlatSpec with Matchers{
     val ARcoeffs = (0 until p).toArray.map(x => DenseMatrix.rand[Double](d, d) * 0.05 + (DenseMatrix.eye[Double](d) * 0.20 / p.toDouble * (p - x).toDouble))
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
 
-    val rawTS = IndividualRecords.generateVAR(
+    val rawTS = Surrogate.generateVAR(
       ARcoeffs,
       d,
       N.toInt,

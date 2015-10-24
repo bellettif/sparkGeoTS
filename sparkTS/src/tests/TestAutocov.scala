@@ -42,7 +42,7 @@ class TestAutocov extends FlatSpec with Matchers{
 
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
 
-    val rawTS = IndividualRecords.generateVAR(
+    val rawTS = Surrogate.generateVAR(
       ARcoeffs,
       d,
       N.toInt,

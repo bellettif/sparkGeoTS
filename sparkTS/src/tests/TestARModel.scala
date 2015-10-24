@@ -32,9 +32,9 @@ class TestARModel extends FlatSpec with Matchers{
       (DenseVector.rand[Double](p) * 0.05) +
       (DenseVector((p to 1 by -1).map(x => x.toDouble / p.toDouble).toArray) * 0.30))
 
-    val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
+    val noiseMagnitudes = DenseVector.ones[Double](d)
 
-    val rawTS = IndividualRecords.generateAR(
+    val rawTS = Surrogate.generateAR(
       ARcoeffs,
       d,
       N.toInt,

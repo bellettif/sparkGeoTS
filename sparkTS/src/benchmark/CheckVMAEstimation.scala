@@ -43,7 +43,7 @@ object CheckVMAEstimation {
     val MAcoeffs = Array(A)
     val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.05)
 
-    val rawTS = IndividualRecords.generateVMA(
+    val rawTS = Surrogate.generateVMA(
       MAcoeffs,
       d,
       N0.toInt,
@@ -84,7 +84,7 @@ object CheckVMAEstimation {
 
     config = TSConfig(deltaTMillis, d, N1, paddingMillis.toDouble)
 
-    val newRawTS = IndividualRecords.generateVAR(
+    val newRawTS = Surrogate.generateVAR(
       MAcoeffs,
       d,
       N1.toInt,

@@ -35,7 +35,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
       DenseVector.ones[Double](nColumns),
       sc)
@@ -71,7 +71,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
       DenseVector.ones[Double](nColumns),
       sc)
@@ -98,7 +98,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -121,7 +121,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 3L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
       DenseVector.ones[Double](nColumns),
       sc)
@@ -148,7 +148,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -171,7 +171,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -205,7 +205,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 4L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -236,7 +236,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = DenseVector.zeros[Double](nColumns)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -270,7 +270,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -300,7 +300,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -329,7 +329,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -352,7 +352,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 1L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -375,7 +375,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 2L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
       DenseVector.ones[Double](nColumns),
       sc)
@@ -423,7 +423,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 2L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateWhiteNoise(nColumns, nSamples.toInt, deltaTMillis,
       Uniform(-0.5, 0.5),
       DenseVector.ones[Double](nColumns),
       sc)
@@ -474,7 +474,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val deltaTMillis  = 200L
     val nPartitions   = 8
 
-    val rawTS = IndividualRecords.generateWhiteNoise(
+    val rawTS = Surrogate.generateWhiteNoise(
       nColumns,
       nSamples.toInt,
       deltaTMillis,
@@ -528,7 +528,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =
@@ -558,7 +558,7 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
     val zeroArray   = Array.fill(nColumns)(0.0)
     val zeroSecond  = TSInstant(new DateTime(0L))
 
-    val rawTS = IndividualRecords.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
+    val rawTS = Surrogate.generateOnes(nColumns, nSamples.toInt, deltaTMillis,
       sc)
 
     val (overlappingRDD, _) =

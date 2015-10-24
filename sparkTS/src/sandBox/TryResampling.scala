@@ -49,7 +49,7 @@ object TryResampling {
       sc)
     */
 
-    val rawTS = IndividualRecords.generateOnes(d, N.toInt, deltaTMillis, sc)
+    val rawTS = Surrogate.generateOnes(d, N.toInt, deltaTMillis, sc)
 
     def hasher(t: TSInstant): TSInstant = {
       TSInstant(new DateTime((t.timestamp.getMillis / resolutionMillis) * resolutionMillis))

@@ -246,7 +246,6 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     result
   }
 
-
   def slidingFold[ResultT: ClassTag](size: Array[IntervalSize])
                                     (f: Array[(IndexT, ValueT)] => ResultT,
                                      zero: ResultT,
@@ -255,6 +254,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     slidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(f, zero, op)
 
   }
+
 
   // By convention the marking CompleteLocation of a slice will be that of the start of the interval
   override def slicingWindow[ResultT: ClassTag](

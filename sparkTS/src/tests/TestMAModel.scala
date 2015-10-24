@@ -33,9 +33,9 @@ class TestMAModel extends FlatSpec with Matchers{
       (DenseVector.rand[Double](p) * 0.05) +
       (DenseVector((p to 1 by -1).map(x => x.toDouble / p.toDouble).toArray) * 0.25))
 
-    val noiseMagnitudes = DenseVector.ones[Double](d) + (DenseVector.rand[Double](d) * 0.2)
+    val noiseMagnitudes = DenseVector.ones[Double](d)
 
-    val rawTS = IndividualRecords.generateMA(
+    val rawTS = Surrogate.generateMA(
       MAcoeffs,
       d,
       N.toInt,
@@ -52,11 +52,11 @@ class TestMAModel extends FlatSpec with Matchers{
     for(i <- 0 until d) {
         for(j <- 0 until p) {
 
-          estimMACoeffs(i).covariation(j) should be (MAcoeffs(i)(j) +- 0.08)
+          estimMACoeffs(i).covariation(j) should be (MAcoeffs(i)(j) +- 0.05)
 
         }
 
-      estimMACoeffs(i).variation should be (noiseMagnitudes(i) +- 0.20)
+      estimMACoeffs(i).variation should be (noiseMagnitudes(i) +- 0.05)
     }
 
   }

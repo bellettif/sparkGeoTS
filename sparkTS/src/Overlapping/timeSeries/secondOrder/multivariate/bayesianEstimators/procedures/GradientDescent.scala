@@ -2,6 +2,7 @@ package overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.proce
 
 import breeze.linalg._
 import breeze.numerics.sqrt
+import overlapping.timeSeries.Stability
 
 /**
  * Created by Francois Belletti on 7/14/15.
@@ -18,6 +19,10 @@ object GradientDescent extends Serializable{
                  start: Array[DenseMatrix[Double]],
                  data: DataT): Array[DenseMatrix[Double]] ={
 
+
+    val alpha = 0.4
+    val beta = 0.9
+
     var prevLoss = lossFunction(start, data)
     var nextLoss = prevLoss
 
@@ -28,49 +33,34 @@ object GradientDescent extends Serializable{
       DenseMatrix.zeros[Double](0, 0)
     }
 
+    var step = gradient.clone()
+    var t = 0.0
+
     var gradientMagnitude = 0.0
-
-    //println("Initial loss")
-    //println(prevLoss)
-
     var i = 0
 
-    while (firstIter || ((i <= maxIter) && (gradientMagnitude > precision * (1 + nextLoss)))) {
+    while (firstIter || ((i <= maxIter) && (sqrt(gradientMagnitude) > precision * (1 + nextLoss)))) {
 
-      //println(i)
-      //println("Parameters")
-      //parameters.foreach(x => {println(x); println()})
-
+      prevLoss = nextLoss
       gradient = gradientFunction(parameters, data)
 
-      //println("Gradient")
-      //gradient.foreach(x => {println(x); println()})
+      gradientMagnitude = gradient.map({case x: DenseMatrix[Double] => sum(x :* x)}).sum
 
-      gradientMagnitude = sqrt(gradient.map({case x: DenseMatrix[Double] => sum(x :* x)}).sum)
+      t = stepSize(i)
+      step = gradient.map(x => x * t)
+      nextLoss = lossFunction(parameters.indices.toArray.map(x => parameters(x) - step(x)), data)
 
-      parameters = parameters.indices.toArray.map(x => parameters(x) - (gradient(x) * stepSize(i)))
-      i = i + 1
-      prevLoss = nextLoss
-      nextLoss = lossFunction(parameters, data)
-
-      println(nextLoss)
-
-      //println("New parameters")
-      //parameters.foreach(x => {println(x); println()})
-
-      /*
-      println("Loss")
-      println(nextLoss)
-      println("-----------------------------")
-      */
-
-      /*
-      if(gradientMagnitude < precision * (1 + nextLoss)){
-        println("---------------------------------------")
-        println("Reached optimum with required precision")
-        println("---------------------------------------")
+      while(nextLoss > prevLoss + alpha * t * t * gradientMagnitude){
+        t = beta * t
+        step = gradient.map(x => x * t)
+        nextLoss = lossFunction(parameters.indices.toArray.map(x => parameters(x) - step(x)), data)
       }
-      */
+
+      parameters = parameters.indices.toArray.map(x => parameters(x) - step(x))
+
+      i = i + 1
+      println("Loss = " + nextLoss)
+      println("Largest eigen value = " + Stability(parameters))
 
       firstIter = false
     }

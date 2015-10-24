@@ -9,7 +9,7 @@ import org.joda.time.DateTime
 /**
  * Simulate data based on different models.
  */
-object IndividualRecords {
+object Surrogate {
 
 
   def generateWhiteNoise(nColumns: Int,
