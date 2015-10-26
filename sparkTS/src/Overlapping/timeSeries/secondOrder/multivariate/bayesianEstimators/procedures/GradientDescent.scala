@@ -17,7 +17,8 @@ object GradientDescent extends Serializable{
                  precision: Double,
                  maxIter: Int,
                  start: Array[DenseMatrix[Double]],
-                 data: DataT): Array[DenseMatrix[Double]] ={
+                 data: DataT,
+                 maxIterLs: Int = 10): Array[DenseMatrix[Double]] ={
 
 
     val alpha = 0.4
@@ -38,6 +39,7 @@ object GradientDescent extends Serializable{
 
     var gradientMagnitude = 0.0
     var i = 0
+    var iLs = 0
 
     while (firstIter || ((i <= maxIter) && (sqrt(gradientMagnitude) > precision * (1 + nextLoss)))) {
 
@@ -50,17 +52,18 @@ object GradientDescent extends Serializable{
       step = gradient.map(x => x * t)
       nextLoss = lossFunction(parameters.indices.toArray.map(x => parameters(x) - step(x)), data)
 
-      while(nextLoss > prevLoss + alpha * t * t * gradientMagnitude){
+      iLs = 0
+      while((nextLoss > prevLoss + alpha * t * t * gradientMagnitude) && (iLs < maxIterLs)){
         t = beta * t
         step = gradient.map(x => x * t)
         nextLoss = lossFunction(parameters.indices.toArray.map(x => parameters(x) - step(x)), data)
+
+        iLs += 1
       }
 
       parameters = parameters.indices.toArray.map(x => parameters(x) - step(x))
 
       i = i + 1
-      println("Loss = " + nextLoss)
-      println("Largest eigen value = " + Stability(parameters))
 
       firstIter = false
     }

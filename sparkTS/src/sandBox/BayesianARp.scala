@@ -23,7 +23,7 @@ object BayesianARp {
   def main(args: Array[String]): Unit = {
 
     val d = 3
-    val N = 10000L
+    val N = 100000L
     val paddingMillis = 100L
     val deltaTMillis = 1L
     val nPartitions = 8
@@ -36,12 +36,27 @@ object BayesianARp {
     val ARCoeffs = Array(
       DenseMatrix((0.30, 0.0, 0.0), (0.0, -0.20, 0.0), (0.0, 0.0, -0.45)),
       DenseMatrix((0.12, 0.0, 0.0), (0.0, 0.08, 0.0), (0.0, 0.0, 0.45)),
-      DenseMatrix((-0.08, 0.0, 0.0), (0.0, 0.05, 0.0), (0.0, 0.0, 0.00))
+      DenseMatrix((-0.08, 0.0, 0.0), (0.0, 0.05, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+      DenseMatrix((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
     )
 
-    val p = ARCoeffs.length
-
-    println(Stability(ARCoeffs))
+    val maxGain = Stability(ARCoeffs)
+    if(maxGain > 1.0){
+      println("Model is unstable (non causal) with maximum gain = " + maxGain)
+    }else{
+      println("Model is stable (causal) with maximum gain = " + maxGain)
+    }
 
     val noiseMagnitudes = DenseVector.ones[Double](d)
 
@@ -57,6 +72,8 @@ object BayesianARp {
     val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
+    overlappingRDD.persist()
+
     /*
     ################################
 
@@ -64,6 +81,8 @@ object BayesianARp {
 
     ################################
      */
+    /*
+
     val mean = MeanEstimator(overlappingRDD)
     val autocovariances = AutoCovariances(overlappingRDD, p)
     val vectorsAR = ARModel(overlappingRDD, p, Some(mean))
@@ -74,6 +93,8 @@ object BayesianARp {
     println(trace(residualSecondMomentAR))
     println()
 
+    */
+
     /*
     ##################################
 
@@ -82,31 +103,53 @@ object BayesianARp {
     ##################################
      */
 
-    val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
 
-    println("Frequentist L1 estimation error")
-    println(sum(abs(freqVARMatrices(0) - ARCoeffs(0))))
-    println()
+    for(p <- 1 to ARCoeffs.length) {
 
-    val residualFrequentistVAR = VARPredictor(overlappingRDD, freqVARMatrices, Some(mean))
-    val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
+      var error = 0.0
+      var tot_time = 0.0
+      for(i <- 1 to 100) {
+        val startTimeFreq = System.currentTimeMillis()
+        val (freqVARMatrices, _) = VARModel(overlappingRDD, p)
+        val elapsedTimeFreq = System.currentTimeMillis() - startTimeFreq
 
-    println("Frequentist VAR residuals")
-    println(trace(residualSecondMomentFrequentistVAR))
-    println()
+        tot_time += elapsedTimeFreq
+        error = sum(freqVARMatrices.indices.map(i => sum(abs(freqVARMatrices(i) - ARCoeffs(i)))))
+      }
 
-    val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
+      println("Frequentist AR L1 estimation error (p = " + p + "), took " + tot_time / 100 + " millis)")
+      println(error)
+      println()
 
-    println("Bayesian L1 estimation error")
-    println(sum(abs(denseVARMatrices(0) - ARCoeffs(0))))
-    println()
+      /*
+      val residualFrequentistVAR = VARPredictor(overlappingRDD, freqVARMatrices, Some(mean))
+      val residualSecondMomentFrequentistVAR = SecondMomentEstimator(residualFrequentistVAR)
 
+      println("Frequentist VAR residuals")
+      println(trace(residualSecondMomentFrequentistVAR))
+      println()
+      */
+
+      /*
+      val startTimeBayesian = System.currentTimeMillis()
+      val denseVARMatrices = VARGradientDescent(overlappingRDD, p)
+      val elapsedTimeBayesian = System.currentTimeMillis() - startTimeBayesian
+
+      println("Bayesian L1 estimation error (p = " + p + "), took " + elapsedTimeBayesian + " millis)")
+      println(sum(denseVARMatrices.indices.map(i => sum(abs(denseVARMatrices(i) - ARCoeffs(i))))))
+      println()
+      */
+
+    }
+
+    /*
     val residualsBayesianVAR = VARPredictor(overlappingRDD, denseVARMatrices, Some(mean))
     val residualSecondMomentBayesianVAR = SecondMomentEstimator(residualsBayesianVAR)
 
     println("Bayesian VAR residuals")
     println(trace(residualSecondMomentBayesianVAR))
     println()
+    */
 
     /*
     ################################

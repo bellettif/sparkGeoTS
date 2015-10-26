@@ -14,7 +14,7 @@ import overlapping.containers._
 import overlapping.timeSeries._
 
 
-object BayesianMAp {
+object CrossCovBench {
 
   implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
@@ -88,15 +88,13 @@ object BayesianMAp {
       var tot_time = 0.0
       for(i <- 1 to 100) {
         val startTimeFreq = System.currentTimeMillis()
-        val (freqVMAMatrices, _) = VMAModel(overlappingRDD, p)
+        val (crossCov, _) = CrossCovariance(overlappingRDD, p)
         val elapsedTimeFreq = System.currentTimeMillis() - startTimeFreq
 
         tot_time += elapsedTimeFreq
-        error = sum(freqVMAMatrices.indices.map(i => sum(abs(freqVMAMatrices(i) - MACoeffs(i)))))
       }
 
-      println("Frequentist MA L1 estimation error (p = " + p + "), took " + tot_time / 100 + " millis)")
-      println(error)
+      println("Cross covarince estimation (p = " + p + "), took " + tot_time / 100 + " millis)")
       println()
 
       /*

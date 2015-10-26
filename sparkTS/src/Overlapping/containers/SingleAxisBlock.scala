@@ -132,7 +132,11 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     var valid_results = Array.fill(targets.length)(false).zipWithIndex
     var mem = init
 
-    for((center_location , i) <- targets.zipWithIndex){
+    var i = 0
+    while(i < targets.length){
+
+      val center_location = targets(i)
+      i += 1
 
       if(end_index != 1) {
 
@@ -227,11 +231,14 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
     var result = zero
 
-    for(center_location <- targets){
+    var i = 0
+    while(i < targets.length){
+      val center_location = targets(i)
+      i += 1
 
       if(end_index != -1) {
 
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
+        val (begin_index_, end_index_) = if (i == 1) getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead) else (begin_index + 1, end_index + 1)
         begin_index = begin_index_
         end_index = end_index_
 

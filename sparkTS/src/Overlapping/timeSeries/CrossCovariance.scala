@@ -71,17 +71,26 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
     val meanValue = bcMean.value
     val centerTarget  = slice(modelOrder.lookBack)._2 - meanValue
 
-    for(i <- 0 to modelOrder.lookBack){
+    var i = 0
+    var c1, c2 = 0
+    while(i <= modelOrder.lookBack){
       val currentTarget = slice(i)._2 - meanValue
-      for(c1 <- 0 until d){
-        for(c2 <- 0 until d){
+      c1 = 0
+      while(c1 < d){
+        c2 = 0
+        while(c2 < d){
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
+          c2 += 1
         }
+        c1 += 1
       }
+      i += 1
     }
 
-    for(i <- 1 to modelOrder.lookAhead){
+    i = 1
+    while(i <= modelOrder.lookAhead){
       result(modelOrder.lookBack + i) = result(modelOrder.lookBack - i).t
+      i += 1
     }
 
     (result, 1L)
