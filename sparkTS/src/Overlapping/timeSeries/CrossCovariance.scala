@@ -74,6 +74,9 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
     var i = 0
     var c1, c2 = 0
     while(i <= modelOrder.lookBack){
+
+      //result(i) :+= centerTarget * (slice(i)._2 - meanValue).t
+
       val currentTarget = slice(i)._2 - meanValue
       c1 = 0
       while(c1 < d){
@@ -84,6 +87,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
         }
         c1 += 1
       }
+
       i += 1
     }
 

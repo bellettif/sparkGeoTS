@@ -34,7 +34,7 @@ object SingleAxisBlockRDD {
       recordRDD: RDD[(IndexT, ValueT)])
       (implicit signedDistance: (IndexT, IndexT) => Double): (RDD[(Int, SingleAxisBlock[IndexT, ValueT])], Array[(IndexT, IndexT)]) = {
 
-    println("Starting to create overlapping block RDD")
+    //println("Starting to create overlapping block RDD")
 
     val nSamples = recordRDD.count()
 
@@ -48,7 +48,7 @@ object SingleAxisBlockRDD {
     val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, signedDistance, padding)
     val partitioner = new BlockIndexPartitioner(intervals.length)
 
-    println("Replicator and partitioner set up done.")
+    //println("Replicator and partitioner set up done.")
 
     (recordRDD
       .flatMap({ case (k, v) => replicator.replicate(k, v) })

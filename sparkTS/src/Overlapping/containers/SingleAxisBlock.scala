@@ -238,7 +238,7 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
       if(end_index != -1) {
 
-        val (begin_index_, end_index_) = if (i == 1) getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead) else (begin_index + 1, end_index + 1)
+        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
         begin_index = begin_index_
         end_index = end_index_
 
