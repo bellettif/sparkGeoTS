@@ -11,9 +11,35 @@ import scala.collection.mutable
  */
 
 
+object MeanProfileEstimator{
+
+  def apply[IndexT <: Ordered[IndexT]](
+      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+      hashFct: IndexT => Int)
+     (implicit config: TSConfig): mutable.HashMap[Int, DenseVector[Double]] = {
+
+    val meanProfileEstimator = new MeanProfileEstimator[IndexT](hashFct)
+
+    meanProfileEstimator.estimate(timeSeries)
+
+  }
+
+  def removeSeason[IndexT <: Ordered[IndexT]](
+      rawData: RDD[(IndexT, DenseVector[Double])],
+      hashFct: IndexT => Int,
+      seasonProfile: mutable.HashMap[Int, DenseVector[Double]]): RDD[(IndexT, DenseVector[Double])] = {
+
+    val sc = rawData.context
+    val seasonalProfile = sc.broadcast(seasonProfile)
+
+    rawData.map({ case (k, v) => (k, v - seasonalProfile.value(hashFct(k))) })
+  }
+
+}
+
 
 class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
-    val hashFct: IndexT => Int)
+    hashFct: IndexT => Int)
     (implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], mutable.HashMap[Int, (DenseVector[Double], Long)]]
   with Estimator[IndexT, DenseVector[Double], mutable.HashMap[Int, DenseVector[Double]]]{

@@ -28,14 +28,19 @@ object ReadCsv {
       row: String,
       indexCol: Int,
       sep: String,
-      dateTimeFormat: String): Option[(TSInstant, DenseVector[Double])] ={
+      dateTimeFormat: String,
+      replaceNA: Double = 0.0): Option[(TSInstant, DenseVector[Double])] ={
 
     val splitRow = row.split(sep).map(_.trim)
     val dataColumns = splitRow.indices.filter(i => i != indexCol).toArray
 
+    def converToDouble(s: String): Double = {
+      Try{s.toDouble}.toOption.getOrElse(replaceNA)
+    }
+
     Try {
       val timestamp = DateTime.parse(splitRow(indexCol), DateTimeFormat.forPattern(dateTimeFormat))
-      val rowData = DenseVector(dataColumns.map(i => splitRow(i).toDouble))
+      val rowData = DenseVector(dataColumns.map(i => converToDouble(splitRow(i))))
       return Some((new TSInstant(timestamp), rowData))
     }.toOption
 
@@ -58,21 +63,21 @@ object ReadCsv {
       indexCol: Int = 0,
       dateTimeFormat: String = "yyyy-MM-dd HH:mm:ss",
       header: Boolean = true,
-      sep: String = ",")
+      sep: String = ",",
+      replaceNA : Double = 0.0)
       (implicit sc: SparkContext): (RDD[(TSInstant, DenseVector[Double])], Int, Long) = {
 
     val data = sc.textFile(filePath)
+
+    val nDims = data.take(1)(0).split(sep).length - 1
 
     val rdd = data
       .map(parseRow(_, indexCol, sep, dateTimeFormat))
       .filter(_.nonEmpty)
       .map(_.get)
+      .filter(_._2.length == nDims)
 
     val nSamples = rdd.count
-
-    val temp = rdd.takeSample(true, 1, 42)
-
-    val nDims = rdd.takeSample(true, 1, 42)(0)._2.length
 
     (rdd, nDims, nSamples)
 

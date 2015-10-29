@@ -22,11 +22,19 @@ object Stability {
     }
 
     for(i <- 0 until h){
-      bigMatrix(0 until d, i * d until (i + 1) * d) := coeffs(i)
+      bigMatrix(0 until d, i * d until (i + 1) * d) :=  coeffs(i)
     }
 
     max(abs(linalg.eig(bigMatrix).eigenvalues))
 
+  }
+
+  def makeStable(coeffs: Array[DenseMatrix[Double]]): Unit = {
+    var maxEigen = Stability.apply(coeffs)
+    while(maxEigen > 0.95){
+      coeffs.foreach(_ :*= 0.95 / maxEigen)
+      maxEigen = Stability.apply(coeffs)
+    }
   }
 
 }
