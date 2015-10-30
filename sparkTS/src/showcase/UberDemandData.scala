@@ -39,8 +39,8 @@ object UberDemandData {
 
     val (inSampleData, d, nSamples) = ReadCsv.TS(inSampleFilePath)
 
-    val paddingMillis = 5 * 60L * 1000L // 5 minutes
-    val deltaTMillis  = paddingMillis * 100L
+    val deltaTMillis = 5 * 60L * 1000L // 5 minutes
+    val paddingMillis  = deltaTMillis * 100L
     val nPartitions   = 8
     implicit val config = TSConfig(deltaTMillis, d, nSamples, paddingMillis.toDouble)
 
