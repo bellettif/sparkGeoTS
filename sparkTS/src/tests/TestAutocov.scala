@@ -9,7 +9,7 @@ import org.apache.spark.{SparkContext, SparkConf}
 import org.scalatest.{FlatSpec, Matchers}
 import overlapping.containers.{SingleAxisBlockRDD, SingleAxisBlock}
 import overlapping.timeSeries._
-import overlapping.timeSeries.secondOrder.univariate.Procedures.Rybicki
+import overlapping.timeSeries.secondOrder.univariate.Procedures.Toeplitz
 
 
 class TestAutocov extends FlatSpec with Matchers{

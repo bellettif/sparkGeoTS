@@ -6,13 +6,13 @@ import breeze.linalg._
  * Created by Francois Belletti on 7/14/15.
  */
 
-object RybickiMulti extends Serializable{
+object ToeplitzMulti extends Serializable{
 
   /*
   This procedures inverts a non-symmetric Toeplitz matrix.
   R is a (n * n) Toeplitz matrix only characterized by its 2*n - 1 distinct elements.
   The R matrix is described from its upper left corner to its lower right corner.
-  Check out Numerical Recipes Third Edition p97.
+
   TODO: check size of toepM and y are compatible.
   TODO: check that diagonal element of toepM is non zero.
    */

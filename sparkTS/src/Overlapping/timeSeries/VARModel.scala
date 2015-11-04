@@ -4,7 +4,7 @@ import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.ToeplitzMulti
 
 import scala.reflect.ClassTag
 
@@ -36,7 +36,7 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
   def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
     val nCols = covMatrix.rows
 
-    val coeffMatrices = RybickiMulti(p, nCols,
+    val coeffMatrices = ToeplitzMulti(p, nCols,
       crossCovMatrices.slice(1, 2 * p),
       crossCovMatrices.slice(p + 1, 2 * p + 1))
 

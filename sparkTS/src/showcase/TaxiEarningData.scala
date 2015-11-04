@@ -16,7 +16,7 @@ import overlapping._
 import containers._
 import timeSeries._
 
-object UberDemandData {
+object TaxiEarningData {
 
   def main(args: Array[String]): Unit = {
 
@@ -24,7 +24,7 @@ object UberDemandData {
 
     implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
-    val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
+    mainClass in (Compile, run) := Some("com.alvinalexander.Foo")
     implicit val sc = new SparkContext(conf)
 
     /*
@@ -37,8 +37,11 @@ object UberDemandData {
 
     val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/taxi_earnings_resampled/all.csv"
 
-    val (inSampleData, d, nSamples) = ReadCsv.TS(inSampleFilePath)
+    val (inSampleDataHD, _, nSamples) = ReadCsv.TS(inSampleFilePath)
 
+    val inSampleData = inSampleDataHD.mapValues(v => v(60 until 120))
+
+    val d = 60
     val deltaTMillis = 5 * 60L * 1000L // 5 minutes
     val paddingMillis  = deltaTMillis * 100L
     val nPartitions   = 8
@@ -70,24 +73,12 @@ object UberDemandData {
       matrixMeanProfile(k, ::) := meanProfile(k).t
     }
 
-    PlotTS.showProfile(matrixMeanProfile, "Weekly demand profile")
+    PlotTS.showProfile(matrixMeanProfile, Some("Weekly demand profile"), Some("Weekly_demand_profile.png"))
 
     val noSeason = MeanProfileEstimator.removeSeason(inSampleData, hashFunction, meanProfile)
 
     val (timeSeriesRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, noSeason)
-
-    /*
-    ############################################
-
-      Usual analysis
-
-    ############################################
-     */
-
-    val chosenRegions = Array(42, 137, 243)
-
-    PlotTS(timeSeriesRDD, "In Sample Data", Some(chosenRegions))
 
     /*
     ################################
@@ -97,11 +88,11 @@ object UberDemandData {
     ###############################
      */
     val (correlations, _) = CrossCorrelation(timeSeriesRDD, 6)
-    PlotTS.showModel(correlations, "Cross correlation")
+    PlotTS.showModel(correlations, Some("Cross correlation"), Some("Correlations_taxis.png"))
     //correlations.foreach(x => {println(x); println})
 
     val (partialCorrelations, _) = PartialCrossCorrelation(timeSeriesRDD,6)
-    PlotTS.showModel(partialCorrelations, "Partial cross correlation")
+    PlotTS.showModel(partialCorrelations, Some("Partial cross correlation"), Some("Partial_correlation_taxis.png"))
     partialCorrelations.foreach(x => {println(x); println})
 
     val chosenP = 3
@@ -119,8 +110,7 @@ object UberDemandData {
     val residualsAR = ARPredictor(timeSeriesRDD, vectorsAR, Some(mean))
     val residualSecondMomentAR = SecondMomentEstimator(residualsAR)
 
-    PlotTS.showUnivModel(vectorsAR, "Monovariate parameter estimates")
-    PlotTS(residualsAR, "Monovariate AR residual error", Some(chosenRegions))
+    PlotTS.showUnivModel(vectorsAR, Some("Monovariate parameter estimates"), Some("Univariate_model_taxis.png"))
 
     println("AR in sample error = " + trace(residualSecondMomentAR))
 
@@ -134,14 +124,14 @@ object UberDemandData {
 
     val (estVARMatrices, _) = VARModel(timeSeriesRDD, chosenP)
 
-    PlotTS.showModel(estVARMatrices, "Multivariate parameter estimates")
+    PlotTS.showModel(estVARMatrices, Some("Multivariate parameter estimates"), Some("VAR_model_taxis.png"))
 
     val residualVAR = VARPredictor(timeSeriesRDD, estVARMatrices, Some(mean))
 
     val residualSecondMomentVAR = SecondMomentEstimator(residualVAR)
 
-    PlotTS.showCovariance(residualSecondMomentAR, "Monovariate residual covariance")
-    PlotTS.showCovariance(residualSecondMomentVAR, "Multivariate residual covariance")
+    PlotTS.showCovariance(residualSecondMomentAR, Some("Monovariate residual covariance"), Some("Monovariate_res_covariance_taxis.png"))
+    PlotTS.showCovariance(residualSecondMomentVAR, Some("Multivariate residual covariance"), Some("Multivariate_res_covariance_taxis.png"))
 
     println("Frequentist VAR residuals")
     println(trace(residualSecondMomentVAR))

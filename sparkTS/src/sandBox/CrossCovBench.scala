@@ -97,8 +97,6 @@ object CrossCovBench {
               val (crossCov, _) = CrossCovariance(overlappingRDD, p)
               val elapsedTimeFreq = System.currentTimeMillis() - startTimeFreq
 
-              crossCov.foreach(x => {println(x); println()})
-
               tot_time += elapsedTimeFreq
             }
 

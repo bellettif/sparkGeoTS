@@ -75,8 +75,7 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
 
     normalizer += centerTarget :* centerTarget
 
-    var i = 0
-    var c1, c2 = 0
+    var i, c1, c2 = 0
     while(i <= modelOrder.lookBack){
 
       //result(i) :+= centerTarget * (slice(i)._2 - meanValue).t
@@ -84,7 +83,7 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
       val currentTarget = slice(i)._2 - meanValue
       c1 = 0
       while(c1 < d){
-        c2 = 0
+        c2 = c1
         while(c2 < d){
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
           c2 += 1
@@ -92,12 +91,6 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
         c1 += 1
       }
 
-      i += 1
-    }
-
-    i = 1
-    while(i <= modelOrder.lookAhead){
-      result(modelOrder.lookBack + i) = result(modelOrder.lookBack - i).t
       i += 1
     }
 
@@ -116,16 +109,40 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
     println(r._2)
 
     var i, c1, c2 = 0
+
     while(i < r._1.length) {
       c1 = 0
       while (c1 < d) {
-        c2 = 0
+        c2 = c1
         while (c2 < d) {
           r._1(i)(c1, c2) /= sqrt(r._2(c1) * r._2(c2))
           c2 += 1
         }
         c1 += 1
       }
+      i += 1
+    }
+
+    i = 0
+    c1 = 0
+    c2 = 0
+
+    while(i <= modelOrder.lookBack){
+      c1 = 0
+      while(c1 < d){
+        c2 = 0
+        while(c2 < c1) {
+          r._1(i)(c1, c2) = r._1(i)(c2, c1)
+          c2 += 1
+        }
+        c1 += 1
+      }
+      i += 1
+    }
+
+    i = 1
+    while(i <= modelOrder.lookAhead){
+      r._1(modelOrder.lookBack + i) = r._1(modelOrder.lookBack - i).t
       i += 1
     }
 

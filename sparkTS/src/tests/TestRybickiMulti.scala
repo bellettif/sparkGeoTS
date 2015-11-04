@@ -6,7 +6,7 @@ package tests
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.scalatest.{FlatSpec, Matchers}
-import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.{RybickiMulti}
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.{ToeplitzMulti}
 
 /**
  * Created by Francois Belletti on 8/4/15.
@@ -29,7 +29,7 @@ class TestRybickiMulti extends FlatSpec with Matchers{
       }
     }
 
-    val x = RybickiMulti(p, d, blockArray, y)
+    val x = ToeplitzMulti(p, d, blockArray, y)
 
     val xMatrix = DenseMatrix.zeros[Double](d * p, d)
     val yMatrix = DenseMatrix.zeros[Double](d * p, d)

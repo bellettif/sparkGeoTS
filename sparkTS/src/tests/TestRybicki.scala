@@ -6,7 +6,7 @@ package tests
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.scalatest.{FlatSpec, Matchers}
-import overlapping.timeSeries.secondOrder.univariate.Procedures.Rybicki
+import overlapping.timeSeries.secondOrder.univariate.Procedures.Toeplitz
 
 /**
  * Created by Francois Belletti on 8/4/15.
@@ -32,7 +32,7 @@ class TestRybicki extends FlatSpec with Matchers{
 
     //println(toeplitzMatrix)
 
-    val x = Rybicki(n, RVector, y)
+    val x = Toeplitz(n, RVector, y)
 
     //println(x)
 

@@ -4,7 +4,7 @@ import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.univariate.Procedures.{InnovationAlgo, Rybicki}
+import overlapping.timeSeries.secondOrder.univariate.Procedures.{InnovationAlgo, Toeplitz}
 
 import scala.reflect.ClassTag
 
@@ -63,7 +63,7 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
 
     val signaturePQ = InnovationAlgo(p + q, autoCovs.covariation)
 
-    val coeffsAR: DenseVector[Double] = Rybicki(
+    val coeffsAR: DenseVector[Double] = Toeplitz(
       p,
       signaturePQ.covariation(q - p to q + p - 2),
       signaturePQ.covariation(q to q + p - 1))

@@ -6,7 +6,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import overlapping._
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.RybickiMulti
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.ToeplitzMulti
 
 import scala.reflect.ClassTag
 
@@ -45,7 +45,7 @@ class PartialCrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
   def estimatePrecisionMatrices(crossCovMatrices: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] ={
     val nCols = crossCovMatrices.head.rows
 
-    val coeffMatrices = RybickiMulti(maxLag, nCols,
+    val coeffMatrices = ToeplitzMulti(maxLag, nCols,
       crossCovMatrices.slice(1, 2 * maxLag),
       crossCovMatrices.slice(maxLag+ 1, 2 * maxLag + 1))
 

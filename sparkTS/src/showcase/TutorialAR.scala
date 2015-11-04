@@ -56,8 +56,8 @@ object TutorialAR {
     val (timeSeriesRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
       SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
 
-    PlotTS.showModel(ARCoeffs, "Actual parameters")
-    PlotTS(timeSeriesRDD, "In Sample Data")
+    PlotTS.showModel(ARCoeffs, Some("Actual parameters"))
+    PlotTS(timeSeriesRDD, Some("In Sample Data"))
 
     /*
     ################################
@@ -67,11 +67,11 @@ object TutorialAR {
     ###############################
      */
     val (correlations, _) = CrossCorrelation(timeSeriesRDD, 6)
-    PlotTS.showModel(correlations, "Cross correlation")
+    PlotTS.showModel(correlations, Some("Cross correlation"))
     //correlations.foreach(x => {println(x); println})
 
     val (partialCorrelations, _) = PartialCrossCorrelation(timeSeriesRDD,6)
-    PlotTS.showModel(partialCorrelations, "Partial cross correlation")
+    PlotTS.showModel(partialCorrelations, Some("Partial cross correlation"))
     partialCorrelations.foreach(x => {println(x); println})
 
     /*
@@ -87,8 +87,8 @@ object TutorialAR {
     val residualsAR = ARPredictor(timeSeriesRDD, vectorsAR, Some(mean))
     val residualSecondMomentAR = SecondMomentEstimator(residualsAR)
 
-    PlotTS.showUnivModel(vectorsAR, "Monovariate parameter estimates")
-    PlotTS(residualsAR, "Monovariate AR residual error")
+    PlotTS.showUnivModel(vectorsAR, Some("Monovariate parameter estimates"))
+    PlotTS(residualsAR, Some("Monovariate AR residual error"))
 
     println("AR in sample error = " + trace(residualSecondMomentAR))
 
@@ -102,14 +102,14 @@ object TutorialAR {
 
     val (estVARMatrices, _) = VARModel(timeSeriesRDD, p)
 
-    PlotTS.showModel(estVARMatrices, "Multivariate parameter estimates")
+    PlotTS.showModel(estVARMatrices, Some("Multivariate parameter estimates"))
 
     val residualVAR = VARPredictor(timeSeriesRDD, estVARMatrices, Some(mean))
 
     val residualSecondMomentVAR = SecondMomentEstimator(residualVAR)
 
-    PlotTS.showCovariance(residualSecondMomentAR, "Monovariate residual covariance")
-    PlotTS.showCovariance(residualSecondMomentVAR, "Multivariate residual covariance")
+    PlotTS.showCovariance(residualSecondMomentAR, Some("Monovariate residual covariance"))
+    PlotTS.showCovariance(residualSecondMomentVAR, Some("Multivariate residual covariance"))
 
     println("Frequentist VAR residuals")
     println(trace(residualSecondMomentVAR))

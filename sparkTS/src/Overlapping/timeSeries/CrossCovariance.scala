@@ -80,8 +80,8 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       val currentTarget = slice(i)._2 - meanValue
       c1 = 0
       while(c1 < d){
-        c2 = 0
-        while(c2 < d){
+        c2 = c1
+        while(c2 < d) {
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
           c2 += 1
         }
@@ -91,13 +91,8 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       i += 1
     }
 
-    i = 1
-    while(i <= modelOrder.lookAhead){
-      result(modelOrder.lookBack + i) = result(modelOrder.lookBack - i).t
-      i += 1
-    }
-
     (result, 1L)
+
   }
 
   override def reducer(
@@ -107,6 +102,28 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
   def normalize(r: (Array[DenseMatrix[Double]], Long)): Array[DenseMatrix[Double]] = {
+
+    var i, c1, c2 = 0
+
+    while(i <= modelOrder.lookBack){
+      c1 = 0
+      while(c1 < d){
+        c2 = 0
+        while(c2 < c1) {
+          r._1(i)(c1, c2) = r._1(i)(c2, c1)
+          c2 += 1
+        }
+        c1 += 1
+      }
+      i += 1
+    }
+
+    i = 1
+    while(i <= modelOrder.lookAhead){
+      r._1(modelOrder.lookBack + i) = r._1(modelOrder.lookBack - i).t
+      i += 1
+    }
+
     r._1.map(_ / r._2.toDouble)
   }
 

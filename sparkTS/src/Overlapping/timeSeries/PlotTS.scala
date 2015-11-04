@@ -10,10 +10,12 @@ import overlapping.containers.SingleAxisBlock
  */
 object PlotTS {
 
-  def apply(timeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])],
-            title: String = "",
-            selectSensors: Option[Array[Int]] = None)
-           (implicit tSConfig: TSConfig): Unit = {
+  def apply(
+      timeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])],
+      title: Option[String] = None,
+      selectSensors: Option[Array[Int]] = None,
+      saveToFile: Option[String] = None)
+      (implicit tSConfig: TSConfig): Unit = {
 
     val N = tSConfig.nSamples
     val res = min(N.toDouble, 1600.0)
@@ -21,6 +23,7 @@ object PlotTS {
     /**
      * TODO: incorporate sampling into the overlapping block
      */
+
     val extracted = timeSeries
       .flatMap(x => x._2.map({case (t, v) => v}).data)
       .sample(false, res / N.toDouble)
@@ -45,10 +48,21 @@ object PlotTS {
       p += plot(timeVector, obsVector)
     }
 
-    f.subplot(0).title = title
+    if(title.isDefined) {
+      f.subplot(0).title = title.get
+    }
+
+    if(saveToFile.isDefined){
+      f.saveas(saveToFile.get)
+    }
+
+
   }
 
-  def showModel(modelCoeffs: Array[DenseMatrix[Double]], title: String = ""): Unit ={
+  def showModel(
+      modelCoeffs: Array[DenseMatrix[Double]],
+      title: Option[String] = None,
+      saveToFile: Option[String] = None): Unit ={
 
     val f = Figure()
 
@@ -59,35 +73,63 @@ object PlotTS {
 
     }
 
-    f.subplot(0).title = title
+    if(title.isDefined) {
+      f.subplot(0).title = title.get
+    }
+
+    if(saveToFile.isDefined){
+      f.saveas(saveToFile.get)
+    }
 
   }
 
-  def showCovariance(covMatrix: DenseMatrix[Double], title: String = ""): Unit ={
+  def showCovariance(
+      covMatrix: DenseMatrix[Double],
+      title: Option[String] = None,
+      saveToFile: Option[String] = None): Unit ={
 
     val f = Figure()
 
     val p = f.subplot(0)
-    p += image(covMatrix.toDenseMatrix, GradientPaintScale[Double](-1.0, 1.0))
+    p += image(covMatrix.toDenseMatrix)
 
-    p.title = title
+    if(title.isDefined) {
+      f.subplot(0).title = title.get
+    }
+
+    if(saveToFile.isDefined){
+      f.saveas(saveToFile.get)
+    }
 
   }
 
-  def showProfile(profileMatrix: DenseMatrix[Double], title: String = ""): Unit ={
+  def showProfile(
+      profileMatrix: DenseMatrix[Double],
+      title: Option[String] = None,
+      saveToFile: Option[String] = None): Unit ={
 
     val f = Figure()
 
     val p = f.subplot(0)
-    p += image(profileMatrix.t, GradientPaintScale[Double](-1.0, 1.0))
+    p += image(profileMatrix.t)
 
-    p.title = title
     p.ylabel = "Space"
     p.xlabel = "Time"
 
+    if(title.isDefined) {
+      f.subplot(0).title = title.get
+    }
+
+    if(saveToFile.isDefined){
+      f.saveas(saveToFile.get)
+    }
+
   }
 
-  def showUnivModel(modelCoeffs: Array[DenseVector[Double]], title: String = ""): Unit ={
+  def showUnivModel(
+      modelCoeffs: Array[DenseVector[Double]],
+      title: Option[String] = None,
+      saveToFile: Option[String] = None): Unit ={
 
     val f = Figure()
 
@@ -98,7 +140,13 @@ object PlotTS {
 
     }
 
-    f.subplot(0).title = title
+    if(title.isDefined) {
+      f.subplot(0).title = title.get
+    }
+
+    if(saveToFile.isDefined){
+      f.saveas(saveToFile.get)
+    }
 
   }
 

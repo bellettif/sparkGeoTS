@@ -5,7 +5,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import overlapping.containers.SingleAxisBlock
-import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.{InnovationAlgoMulti, RybickiMulti}
+import overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.{InnovationAlgoMulti, ToeplitzMulti}
 
 import scala.reflect.ClassTag
 
@@ -68,7 +68,7 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
 
     val d = psiCoeffs(0).rows
 
-    val coeffsAR = RybickiMulti(p, d,
+    val coeffsAR = ToeplitzMulti(p, d,
       psiCoeffs.slice(q - p, q + p - 1).map(_.t),
       psiCoeffs.slice(q, q + p).map(_.t))
     .map(_.t)
