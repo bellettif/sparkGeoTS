@@ -4,8 +4,8 @@ layout: global
 title: Time series analysis on surrogate data.
 categories: [module]
 navigation:
-weight: 50
-show: true
+    weight: 50
+    show: true
 skip-chapter-toc: true
 ---
 
@@ -194,7 +194,6 @@ val residualVAR = VARPredictor(timeSeriesRDD, estVARMatrices, Some(mean))
 </div>
 
 3. Let's take a look at the variance - covariance matrix of the residuals. It should be closer to a diagonal matrix than in the univariate analysis.
-
 <div class="codetabs">
 <div data-lang="scala" markdown="1">
 val residualSecondMomentVAR = SecondMomentEstimator(residualVAR)
