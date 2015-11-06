@@ -1,9 +1,8 @@
 # Time series analysis on surrogate data.
 
 ## Compilation notes:
-Compile by typing in timeseries folder: sbt assembly
-Run by typing in timeseries folder: sbt console
-
+Compile by typing in time series folder: sbt assembly
+Run by typing in time series folder: sbt console
 
 In this tutorial we are going to practice on artificially generated data
 and show that we are able to successfully identify autoregressive models.
@@ -243,6 +242,6 @@ PlotTS.showCovariance(residualSecondMomentVAR, Some("Multivariate residual covar
 println("AR in sample error = " + trace(residualSecondMomentAR))
 println("VAR in sample error = " + trace(residualSecondMomentVAR))
 println()
-</pre>
+</pre> 
 </div>
 </div>
