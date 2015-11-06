@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 assemblySettings
 
-name := "sparkTS"
+name := "sparkGeoTS"
 
 version := "0.3.0-SNAPSHOT"
 
