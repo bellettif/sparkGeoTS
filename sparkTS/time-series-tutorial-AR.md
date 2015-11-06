@@ -23,7 +23,9 @@ Let's generate some data with an order 3 Autoregressive Model.
 
 <div class="codetabs">
 <div data-lang="scala" markdown="1">
+<pre class="prettyprint lang-bsh">
 val actualP = 3
+</pre>
 </div>
 </div>
 
