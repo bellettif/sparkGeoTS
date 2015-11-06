@@ -1,4 +1,8 @@
-name := "sparkGeoTS"
+import AssemblyKeys._
+
+assemblySettings
+
+name := "sparkTS"
 
 version := "0.3.0-SNAPSHOT"
 
@@ -15,7 +19,8 @@ libraryDependencies ++= Seq(
   "org.scalanlp" % "breeze_2.10" % "0.11.2",
   "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly(),
   "com.github.scopt" %% "scopt" % "3.3.0",
-  "joda-time" % "joda-time" % "2.9"
+  "joda-time" % "joda-time" % "2.9",
+  "org.scalanlp" %% "breeze-viz" % "0.8"
 )
 
 {
@@ -30,10 +35,53 @@ libraryDependencies ++= Seq(
   )
 }
 
+{
+  val defaultHadoopVersion = "2.0.0-mr1-cdh4.0.0"
+  val hadoopVersion =
+    scala.util.Properties.envOrElse("SPARK_HADOOP_VERSION", defaultHadoopVersion)
+  libraryDependencies += "org.apache.hadoop" % "hadoop-client" % hadoopVersion
+}
 
-//{
-//  val defaultHadoopVersion = "2.0.0-mr1-cdh4.2.0"
-//  val hadoopVersion =
-//    scala.util.Properties.envOrElse("SPARK_HADOOP_VERSION", defaultHadoopVersion)
-//  libraryDependencies += "org.apache.hadoop" % "hadoop-client" % hadoopVersion
-//}
+resolvers ++= Seq(
+  "Local Maven Repository" at Path.userHome.asFile.toURI.toURL + ".m2/repository",
+  "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
+  "Cloudera Repository" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
+  "Spray" at "http://repo.spray.cc",
+  "Bintray" at "http://dl.bintray.com/jai-imageio/maven/",
+  "ImageJ Public Maven Repo" at "http://maven.imagej.net/content/groups/public/"
+)
+
+mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
+{
+  case PathList("javax", "servlet", xs @ _*)               => MergeStrategy.first
+  case PathList(ps @ _*) if ps.last endsWith ".html"       => MergeStrategy.first
+  case "application.conf"                                  => MergeStrategy.concat
+  case "reference.conf"                                    => MergeStrategy.concat
+  case "log4j.properties"                                  => MergeStrategy.first
+  case m if m.toLowerCase.endsWith("manifest.mf")          => MergeStrategy.discard
+  case m if m.toLowerCase.matches("meta-inf.*\\.sf$")      => MergeStrategy.discard
+  case m if m.toLowerCase.startsWith("meta-inf/services/") => MergeStrategy.filterDistinctLines
+  case _ => MergeStrategy.first
+}
+}
+
+test in assembly := {}
+
+packageOptions in assembly ~= { pos =>
+  pos.filterNot { po =>
+    po.isInstanceOf[Package.MainClass]
+  }
+}
+
+initialCommands in console := """import breeze.linalg._
+                                |import breeze.stats.distributions.Gaussian
+                                |import org.apache.spark.rdd.RDD
+                                |import org.apache.spark.{SparkConf, SparkContext}
+                                |import main.scala.ioTools.ReadCsv
+                                |import main.scala.overlapping._
+                                |import containers._
+                                |import timeSeries._
+                                |implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
+                                |val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
+                                |implicit val sc = new SparkContext(conf)
+                                |""".stripMargin
