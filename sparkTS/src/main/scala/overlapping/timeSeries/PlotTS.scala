@@ -18,7 +18,7 @@ object PlotTS {
       (implicit tSConfig: TSConfig): Unit = {
 
     val N = tSConfig.nSamples
-    val res = min(N.toDouble, 1600.0)
+    val res = min(N.toDouble, 3600.0)
 
     /**
      * TODO: incorporate sampling into the main.scala.overlapping block
@@ -26,7 +26,7 @@ object PlotTS {
 
     val extracted = timeSeries
       .flatMap(x => x._2.map({case (t, v) => v}).data)
-      .sample(false, res / N.toDouble)
+      .sample(false, min(res / N.toDouble, 1.0))
       .sortBy(x => x._1)
       .collect()
 
@@ -36,9 +36,15 @@ object PlotTS {
 
     val f = Figure()
 
+    var plotIndex = 0
+
+    val nSensors = selectSensors.getOrElse(0 until d toArray).length
+
     for (i <- selectSensors.getOrElse(0 until d toArray)) {
 
-      val p = f.subplot(d, 1, i)
+      val p = f.subplot(nSensors, 1, plotIndex)
+
+      plotIndex += 1
 
       p.ylabel = "sensor " + i
       p.xlabel = "time (ms)"

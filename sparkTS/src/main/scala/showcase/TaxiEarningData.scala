@@ -32,11 +32,12 @@ object TaxiEarningData {
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     implicit val sc = new SparkContext(conf)
 
+
     implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
 
     val inSampleFilePath = "/users/cusgadmin/traffic_data/new_york_taxi_data/taxi_earnings_resampled/all.csv"
 
-    val (inSampleDataHD, _, nSamples) = ReadCsv.TS(inSampleFilePath)
+    val (inSampleDataHD, _, nSamples) = ReadCsv.TS(inSampleFilePath)(sc)
 
     val inSampleData = inSampleDataHD.mapValues(v => v(60 until 120))
 

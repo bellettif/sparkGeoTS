@@ -5,6 +5,7 @@ package main.scala.showcase
  */
 
 import breeze.linalg._
+import breeze.numerics.sqrt
 import breeze.stats.distributions.Gaussian
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -87,6 +88,7 @@ object TutorialAR {
     PlotTS(residualsAR, Some("Monovariate AR residual error"))
 
     println("AR in sample error = " + trace(residualSecondMomentAR))
+    println("Average error magnitude = " + sqrt(trace(residualSecondMomentAR) / d))
 
     /*
     ##################################
@@ -107,7 +109,8 @@ object TutorialAR {
     PlotTS.showCovariance(residualSecondMomentAR, Some("Monovariate residual covariance"))
     PlotTS.showCovariance(residualSecondMomentVAR, Some("Multivariate residual covariance"))
 
-    println("Frequentist VAR in sample error = " + trace(residualSecondMomentVAR))
+    println("VAR in sample error = " + trace(residualSecondMomentVAR))
+    println("Average error magnitude = " + sqrt(trace(residualSecondMomentVAR) / d))
     println()
 
 
