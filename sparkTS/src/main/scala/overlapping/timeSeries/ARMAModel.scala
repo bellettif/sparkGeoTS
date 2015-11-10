@@ -2,6 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg._
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping.containers.SingleAxisBlock
 import main.scala.overlapping.timeSeries.secondOrder.univariate.Procedures.{InnovationAlgo, Toeplitz}
@@ -21,8 +22,7 @@ object ARMAModel{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): Array[SecondOrderSignature] = {
 
-    implicit val sc = timeSeries.context
-    val estimator = new ARMAModel[IndexT](p, q, mean)
+    val estimator = new ARMAModel[IndexT](p, q, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -32,8 +32,8 @@ object ARMAModel{
 class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     q: Int,
-    mean: Option[DenseVector[Double]] = None)
-   (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+   (implicit config: TSConfig)
   extends AutoCovariances[IndexT](p + q, mean){
 
   /*

@@ -22,8 +22,7 @@ object VMAModel{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    implicit val sc = timeSeries.context
-    val estimator = new VMAModel[IndexT](q, mean)
+    val estimator = new VMAModel[IndexT](q, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -32,8 +31,8 @@ object VMAModel{
 
 class VMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     q: Int,
-    mean: Option[DenseVector[Double]] = None)
-  (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+  (implicit config: TSConfig)
   extends CrossCovariance[IndexT](q, mean){
 
   def estimateVMAMatrices(crossCovMatrices: Array[DenseMatrix[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={

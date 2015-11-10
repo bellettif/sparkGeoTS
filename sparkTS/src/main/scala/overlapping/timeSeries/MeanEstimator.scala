@@ -22,7 +22,6 @@ object MeanEstimator{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
       (implicit config: TSConfig): DenseVector[Double] ={
 
-    implicit val sc = timeSeries.context
     val estimator = new MeanEstimator[IndexT]()
     estimator.estimate(timeSeries)
 

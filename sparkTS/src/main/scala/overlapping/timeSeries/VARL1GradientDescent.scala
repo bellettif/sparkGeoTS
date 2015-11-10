@@ -23,7 +23,6 @@ object VARL1GradientDescent{
       maxIter: Int = 1000)
       (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
-    implicit val sc = timeSeries.context
     val estimator = new VARL1GradientDescent[IndexT](p, lambda, precision, maxIter)
     estimator.estimate(timeSeries)
 
@@ -37,7 +36,7 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     lambda: Double,
     precision: Double = 1e-6,
     maxIter: Int = 1000)
-    (implicit config: TSConfig, sc: SparkContext)
+    (implicit config: TSConfig)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   val d = config.d
@@ -53,25 +52,27 @@ class VARL1GradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     val meanEstimator = new MeanEstimator[IndexT]()
     val mean = meanEstimator.estimate(timeSeries)
 
-    val freqVAREstimator = new VARModel[IndexT](p, Some(mean))
+    val freqVAREstimator = new VARModel[IndexT](p, timeSeries.context.broadcast(Some(mean)))
     val (freqVARMatrices, _) = freqVAREstimator.estimate(timeSeries)
 
-    val predictorVAR = new VARPredictor[IndexT](freqVARMatrices, Some(mean))
+    val predictorVAR = new VARPredictor[IndexT](
+      timeSeries.context.broadcast(freqVARMatrices),
+      timeSeries.context.broadcast(Some(mean)))
     val residualsVAR = predictorVAR.estimateResiduals(timeSeries)
 
     val secondMomentEstimator = new SecondMomentEstimator[IndexT]()
     val residualSecondMomentVAR = secondMomentEstimator.estimate(residualsVAR)
     val sigmaEpsilon = diag(residualSecondMomentVAR)
 
-    val covEstimator = new Covariance[IndexT](Some(mean))
+    val covEstimator = new Covariance[IndexT](timeSeries.context.broadcast(Some(mean)))
     val covMatrix = covEstimator.estimate(timeSeries)
     val svd.SVD(_, s, _) = svd(covMatrix)
     def stepSize(x: Int): Double ={
       1.0 / (max(s) * max(sigmaEpsilon) + min(s) * min(sigmaEpsilon))
     }
 
-    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
-    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
+    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
+    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
 
     val kernelizedLoss = new AutoregressiveLoss[IndexT](p, VARLoss.apply)
     val kernelizedGrad = new AutoregressiveGradient[IndexT](p, VARGrad.apply)

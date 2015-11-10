@@ -2,6 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping.containers.SingleAxisBlock
 import main.scala.overlapping.timeSeries.secondOrder.univariate.Procedures.DurbinLevinson
@@ -20,8 +21,7 @@ object ARModel{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): Array[SecondOrderSignature] ={
 
-    implicit val sc = timeSeries.context
-    val estimator = new ARModel[IndexT](p, mean)
+    val estimator = new ARModel[IndexT](p, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -30,8 +30,8 @@ object ARModel{
 
 class ARModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends AutoCovariances[IndexT](p, mean){
 
   override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {

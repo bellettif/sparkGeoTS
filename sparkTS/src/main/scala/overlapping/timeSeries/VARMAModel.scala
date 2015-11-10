@@ -21,8 +21,7 @@ object VARMAModel{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    implicit val sc = timeSeries.context
-    val estimator = new VARMAModel[IndexT](p, q, mean)
+    val estimator = new VARMAModel[IndexT](p, q, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -33,8 +32,8 @@ object VARMAModel{
 class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     q: Int,
-    mean: Option[DenseVector[Double]] = None)
-  (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+  (implicit config: TSConfig)
   extends CrossCovariance[IndexT](p + q, mean){
 
   /*

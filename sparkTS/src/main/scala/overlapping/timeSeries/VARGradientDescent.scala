@@ -25,7 +25,6 @@ object VARGradientDescent{
       maxIter: Int = 100)
       (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
-      implicit val sc = timeSeries.context
       val estimator = new VARGradientDescent[IndexT](p, precision, maxIter)
       estimator.estimate(timeSeries)
 
@@ -38,7 +37,7 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
     precision: Double = 1e-6,
     maxIter: Int = 1000)
-    (implicit config: TSConfig, sc: SparkContext)
+    (implicit config: TSConfig)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   val d = config.d
@@ -79,8 +78,8 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
       2.0 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
     }
 
-    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
-    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
+    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
+    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
 
     val kernelizedLoss = new AutoregressiveLoss[IndexT](p, VARLoss.apply)
     val kernelizedGrad = new AutoregressiveGradient[IndexT](p, VARGrad.apply)

@@ -22,7 +22,6 @@ object VMAGradientDescent{
       maxIter: Int = 100)
       (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
 
-    implicit val sc = timeSeries.context
     val estimator = new VMAGradientDescent[IndexT](p, precision, maxIter)
     estimator.estimate(timeSeries)
 
@@ -34,7 +33,7 @@ class VMAGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
     q: Int,
     precision: Double = 1e-4,
     maxIter: Int = 1000)
-    (implicit config: TSConfig, sc: SparkContext)
+    (implicit config: TSConfig)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
   val d = config.d
@@ -75,8 +74,8 @@ class VMAGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
       0.9 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
     }
 
-    val VMALoss = new DiagonalNoiseMALoss[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
-    val VMAGrad = new DiagonalNoiseMAGrad[IndexT](sigmaEpsilon, N, sc.broadcast(mean))
+    val VMALoss = new DiagonalNoiseMALoss[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
+    val VMAGrad = new DiagonalNoiseMAGrad[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
 
     val kernelizedLoss = new MemoryLoss[IndexT](q, VMALoss.apply)
     val kernelizedGrad = new MemoryGradient[IndexT](q, VMAGrad.apply)

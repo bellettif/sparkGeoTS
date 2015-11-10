@@ -20,8 +20,7 @@ object VARPredictor{
       mean: Option[DenseVector[Double]])
      (implicit config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
 
-    implicit val sc = timeSeries.context
-    val predictor = new VARPredictor[IndexT](matrices, mean)
+    val predictor = new VARPredictor[IndexT](timeSeries.context.broadcast(matrices), timeSeries.context.broadcast(mean))
     predictor.estimateResiduals(timeSeries)
 
   }
@@ -29,28 +28,26 @@ object VARPredictor{
 }
 
 class VARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
-    matrices: Array[DenseMatrix[Double]],
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    bcMatrices: Broadcast[Array[DenseMatrix[Double]]],
+    bcMean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends Predictor[IndexT]{
 
-  val p = matrices.length
+  val p = bcMatrices.value.length
   val deltaT = config.deltaT
-  val d = matrices(0).rows
+  val d = bcMatrices.value(0).rows
   if(d != config.d){
     throw new IndexOutOfBoundsException("AR matrix dimensions and time series dimension not compatible.")
   }
-  val bcMatrices = sc.broadcast(matrices)
-  val bcMean = sc.broadcast(mean.getOrElse(DenseVector.zeros[Double](d)))
 
   def size: Array[IntervalSize] = Array(IntervalSize(p * deltaT, 0))
 
   override def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = {
 
-    val pred = bcMean.value.copy
+    val pred = bcMean.value.getOrElse(DenseVector.zeros[Double](d)).copy
 
     for(i <- 0 until (data.length - 1)){
-      pred :+= bcMatrices.value(data.length - 2 - i) * (data(i)._2 - bcMean.value)
+      pred :+= bcMatrices.value(data.length - 2 - i) * (data(i)._2 - bcMean.value.getOrElse(DenseVector.zeros[Double](d)))
     }
 
     pred

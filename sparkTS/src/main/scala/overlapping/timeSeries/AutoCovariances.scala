@@ -20,8 +20,7 @@ object AutoCovariances {
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): Array[SecondOrderSignature] = {
 
-    implicit val sc = timeSeries.context
-    val estimator  = new AutoCovariances[IndexT](maxLag, mean)
+    val estimator  = new AutoCovariances[IndexT](maxLag, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -31,8 +30,8 @@ object AutoCovariances {
 
 class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
     maxLag: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    bcMean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[SecondOrderSignature], Long)]
   with Estimator[IndexT, DenseVector[Double], Array[SecondOrderSignature]]
 {
@@ -44,7 +43,6 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
   }
 
   val d = config.d
-  val bcMean = sc.broadcast(mean.getOrElse(DenseVector.zeros[Double](d)))
 
   def kernelWidth = IntervalSize(deltaT * maxLag, 0)
 
@@ -57,7 +55,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
     val tempCovs = Array.fill(d){DenseVector.zeros[Double](modelWidth)}
     val tempVars = Array.fill(d){0.0}
 
-    val meanValue = bcMean.value
+    val meanValue = bcMean.value.getOrElse(DenseVector.zeros[Double](d))
 
     /*
     The slice is not full size, it shall not be considered in order to avoid redundant computations

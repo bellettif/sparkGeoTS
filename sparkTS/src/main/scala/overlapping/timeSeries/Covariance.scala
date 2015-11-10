@@ -2,6 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg._
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
 import main.scala.overlapping.containers.SingleAxisBlock
@@ -22,8 +23,7 @@ object Covariance{
       mean: Option[DenseVector[Double]] = None)
     (implicit config: TSConfig): DenseMatrix[Double] ={
 
-    implicit val sc = timeSeries.context
-    val estimator = new Covariance[IndexT](mean)
+    val estimator = new Covariance[IndexT](timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -32,13 +32,12 @@ object Covariance{
 
 
 class Covariance[IndexT <: Ordered[IndexT] : ClassTag](
-     mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+     bcMean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (DenseMatrix[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseMatrix[Double]]{
 
   val d = config.d
-  val bcMean = sc.broadcast(mean.getOrElse(DenseVector.zeros[Double](d)))
 
   override def kernelWidth = IntervalSize(0, 0)
 
@@ -47,7 +46,7 @@ class Covariance[IndexT <: Ordered[IndexT] : ClassTag](
   override def zero = (DenseMatrix.zeros[Double](d, d), 0L)
 
   override def kernel(slice: Array[(IndexT, DenseVector[Double])]): (DenseMatrix[Double], Long) = {
-    val temp = slice(0)._2 - bcMean.value
+    val temp = slice(0)._2 - bcMean.value.getOrElse(DenseVector.zeros[Double](d))
     (temp * temp.t, 1L)
   }
 

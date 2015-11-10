@@ -2,6 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping.containers.SingleAxisBlock
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.ToeplitzMulti
@@ -19,8 +20,7 @@ object VARModel{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    implicit val sc = timeSeries.context
-    val estimator = new VARModel[IndexT](p, mean)
+    val estimator = new VARModel[IndexT](p, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -29,8 +29,8 @@ object VARModel{
 
 class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
     p: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends CrossCovariance[IndexT](p, mean){
 
   def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={

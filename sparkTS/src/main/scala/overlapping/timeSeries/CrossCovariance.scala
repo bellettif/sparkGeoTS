@@ -21,8 +21,7 @@ object CrossCovariance{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
-    implicit val sc = timeSeries.context
-    val estimator = new CrossCovariance[IndexT](maxLag, mean)
+    val estimator = new CrossCovariance[IndexT](maxLag,timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -39,8 +38,8 @@ The autocovoriance is ordered as follows
 
 class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
     maxLag: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    bcMean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
   with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
 
@@ -50,8 +49,6 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
   if(deltaT * maxLag > config.padding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
-
-  val bcMean = sc.broadcast(if (mean.isDefined) mean.get else DenseVector.zeros[Double](d))
 
   override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
 
@@ -68,7 +65,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
       return (result, 0L)
     }
 
-    val meanValue = bcMean.value
+    val meanValue = bcMean.value.getOrElse(DenseVector.zeros[Double](d))
     val centerTarget  = slice(modelOrder.lookBack)._2 - meanValue
 
     var i = 0

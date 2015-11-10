@@ -1,8 +1,8 @@
 # Time series analysis on taxi data in New York.
 
 ## Compilation notes:
-Compile by typing in time series folder: sbt assembly
-Run by typing in this folder: sbt console
+Compile by typing in time series folder: sbt assembly .
+Run by typing in this folder: sbt console .
 
 In this tutorial we are going to practice on actual data
 and calibrate a multivariate autoregressive model.

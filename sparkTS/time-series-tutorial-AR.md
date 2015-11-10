@@ -1,8 +1,8 @@
 # Time series analysis on surrogate data.
 
 ## Compilation notes:
-Compile by typing in time series folder: sbt assembly
-Run by typing in time series folder: sbt console
+Compile by typing in time series folder: sbt assembly .
+Run by typing in time series folder: sbt console .
 
 In this tutorial we are going to practice on artificially generated data
 and show that we are able to successfully identify autoregressive models.

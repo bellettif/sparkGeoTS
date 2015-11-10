@@ -23,7 +23,6 @@ object SecondMomentEstimator{
       timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
       (implicit config: TSConfig): DenseMatrix[Double] ={
 
-    implicit val sc = timeSeries.context
     val estimator = new SecondMomentEstimator[IndexT]()
     estimator.estimate(timeSeries)
 

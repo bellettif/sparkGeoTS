@@ -29,10 +29,9 @@ object MeanProfileEstimator{
       hashFct: IndexT => Int,
       seasonProfile: mutable.HashMap[Int, DenseVector[Double]]): RDD[(IndexT, DenseVector[Double])] = {
 
-    val sc = rawData.context
-    val seasonalProfile = sc.broadcast(seasonProfile)
-
+    val seasonalProfile = rawData.context.broadcast(seasonProfile)
     rawData.map({ case (k, v) => (k, v - seasonalProfile.value(hashFct(k))) })
+
   }
 
 }

@@ -3,6 +3,7 @@ package main.scala.overlapping.timeSeries
 import breeze.linalg._
 import breeze.numerics.sqrt
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
 import main.scala.overlapping.containers.SingleAxisBlock
@@ -22,8 +23,7 @@ object CrossCorrelation{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
-    implicit val sc = timeSeries.context
-    val estimator = new CrossCorrelation[IndexT](maxLag, mean)
+    val estimator = new CrossCorrelation[IndexT](maxLag, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -40,8 +40,8 @@ The autocovoriance is ordered as follows
 
 class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
     maxLag: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    bcMean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseVector[Double])]
   with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
 
@@ -51,8 +51,6 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
   if(deltaT * maxLag > config.padding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
-
-  val bcMean = sc.broadcast(if (mean.isDefined) mean.get else DenseVector.zeros[Double](d))
 
   override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
 
@@ -70,7 +68,7 @@ class CrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
       return (result, normalizer)
     }
 
-    val meanValue = bcMean.value
+    val meanValue = bcMean.value.getOrElse(DenseVector.zeros[Double](d))
     val centerTarget  = slice(modelOrder.lookBack)._2 - meanValue
 
     normalizer += centerTarget :* centerTarget

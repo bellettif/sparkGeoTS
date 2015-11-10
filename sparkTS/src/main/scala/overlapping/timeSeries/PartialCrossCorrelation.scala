@@ -3,6 +3,7 @@ package main.scala.overlapping.timeSeries
 import breeze.linalg._
 import breeze.numerics.sqrt
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
 import main.scala.overlapping.containers.SingleAxisBlock
@@ -19,8 +20,7 @@ object PartialCrossCorrelation{
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
-    implicit val sc = timeSeries.context
-    val estimator = new PartialCrossCorrelation[IndexT](maxLag, mean)
+    val estimator = new PartialCrossCorrelation[IndexT](maxLag, timeSeries.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -38,8 +38,8 @@ The autocovoriance is ordered as follows
 
 class PartialCrossCorrelation[IndexT <: Ordered[IndexT] : ClassTag](
     maxLag: Int,
-    mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig, sc: SparkContext)
+    mean: Broadcast[Option[DenseVector[Double]]])
+    (implicit config: TSConfig)
   extends CrossCovariance[IndexT](maxLag, mean){
 
   def estimatePrecisionMatrices(crossCovMatrices: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] ={
