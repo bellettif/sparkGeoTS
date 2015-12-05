@@ -1,6 +1,6 @@
 package main.scala.overlapping.containers
 
-import main.scala.overlapping.{CompleteLocation, IntervalSize}
+import main.scala.overlapping.CompleteLocation
 
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -8,12 +8,17 @@ import scala.util.Random
 
 object SingleAxisBlock{
 
-  /*
-  The data will be sorted with respect to keys.
+  /**
+   * Create an overlapping block based on raw replicated data.
+   * The data will be sorted with respect to keys.
+   *
+   * @param rawData Raw replicated data (unsorted).
+   * @tparam IndexT Type of index used for the overlapping block.
+   * @tparam ValueT Type of values in the overlapping block.
+   * @return A single axis overlapping block.
    */
   def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag]
-    (rawData: Array[((Int, Int, IndexT), ValueT)],
-    signedDistance: (IndexT, IndexT) => Double): SingleAxisBlock[IndexT, ValueT] ={
+    (rawData: Array[((Int, Int, IndexT), ValueT)]): SingleAxisBlock[IndexT, ValueT] ={
 
     val sortedData: Array[((Int, Int, IndexT), ValueT)] = rawData
       .sortBy(_._1._3)
@@ -24,9 +29,7 @@ object SingleAxisBlock{
     val locations: Array[CompleteLocation[IndexT]] = sortedData
       .map({case (k, v) => CompleteLocation(k._1, k._2, k._3)})
 
-    val signedDistances: Array[((IndexT, IndexT) => Double)] = Array(signedDistance)
-
-    new SingleAxisBlock[IndexT, ValueT](data, locations, signedDistances)
+    new SingleAxisBlock[IndexT, ValueT](data, locations)
 
   }
 
@@ -35,387 +38,269 @@ object SingleAxisBlock{
 
 class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     val data: Array[(IndexT, ValueT)],
-    val locations: Array[CompleteLocation[IndexT]],
-    val signedDistances: Array[(IndexT, IndexT) => Double])
+    val locations: Array[CompleteLocation[IndexT]])
   extends OverlappingBlock[IndexT, ValueT]{
 
   lazy val firstValidIndex = locations.indexWhere(x => x.partIdx == x.originIdx)
 
   lazy val lastValidIndex  = locations.lastIndexWhere(x => x.partIdx == x.originIdx, locations.length - 1)
 
-  val signedDistance = signedDistances.apply(0)
+  /**
+   * Get the index of a kernel input window.
+   * @param beginIndex Where to begin the search.
+   * @param endIndex Where to end the search.
+   * @param t The target around which the search will be conducted.
+   * @param selection Window selection predicate.
+   * @return Indices of the start and end of the window (inclusive).
+   */
+  def getWindowIndex(beginIndex: Int, endIndex: Int, t: IndexT, selection: (IndexT, IndexT) => Boolean): (Int, Int) ={
 
+    var beginIndex_ = beginIndex
+    var endIndex_ = endIndex
 
-  override def sliding[ResultT: ClassTag](size: Array[IntervalSize])
-                               (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+    beginIndex_ = locations.indexWhere(x => selection(t, x.k),
+      beginIndex)
 
-    sliding[ResultT](size, locations.slice(firstValidIndex, lastValidIndex + 1))(f)
+    endIndex_ = locations.indexWhere(x => selection(t, x.k),
+      endIndex)
 
-  }
-
-  def getWindowIndex(beginIndex: Int, endIndex: Int, t: IndexT, lookBack: Double, lookAhead: Double): (Int, Int) ={
-
-    var begin_index = beginIndex
-    var end_index = endIndex
-
-    begin_index = locations.indexWhere(x => signedDistance(x.k, t) <= lookBack,
-      begin_index)
-
-    end_index = locations.indexWhere(x => signedDistance(t, x.k) > lookAhead,
-      end_index)
-
-    if (end_index == -1) {
-      end_index = data.length - 1
+    if (endIndex_ == -1) {
+      endIndex_ = data.length - 1
     }
 
-    end_index = locations.lastIndexWhere(x => signedDistance(t, x.k) <= lookAhead,
-      end_index)
+    endIndex_ = locations.lastIndexWhere(x => selection(t, x.k),
+      endIndex_)
 
-    (begin_index, end_index)
+    (beginIndex_, endIndex_)
 
   }
 
+  /**
+   * Apply the kernel to the window.
+   * None will also be returned based on the filtering predicated (if any).
+   *
+   * @param targetIdx Index of the target.
+   * @param beginIndex Index where to begin the window (inclusive).
+   * @param endIndex Index where to end the window (inclusive).
+   * @param kernel Function to apply to the range of data.
+   * @param targetFilter Filtering predicate on the timestamp of the target.
+   * @param windowFilter Filtering predicate on the value within the window.
+   * @tparam ResultT
+   * @return None if filtered out, the result otherwise.
+   */
+  def applyKernel[ResultT: ClassTag](
+      targetIdx: IndexT,
+      beginIndex: Int,
+      endIndex: Int,
+      kernel: Array[(IndexT, ValueT)] => ResultT,
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): Option[ResultT] = {
 
-  override def sliding[ResultT: ClassTag](
-      size: Array[IntervalSize],
-      targets: Array[CompleteLocation[IndexT]])
-      (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+    val filterTargets = targetFilter.isDefined
+    val filterWindows = windowFilter.isDefined
 
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
-
-    var begin_index = 0
-    var end_index   = 0
-
-    val result = Array.ofDim[(IndexT, ResultT)](targets.length)
-    var valid_results = Array.fill(targets.length)(false).zipWithIndex
-
-    for((center_location , i) <- targets.zipWithIndex){
-
-      if(end_index != 1) {
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          result(i) = (center_location.k, f(data.slice(begin_index, end_index + 1)))
-          valid_results(i) = (true, i)
-        }
-
+    if(! filterTargets){
+      val targetFilter_ = targetFilter.get
+      if(! targetFilter_(targetIdx)){
+        return None
       }
-
     }
 
-    valid_results = valid_results.filter(x => x._1)
+    if(! filterWindows){
+      val windowFilter_ = windowFilter.get
+      if(! windowFilter_(data.slice(beginIndex, endIndex + 1))){
+        return None
+      }
+    }
 
-    new SingleAxisBlock[IndexT, ResultT](
-      valid_results.map(i => result(i._2)),
-      valid_results.map(i => targets(i._2)),
-      signedDistances)
+    Some(kernel(data.slice(beginIndex, endIndex + 1)))
 
   }
 
-  def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
-        size: Array[IntervalSize],
-        targets: Array[CompleteLocation[IndexT]])
-       (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
-        init: MemType): SingleAxisBlock[IndexT, ResultT] = {
+  /**
+   * Apply the stateful (with memory) kernel to the window.
+   * None will also be returned based on the filtering predicated (if any).
+   *
+   * @param targetIdx Index of the target.
+   * @param beginIndex Index where to begin the window (inclusive).
+   * @param endIndex Index where to end the window (inclusive).
+   * @param kernel Function to apply to the range of data.
+   * @param targetFilter Filtering predicate on the timestamp of the target.
+   * @param windowFilter Filtering predicate on the value within the window.
+   * @tparam ResultT
+   * @return (None if filtered out, the result otherwise, new state).
+   */
+  def applyMemoryKernel[ResultT: ClassTag, MemType: ClassTag](
+      targetIdx: IndexT,
+      beginIndex: Int,
+      endIndex: Int,
+      memState: MemType,
+      kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): (Option[ResultT], MemType) = {
 
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
+    val filterTargets = targetFilter.isDefined
+    val filterWindows = windowFilter.isDefined
 
-    var begin_index = 0
-    var end_index   = 0
+    if(! filterTargets){
+      val targetFilter_ = targetFilter.get
+      if(! targetFilter_(targetIdx)){
+        return (None, memState)
+      }
+    }
 
-    val result = Array.ofDim[(IndexT, ResultT)](targets.length)
-    var valid_results = Array.fill(targets.length)(false).zipWithIndex
-    var mem = init
+    if(! filterWindows){
+      val windowFilter_ = windowFilter.get
+      if(! windowFilter_(data.slice(beginIndex, endIndex + 1))){
+        return (None, memState)
+      }
+    }
+
+    val (kResult, newMemState) = kernel(data.slice(beginIndex, endIndex + 1), memState)
+    (Some(kResult), newMemState)
+
+  }
+
+  /**
+   * Implementation of sliding in the case of a temporal leading axis for continuous or irregularly spaced data.
+   *
+   * @param selection Selection predicate for the window. (Left argument is kernel target).
+   * @param targets Targets the kernel computations will be centered about. If None all admissible point within the block.
+   * @param kernel The kernel function that will be applied to each kernel input.
+   * @param targetFilter A filter to apply on target timestamps and values.
+   * @param windowFilter A filter to appy on window content.
+   * @tparam ResultT Kernel return type.
+   * @return A time series with the resulting kernel computations. (Padding not guaranteed).
+   */
+  def sliding[ResultT: ClassTag](
+      selection: (IndexT, IndexT) => Boolean,
+      targets: Option[Array[CompleteLocation[IndexT]]] = None)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): SingleAxisBlock[IndexT, ResultT] = {
+
+    val targets_ = targets.getOrElse(locations.slice(firstValidIndex, lastValidIndex + 1))
+
+    val result = Array.ofDim[(IndexT, Option[ResultT])](targets_.length)
+    var validResults = Array.fill(targets_.length)(false).zipWithIndex
 
     var i = 0
-    while(i < targets.length){
+    var beginIndex = 0
+    var endIndex   = 0
 
-      val center_location = targets(i)
+    while(i < targets_.length){
+
+      if(endIndex != 1) {
+
+        val centerLocation = targets_(i)
+
+        val (beginIndex_, endIndex_) = getWindowIndex(beginIndex, endIndex, centerLocation.k, selection)
+        beginIndex = beginIndex_
+        endIndex = endIndex_
+
+        // Check that some data is within range
+        if ((beginIndex != -1) && (endIndex != -1)) {
+          result(i) = (centerLocation.k, applyKernel(
+            targets_(i).k,
+            beginIndex,
+            endIndex,
+            kernel,
+            targetFilter,
+            windowFilter))
+          validResults(i) = (result(i)._2.isDefined, i)
+        }
+
+      }
+
       i += 1
-
-      if(end_index != 1) {
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
-          mem = temp_mem
-          result(i) = (center_location.k, temp_res)
-
-          valid_results(i) = (true, i)
-        }
-
-      }
-
     }
 
-    valid_results = valid_results.filter(x => x._1)
+    validResults = validResults.filter(x => x._1)
 
     new SingleAxisBlock[IndexT, ResultT](
-      valid_results.map(i => result(i._2)),
-      valid_results.map(i => targets(i._2)),
-      signedDistances)
+      validResults.map(i => result(i._2)).map({case (x, y) => (x, y.get)}),
+      validResults.map(i => targets.get(i._2)))
 
   }
 
-  def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
-        size: Array[IntervalSize])
-       (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
-        init: MemType): SingleAxisBlock[IndexT, ResultT] = {
+  /**
+   * Implementation of sliding with memory in the case of a temporal leading axis for continuous or irregularly spaced data.
+   *
+   * @param selection Selection predicate for the window. (Left argument is kernel target).
+   * @param targets The points about which the quantities should be computed. If None all admissible point within the block.
+   * @param kernel The kernel function that will be applied to each kernel input.
+   * @param init Initialization of the state.
+   * @param targetFilter A filter to apply on target timestamps and values.
+   * @param windowFilter A filter to appy on window content.
+   * @tparam ResultT Kernel return type.
+   * @tparam MemType Memory state type.
+   * @return
+   */
+  override def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
+      selection: (IndexT, IndexT) => Boolean,
+      targets: Option[Array[CompleteLocation[IndexT]]] = None)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      init: MemType,
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): SingleAxisBlock[IndexT, ResultT] = {
 
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
+    val targets_ = targets.getOrElse(locations.slice(firstValidIndex, lastValidIndex + 1))
 
-    var begin_index = 0
-    var end_index   = 0
-
-    val valid_locations = locations.slice(firstValidIndex, lastValidIndex + 1)
-    val result = Array.ofDim[(IndexT, ResultT)](valid_locations.length)
-    var mem = init
-
-    var data_idx = 0
-    var result_idx = 0
-
-    while(data_idx <= lastValidIndex){
-
-      val center_location = locations(data_idx)
-
-      if(end_index != -1){
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
-          mem = temp_mem
-
-          if(data_idx >= firstValidIndex) {
-            result(result_idx) = (center_location.k, temp_res)
-            result_idx += 1
-          }
-
-        }
-
-      }
-
-      data_idx += 1
-
-    }
-
-    new SingleAxisBlock[IndexT, ResultT](
-      result,
-      valid_locations.slice(0, result_idx),
-      signedDistances.slice(0, result_idx))
-
-  }
-
-  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize],
-                                     targets: Array[CompleteLocation[IndexT]])
-                                    (f: Array[(IndexT, ValueT)] => ResultT,
-                                     zero: ResultT,
-                                     op: (ResultT, ResultT) => ResultT): ResultT = {
-
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
-
-    var begin_index = 0
-    var end_index   = 0
-
-    var result = zero
+    val result = Array.ofDim[(IndexT, Option[ResultT])](targets_.length)
+    var validResults = Array.fill(targets_.length)(false).zipWithIndex
 
     var i = 0
-    while(i < targets.length){
-      val center_location = targets(i)
+    var beginIndex = 0
+    var endIndex   = 0
+
+    var memState = init
+
+    while(i < targets_.length){
+
+      if(endIndex != 1) {
+
+        val centerLocation = targets_(i)
+
+        val (beginIndex_, endIndex_) = getWindowIndex(beginIndex, endIndex, centerLocation.k, selection)
+        beginIndex = beginIndex_
+        endIndex = endIndex_
+
+        // Check that some data is within range
+        if ((beginIndex != -1) && (endIndex != -1)) {
+          val (kResult, newMemState) = applyMemoryKernel(
+            targets_(i).k,
+            beginIndex,
+            endIndex,
+            memState,
+            kernel,
+            targetFilter,
+            windowFilter)
+
+          result(i) = (centerLocation.k, kResult)
+          memState = newMemState
+
+          validResults(i) = (kResult.isDefined, i)
+        }
+
+      }
+
       i += 1
-
-      if(end_index != -1) {
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          result = op(result, f(data.slice(begin_index, end_index + 1)))
-        }
-
-      }
-
     }
 
-    result
-  }
+    validResults = validResults.filter(x => x._1)
 
-  def slidingFold[ResultT: ClassTag](size: Array[IntervalSize])
-                                    (f: Array[(IndexT, ValueT)] => ResultT,
-                                     zero: ResultT,
-                                     op: (ResultT, ResultT) => ResultT): ResultT = {
-
-    slidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(f, zero, op)
+    new SingleAxisBlock[IndexT, ResultT](
+      validResults.map(i => result(i._2)).map({case (x, y) => (x, y.get)}),
+      validResults.map(i => targets.get(i._2)))
 
   }
 
-
-  // By convention the marking CompleteLocation of a slice will be that of the start of the interval
-  override def slicingWindow[ResultT: ClassTag](
-      cutPredicates: Array[(IndexT, IndexT) => Boolean])
-      (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] ={
-
-    val cutPredicate = cutPredicates.head
-
-    var begin_index = 0
-    var end_index   = 0
-
-    var resultLocations = List[CompleteLocation[IndexT]]()
-    var resultData      = List[(IndexT, ResultT)]()
-
-    val intervals = locations.zip(locations.drop(1))
-
-    while((end_index < intervals.length) && (end_index != -1)){
-      end_index = intervals.indexWhere({case (x, y) => cutPredicate(x.k, y.k)}, begin_index)
-
-      if(end_index != -1) {
-
-        val start = locations(begin_index)
-        val stop = locations(end_index)
-
-        resultLocations = resultLocations :+ CompleteLocation[IndexT](start.partIdx, start.originIdx, start.k)
-
-        resultData = resultData :+ (start.k, f(data.slice(begin_index, end_index + 1)))
-
-        begin_index = end_index + 1
-      }
-    }
-
-    new SingleAxisBlock[IndexT, ResultT](resultData.toArray, resultLocations.toArray, signedDistances)
-
-  }
-
-  def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      size: Array[IntervalSize],
-      targets: Array[CompleteLocation[IndexT]])
-     (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
-      zero: ResultT,
-      op: (ResultT, ResultT) => ResultT,
-      init: MemType): ResultT = {
-
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
-
-    var begin_index = 0
-    var end_index   = 0
-
-    var result = zero
-    var mem = init
-
-    for((center_location , i) <- targets.zipWithIndex){
-
-      if(end_index != -1) {
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
-          mem = temp_mem
-          result = op(result, temp_res)
-        }
-
-      }
-    }
-
-    result
-
-  }
-
-  def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      size: Array[IntervalSize])
-     (f: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
-      zero: ResultT,
-      op: (ResultT, ResultT) => ResultT,
-      init: MemType): ResultT = {
-
-    val lookAhead = size.head.lookAhead
-    val lookBack  = size.head.lookBack
-
-    var begin_index = 0
-    var end_index   = 0
-
-    var result = zero
-    var mem = init
-
-    var data_idx = 0
-
-    while(data_idx <= lastValidIndex){
-
-      val center_location = locations(data_idx)
-
-      if(end_index != -1) {
-
-        val (begin_index_, end_index_) = getWindowIndex(begin_index, end_index, center_location.k, lookBack, lookAhead)
-        begin_index = begin_index_
-        end_index = end_index_
-
-        if ((begin_index != -1) && (end_index != -1)) {
-          val (temp_res, temp_mem) = f(data.slice(begin_index, end_index + 1), mem)
-          mem = temp_mem
-
-          if(data_idx >= firstValidIndex) {
-            result = op(result, temp_res)
-          }
-
-        }
-
-      }
-
-      data_idx += 1
-
-    }
-
-    result
-
-  }
-
-  def slicingWindowFold[ResultT: ClassTag](cutPredicates: Array[(IndexT, IndexT) => Boolean])(
-      f: Array[(IndexT, ValueT)] => ResultT,
-      zero: ResultT,
-      op: (ResultT, ResultT) => ResultT): ResultT = {
-
-    val cutPredicate = cutPredicates.head
-
-    var begin_index = 0
-    var end_index   = 0
-    var result      = zero
-
-    val intervals = locations.zip(locations.drop(1))
-
-    while((end_index < intervals.length) && (end_index != -1)){
-      end_index = intervals.indexWhere({case (x, y) => cutPredicate(x.k, y.k)}, begin_index)
-
-      if(end_index != -1) {
-
-        val start = locations(begin_index)
-        val stop = locations(end_index)
-
-        result = op(result, f(data.slice(begin_index, end_index + 1)))
-
-        begin_index = end_index + 1
-      }
-    }
-
-    result
-
-  }
-
-
+  /**
+   * Create a new overlapping block based on filtered values of the current one.
+   *
+   * @param p Filtering predicate.
+   * @return A new filtered overlapping block.
+   */
   override def filter(p: (IndexT, ValueT) => Boolean): SingleAxisBlock[IndexT, ValueT] = {
 
     val p_ = p.tupled
@@ -424,37 +309,205 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
 
     new SingleAxisBlock[IndexT, ValueT](
       validIndices.map(i => data(i)),
-      validIndices.map(i => locations(i)),
-      signedDistances)
+      validIndices.map(i => locations(i)))
 
   }
 
   /**
+   * Create a new overlapping block based on mapped values of the current one.
    *
-   * @param f
-   * @tparam ResultT
-   * @return
+   * @param f Function to map on each key/value pair.
+   * @param filter
+   * @tparam ResultT Type of the result
+   * @return New overlapping block whose keys are similar but with transformed values.
    */
-  override def map[ResultT: ClassTag](f: (IndexT, ValueT) => ResultT): SingleAxisBlock[IndexT, ResultT] = {
+  override def map[ResultT: ClassTag](
+      f: (IndexT, ValueT) => ResultT,
+      filter: Option[(IndexT, ValueT) => Boolean] = None): SingleAxisBlock[IndexT, ResultT] = {
 
-    val result = new SingleAxisBlock[IndexT, ResultT](data.map({case (k, v) => (k, f(k, v))}), locations, signedDistances)
+    if(filter.isDefined) {
 
-    result
+      val filter_ = filter.get.tupled
+      val validIndices = data.indices.filter(i => filter_(data(i))).toArray
+      new SingleAxisBlock[IndexT, ResultT](validIndices.map({ case i => (data(i)._1, f(data(i)._1, data(i)._2)) }), locations)
+
+    }else{
+
+      new SingleAxisBlock[IndexT, ResultT](data.map({ case (k, v) => (k, f(k, v)) }), locations)
+
+    }
 
   }
 
+  /**
+   * Reduce the data of the overlapping block.
+   *
+   * @param f Reduction operator.
+   * @return Result of the overall reduction.
+   */
   override def reduce(f: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT)): (IndexT, ValueT) = {
 
     data.slice(firstValidIndex, lastValidIndex + 1).reduce(f)
 
   }
 
-  override def fold[ResultT: ClassTag](zeroValue: ResultT)(f: (IndexT, ValueT) => ResultT,
-                                                           op: (ResultT, ResultT) => ResultT): ResultT = {
+  /**
+   * Fold the overlapping block with the results of a pre-mapped function on each key/value pair.
+   *
+   * @param zeroValue Neutral element of the reduction operator.
+   * @param f Function that will be applied and whose results will be reduced.
+   * @param op Reducing operator.
+   * @param filter
+   * @tparam ResultT Type of the result.
+   * @return
+   */
+  override def fold[ResultT: ClassTag](zeroValue: ResultT)(
+      f: (IndexT, ValueT) => ResultT,
+      op: (ResultT, ResultT) => ResultT,
+      filter: Option[(IndexT, ValueT) => Boolean] = None): ResultT = {
 
     var result = zeroValue
-    for(i <- firstValidIndex to lastValidIndex){
-      result = op(result, f(data(i)._1, data(i)._2))
+
+    var i = firstValidIndex
+
+    if(filter.isEmpty) {
+
+      while (i <= lastValidIndex) {
+        result = op(result, f(data(i)._1, data(i)._2))
+        i += 1
+      }
+
+    }else{
+
+      val filter_ = filter.get.tupled
+
+      while (i <= lastValidIndex) {
+
+        if(filter_(data(i))) {
+          result = op(result, f(data(i)._1, data(i)._2))
+        }
+
+        i += 1
+      }
+
+    }
+
+    result
+
+  }
+
+  /**
+   * Directly fold the results of a kernel operation in order to reduce memory burden.
+   *
+   * @param selection Selection predicate of the input window to the kernel. (Left argument is kernel target).
+   * @param targets Target centers about which the windows will be spanned. If none, all admissible points.
+   * @param kernel Kernel function that will be applied to the data in each input window.
+   * @param zero Neutral element of the reducing operator.
+   * @param op Reducing operator.
+   * @param targetFilter Filter predicate on the kernel target.
+   * @param windowFilter Filter predicate on the kernel input window.
+   * @tparam ResultT Type of the kernel output.
+   * @return Reduced output values of the kernel operator applied to the input window.
+   */
+  override def slidingFold[ResultT: ClassTag](
+      selection: (IndexT, IndexT) => Boolean,
+      targets: Option[Array[CompleteLocation[IndexT]]] = None)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
+      zero: ResultT,
+      op: (ResultT, ResultT) => ResultT,
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): ResultT = {
+
+    val targets_ = targets.getOrElse(locations.slice(firstValidIndex, lastValidIndex + 1))
+
+    var result = zero
+    var i = 0
+    var beginIndex = 0
+    var endIndex   = 0
+
+    while(i < targets_.length){
+
+      if(endIndex != 1) {
+
+        val centerLocation = targets_(i)
+
+        val (beginIndex_, endIndex_) = getWindowIndex(beginIndex, endIndex, centerLocation.k, selection)
+        beginIndex = beginIndex_
+        endIndex = endIndex_
+
+        // Check that some data is within range
+        if ((beginIndex != -1) && (endIndex != -1)) {
+
+          result = op(result, applyKernel(
+            targets_(i).k,
+            beginIndex,
+            endIndex,
+            kernel,
+            targetFilter,
+            windowFilter).getOrElse(zero))
+
+        }
+
+      }
+
+      i += 1
+
+    }
+
+    result
+
+  }
+
+
+  def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
+      selection: (IndexT, IndexT) => Boolean,
+      targets: Option[Array[CompleteLocation[IndexT]]] = None)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      zero: ResultT,
+      op: (ResultT, ResultT) => ResultT,
+      init: MemType,
+      targetFilter: Option[IndexT => Boolean] = None,
+      windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): ResultT = {
+
+    val targets_ = targets.getOrElse(locations.slice(firstValidIndex, lastValidIndex + 1))
+
+    var result = zero
+
+    var i = 0
+    var beginIndex = 0
+    var endIndex   = 0
+
+    var memState = init
+
+    while(i < targets_.length){
+
+      if(endIndex != 1) {
+
+        val centerLocation = targets_(i)
+
+        val (beginIndex_, endIndex_) = getWindowIndex(beginIndex, endIndex, centerLocation.k, selection)
+        beginIndex = beginIndex_
+        endIndex = endIndex_
+
+        // Check that some data is within range
+        if ((beginIndex != -1) && (endIndex != -1)) {
+          val (kResult, newMemState) = applyMemoryKernel(
+            targets_(i).k,
+            beginIndex,
+            endIndex,
+            memState,
+            kernel,
+            targetFilter,
+            windowFilter)
+
+          result = op(result, kResult.getOrElse(zero))
+          memState = newMemState
+
+        }
+
+      }
+
+      i += 1
     }
 
     result
@@ -478,85 +531,5 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
     data.slice(firstValidIndex, lastValidIndex + 1).take(n)
 
   }
-
-
-  /*
-def sparseSliding[ResultT: ClassTag](size: Array[IntervalSize],
-                                     targets: Array[CompleteLocation[Int]])
-                                     (f: Array[(IndexT, ValueT)] => ResultT): SingleAxisBlock[IndexT, ResultT] = {
-
-  val lookAhead = size.head.lookAhead
-  val lookBack  = size.head.lookBack
-
-  var begin_index = 0
-  var end_index   = 0
-
-  var result = List[(IndexT, ResultT)]()
-
-  for(center_location <- targets) {
-
-    begin_index = locations.lastIndexWhere(x => signedDistance(x.k, data(center_location.k)._1) < lookBack,
-      center_location.k) + 1
-    end_index = locations.indexWhere(x => signedDistance(data(center_location.k)._1, x.k) >= lookAhead,
-      center_location.k)
-
-    if ((begin_index != -1) && (end_index != -1)) {
-      result = result :+(data(center_location.k)._1, f(data.slice(begin_index, end_index + 1)))
-    }
-  }
-
-  new SingleAxisBlock[IndexT, ResultT](result.toArray, targets.map(x => locations(x.k)), signedDistances)
-
-}
-
-def sparseSlidingFold[ResultT: ClassTag](size: Array[IntervalSize],
-                                         targets: Array[CompleteLocation[Int]])
-                                         (f: Array[(IndexT, ValueT)] => ResultT,
-                                          zero: ResultT,
-                                          op: (ResultT, ResultT) => ResultT): ResultT = {
-
-  val lookAhead = size.head.lookAhead
-  val lookBack  = size.head.lookBack
-
-  var begin_index = -1
-  var end_index   = -1
-
-  var result = zero
-
-  for(center_location <- targets) {
-
-    begin_index = locations.lastIndexWhere(x => signedDistance(x.k, data(center_location.k)._1) < lookBack,
-      center_location.k) + 1
-    end_index = locations.indexWhere(x => signedDistance(data(center_location.k)._1, x.k) >= lookAhead,
-      center_location.k)
-
-    if ((begin_index != -1) && (end_index != -1)) {
-      result = op(result, f(data.slice(begin_index, end_index + 1)))
-    }
-  }
-
-  result
-}
-
-def randSlidingFold[ResultT: ClassTag](size: Array[IntervalSize])
-                                      (f: Array[(IndexT, ValueT)] => ResultT,
-                                       zero: ResultT,
-                                       op: (ResultT, ResultT) => ResultT,
-                                       batchSize: Int): ResultT = {
-
-  if(batchSize >= lastValidIndex - firstValidIndex){
-    slidingFold(size, locations.slice(firstValidIndex, lastValidIndex + 1))(f, zero, op)
-  }else{
-    val nValid = lastValidIndex - firstValidIndex + 1
-    val selectedLocations = Array.fill(batchSize){Random.nextInt(nValid)}
-      .map(i => {
-      val targetCompleteLocation = locations(firstValidIndex + i)
-      CompleteLocation(targetCompleteLocation.partIdx, targetCompleteLocation.originIdx, i)
-    })
-    sparseSlidingFold(size, selectedLocations)(f, zero, op)
-  }
-
-}
-*/
 
 }

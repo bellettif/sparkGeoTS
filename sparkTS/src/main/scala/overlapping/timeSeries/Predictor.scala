@@ -2,8 +2,9 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext._
 import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers.{TimeSeries, SingleAxisBlock}
 
 /**
  * Created by Francois Belletti on 9/24/15.
@@ -11,7 +12,7 @@ import main.scala.overlapping.containers.SingleAxisBlock
 trait Predictor[IndexT <: Ordered[IndexT]]
   extends Serializable{
 
-  def size: Array[IntervalSize]
+  def selection: (IndexT, IndexT) => Boolean
 
   def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double]
 
@@ -20,10 +21,10 @@ trait Predictor[IndexT <: Ordered[IndexT]]
   }
 
   def estimateResiduals(
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+      timeSeries: TimeSeries[IndexT, DenseVector[Double]]): TimeSeries[IndexT, DenseVector[Double]] = {
 
-    timeSeries
-      .mapValues(_.sliding(size)(residualKernel))
+    timeSeries.content
+      .mapValues(_.sliding(selection)(residualKernel))
 
   }
 

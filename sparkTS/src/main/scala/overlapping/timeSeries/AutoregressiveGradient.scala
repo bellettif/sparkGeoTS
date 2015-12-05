@@ -1,29 +1,31 @@
 package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
-import main.scala.overlapping._
+import main.scala.overlapping.containers.{TSInstant, VectTSConfig}
+
+import scala.reflect.ClassTag
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
-class AutoregressiveGradient[IndexT <: Ordered[IndexT]](
+class AutoregressiveGradient[IndexT <: TSInstant[IndexT] : ClassTag](
     p: Int,
     gradientFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Array[DenseMatrix[Double]],
+    config: VectTSConfig[IndexT],
     dim: Option[Int] = None)
-    (implicit config: TSConfig)
 extends SecondOrderEssStat[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]
 {
 
-  val d = dim.getOrElse(config.d)
+  val d = dim.getOrElse(config.dim)
   val x = Array.fill(p){DenseMatrix.zeros[Double](d, d)}
 
   val gradientSizes = x.map(y => (y.rows, y.cols))
 
-  def kernelWidth = IntervalSize(p * config.deltaT, 0)
+  override def selection = config.selection
 
-  def modelOrder = ModelSize(p, 0)
+  override def modelOrder = ModelSize(p, 0)
 
-  def zero = gradientSizes.map({case (nRows, nCols) => DenseMatrix.zeros[Double](nRows, nCols)})
+  override def zero = gradientSizes.map({case (nRows, nCols) => DenseMatrix.zeros[Double](nRows, nCols)})
 
   def setNewX(newX: Array[DenseMatrix[Double]]) = {
     val maxEigenValue = Stability(newX)

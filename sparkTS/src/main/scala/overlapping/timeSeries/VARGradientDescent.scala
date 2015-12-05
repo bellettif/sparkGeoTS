@@ -5,7 +5,7 @@ import breeze.numerics.abs
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.procedures.GradientDescent
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
@@ -18,14 +18,13 @@ import scala.reflect.ClassTag
 
 object VARGradientDescent{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       p: Int,
       precision: Double = 1e-4,
-      maxIter: Int = 100)
-      (implicit config: TSConfig): Array[DenseMatrix[Double]] = {
+      maxIter: Int = 100): Array[DenseMatrix[Double]] = {
 
-      val estimator = new VARGradientDescent[IndexT](p, precision, maxIter)
+      val estimator = new VARGradientDescent[IndexT](p, timeSeries.config, precision, maxIter)
       estimator.estimate(timeSeries)
 
   }
@@ -33,42 +32,39 @@ object VARGradientDescent{
 }
 
 
-class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
+class VARGradientDescent[IndexT <: TSInstant[IndexT] : ClassTag](
     p: Int,
+    config: VectTSConfig[IndexT],
     precision: Double = 1e-6,
     maxIter: Int = 1000)
-    (implicit config: TSConfig)
   extends Estimator[IndexT, DenseVector[Double], Array[DenseMatrix[Double]]]{
 
-  val d = config.d
+  val d = config.dim
   val N = config.nSamples
   val deltaT = config.deltaT
 
-  if(deltaT * p > config.padding){
+  if(deltaT * p > config.bckPadding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[DenseMatrix[Double]] = {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): Array[DenseMatrix[Double]] = {
 
-    val mean = MeanEstimator(timeSeries)
+    val mean = new MeanEstimator(config).estimate(timeSeries)
 
-    val (freqVARMatrices, noiseVariance) = VARModel(timeSeries, p, Some(mean))
-
-    /*
-    val predictorVAR = new VARPredictor[IndexT](freqVARMatrices, Some(mean))
-    val residualsVAR = predictorVAR.estimateResiduals(timeSeries)
-
-    val secondMomentEstimator = new SecondMomentEstimator[IndexT]()
-    val residualSecondMomentVAR = secondMomentEstimator.estimate(residualsVAR)
-    val sigmaEpsilon = diag(residualSecondMomentVAR)
-    */
+    val (freqVARMatrices, noiseVariance) = new VARModel(
+      p,
+      config,
+      timeSeries.content.context.broadcast(Some(mean))).estimate(timeSeries)
 
     val sigmaEpsilon = diag(noiseVariance)
 
     /*
     Redundant computation of cross-cov Matrix, need to do something about that
      */
-    val (crossCovMatrices, _) = CrossCovariance(timeSeries, p, Some(mean))
+    val (crossCovMatrices, _) = new CrossCovariance(
+      p,
+      config,
+      timeSeries.content.context.broadcast(Some(mean))).estimate(timeSeries)
 
     val allEigenValues = crossCovMatrices.map(x => abs(eig(x).eigenvalues))
     val maxEig = max(allEigenValues.map(x => max(x)))
@@ -78,15 +74,15 @@ class VARGradientDescent[IndexT <: Ordered[IndexT] : ClassTag](
       2.0 / (maxEig * max(sigmaEpsilon) + minEig * min(sigmaEpsilon))
     }
 
-    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
-    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, timeSeries.context.broadcast(mean))
+    val VARLoss = new DiagonalNoiseARLoss[IndexT](sigmaEpsilon, N, timeSeries.content.context.broadcast(mean))
+    val VARGrad = new DiagonalNoiseARGrad[IndexT](sigmaEpsilon, N, timeSeries.content.context.broadcast(mean))
 
-    val kernelizedLoss = new AutoregressiveLoss[IndexT](p, VARLoss.apply)
-    val kernelizedGrad = new AutoregressiveGradient[IndexT](p, VARGrad.apply)
+    val kernelizedLoss = new AutoregressiveLoss[IndexT](p, VARLoss.apply, config)
+    val kernelizedGrad = new AutoregressiveGradient[IndexT](p, VARGrad.apply, config)
 
     val gradSizes = kernelizedGrad.getGradientSize
 
-    GradientDescent.run[RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]](
+    GradientDescent.run[TimeSeries[IndexT, DenseVector[Double]]](
       {case (param, data) => kernelizedLoss.setNewX(param); kernelizedLoss.timeSeriesStats(data)},
       {case (param, data) => kernelizedGrad.setNewX(param); kernelizedGrad.timeSeriesStats(data)},
       gradSizes,

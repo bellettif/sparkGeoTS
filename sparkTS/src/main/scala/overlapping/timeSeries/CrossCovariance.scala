@@ -5,7 +5,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 import scala.reflect.ClassTag
 
@@ -15,13 +15,16 @@ import scala.reflect.ClassTag
 
 object CrossCovariance{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       maxLag: Int,
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
 
-    val estimator = new CrossCovariance[IndexT](maxLag,timeSeries.context.broadcast(mean))
+    val estimator = new CrossCovariance[IndexT](
+      maxLag,
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -36,21 +39,21 @@ The autocovoriance is ordered as follows
 -modelOrder ... 0 ... modelOrder
  */
 
-class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
+class CrossCovariance[IndexT <: TSInstant[IndexT] : ClassTag](
     maxLag: Int,
+    config: VectTSConfig[IndexT],
     bcMean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], Long)]
   with Estimator[IndexT, DenseVector[Double], (Array[DenseMatrix[Double]], DenseMatrix[Double])]{
 
-  val d = config.d
+  val d = config.dim
   val deltaT = config.deltaT
 
-  if(deltaT * maxLag > config.padding){
+  if(deltaT * maxLag > config.bckPadding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
 
-  override def kernelWidth = IntervalSize(deltaT * maxLag, deltaT * maxLag)
+  override def selection = config.selection
 
   override def modelOrder = ModelSize(maxLag, maxLag)
 
@@ -124,7 +127,7 @@ class CrossCovariance[IndexT <: Ordered[IndexT] : ClassTag](
     r._1.map(_ / r._2.toDouble)
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]):
     (Array[DenseMatrix[Double]], DenseMatrix[Double])={
 
     val covarianceMatrices = normalize(

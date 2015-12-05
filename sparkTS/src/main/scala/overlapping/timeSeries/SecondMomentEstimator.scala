@@ -3,7 +3,7 @@ package main.scala.overlapping.timeSeries
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 /**
  * Created by Francois Belletti on 9/23/15.
@@ -15,26 +15,24 @@ object SecondMomentEstimator{
    * Compute the second moment of a Time Series RDD.
    *
    * @param timeSeries Input data.
-   * @param config Configuration of input data.
    * @tparam IndexT Timestamp type.
    * @return Second moment matrix.
    */
-  def apply[IndexT <: Ordered[IndexT]](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
-      (implicit config: TSConfig): DenseMatrix[Double] ={
+  def apply[IndexT <: TSInstant[IndexT]](
+      timeSeries: VectTimeSeries[IndexT]): DenseMatrix[Double] ={
 
-    val estimator = new SecondMomentEstimator[IndexT]()
+    val estimator = new SecondMomentEstimator[IndexT](timeSeries.config)
     estimator.estimate(timeSeries)
 
   }
 
 }
 
-class SecondMomentEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
+class SecondMomentEstimator[IndexT <: TSInstant[IndexT]](config: VectTSConfig[IndexT])
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseMatrix[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseMatrix[Double]]{
 
-  override def zero = (DenseMatrix.zeros[Double](config.d, config.d), 0L)
+  override def zero = (DenseMatrix.zeros[Double](config.dim, config.dim), 0L)
 
   override def kernel(datum: (IndexT,  DenseVector[Double])):  (DenseMatrix[Double], Long) = {
     (datum._2 * datum._2.t, 1L)
@@ -48,7 +46,7 @@ class SecondMomentEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig
     x._1 / x._2.toDouble
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): DenseMatrix[Double] = {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): DenseMatrix[Double] = {
     normalize(timeSeriesStats(timeSeries))
   }
 

@@ -4,7 +4,7 @@ import breeze.linalg.DenseVector
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries.secondOrder.univariate.Procedures.InnovationAlgo
 
 import scala.reflect.ClassTag
@@ -16,26 +16,29 @@ import scala.reflect.ClassTag
 
 object MAModel{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       q: Int,
       mean: Option[DenseVector[Double]] = None)
       (implicit config: TSConfig): Array[SecondOrderSignature] ={
 
-    val estimator = new MAModel[IndexT](q, timeSeries.context.broadcast(mean))
+    val estimator = new MAModel[IndexT](
+      q,
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
 
 }
 
-class MAModel[IndexT <: Ordered[IndexT] : ClassTag](
+class MAModel[IndexT <: TSInstant[IndexT] : ClassTag](
     q: Int,
+    config: VectTSConfig[IndexT],
     mean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
-  extends AutoCovariances[IndexT](q, mean){
+  extends AutoCovariances[IndexT](q, config, mean){
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): Array[SecondOrderSignature]= {
 
     super
       .estimate(timeSeries)

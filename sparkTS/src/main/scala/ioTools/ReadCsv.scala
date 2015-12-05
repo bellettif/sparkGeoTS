@@ -1,6 +1,7 @@
 package main.scala.ioTools
 
 import breeze.linalg.DenseVector
+import main.scala.overlapping.containers.TSInstant
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime

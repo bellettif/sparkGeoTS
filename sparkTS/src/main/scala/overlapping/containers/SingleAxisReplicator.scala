@@ -11,22 +11,25 @@ class
 SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
   (
     val intervals: Array[(IndexT, IndexT)],
-    val signedDistance: (IndexT, IndexT) => Double,
-    val padding: (Double, Double)
+    val selection: (IndexT, IndexT) => Boolean
   )
   extends Replicator[IndexT, ValueT]{
 
-  case class IntervalLocation(intervalIdx: Int, offset: Double, ahead: Double)
-
-  def getIntervalIdx(i: IndexT): Int ={
+  /**
+   * Get the index of the interval the timestamp belongs to.
+   *
+   * @param t Timestamp
+   * @return Index of the interval
+   */
+  def getIntervalIdx(t: IndexT): Int ={
 
     val firstIdx = intervals.apply(0)._1
-    if (i.compareTo(firstIdx) < 0) {
+    if (t.compareTo(firstIdx) < 0) {
       return 0
     }
 
     for(((intervalStart, intervalEnd), intervalIdx)  <- intervals.zipWithIndex) {
-      if ((i.compareTo(intervalStart) >= 0) && (i.compareTo(intervalEnd) <= 0)) {
+      if ((t.compareTo(intervalStart) >= 0) && (t.compareTo(intervalEnd) <= 0)) {
         return intervalIdx
       }
     }
@@ -34,49 +37,25 @@ SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
     intervals.length - 1
   }
 
-  def getIntervalLocation(i: IndexT): IntervalLocation ={
-
-    val (firstIdx, _) = intervals.head
-    if (i.compareTo(firstIdx) < 0) {
-      return IntervalLocation(
-        0,
-        signedDistance(firstIdx, i), // This offset will be negative
-        signedDistance(i, firstIdx))
-    }
-
-    for(((intervalStart, intervalEnd), intervalIdx)  <- intervals.zipWithIndex) {
-      if ((i.compareTo(intervalStart) >= 0) && (i.compareTo(intervalEnd) <= 0)) {
-        return IntervalLocation(
-          intervalIdx,
-          signedDistance(intervalStart, i),
-          signedDistance(i, intervalEnd))
-      }
-    }
-
-    val (_, lastTimestamp) = intervals.last
-    IntervalLocation(
-      intervals.length - 1,
-      signedDistance(lastTimestamp, i),
-      signedDistance(i, lastTimestamp)) // This look ahead will be negative
-
-  }
-
+  /**
+   * Create replicas if need be.
+   *
+   * @param k Original key (generally unique but not necessary)
+   * @param v Original value
+   * @return A sequence of ((origin partition, current partition, k), v)
+   */
   override def replicate(k: IndexT, v: ValueT): Iterator[((Int, Int, IndexT), ValueT)] = {
 
-    val intervalLocation = getIntervalLocation(k)
+    val i = getIntervalIdx(k)
 
-    var result = ((intervalLocation.intervalIdx, intervalLocation.intervalIdx, k), v) :: Nil
+    var result = ((i, i, k), v) :: Nil
 
-    if((intervalLocation.offset <= padding._1) &&
-      (intervalLocation.ahead >= 0.0) &&
-      (intervalLocation.intervalIdx > 0)){
-      result = ((intervalLocation.intervalIdx - 1, intervalLocation.intervalIdx, k), v) :: result
+    if((i > 0) && selection(intervals(i)._1, k)){
+      result = ((i - 1, i, k), v) :: result
     }
 
-    if((intervalLocation.ahead <= padding._2) &&
-      (intervalLocation.offset >= 0.0) &&
-      (intervalLocation.intervalIdx < intervals.size - 1)){
-      result = ((intervalLocation.intervalIdx + 1, intervalLocation.intervalIdx, k), v) :: result
+    if((i < intervals.length - 1) && selection(intervals(i)._2, k)){
+      result = ((i + 1, i, k), v) :: result
     }
 
     result.toIterator

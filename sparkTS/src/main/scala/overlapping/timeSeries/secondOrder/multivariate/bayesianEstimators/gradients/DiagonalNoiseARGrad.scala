@@ -1,6 +1,7 @@
 package main.scala.overlapping.timeSeries.secondOrder.multivariate.bayesianEstimators.gradients
 
 import breeze.linalg.{diag, DenseVector, DenseMatrix}
+import main.scala.overlapping.containers.TSInstant
 import org.apache.spark.broadcast.Broadcast
 
 import main.scala.overlapping.timeSeries._
@@ -8,7 +9,7 @@ import main.scala.overlapping.timeSeries._
 /**
  * Created by Francois Belletti on 9/28/15.
  */
-class DiagonalNoiseARGrad[IndexT <: Ordered[IndexT]](
+class DiagonalNoiseARGrad[IndexT <: TSInstant[IndexT]](
    val sigmaEps: DenseVector[Double],
    val nSamples: Long,
    val mean: Broadcast[DenseVector[Double]])

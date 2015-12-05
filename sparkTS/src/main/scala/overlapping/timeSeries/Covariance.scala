@@ -5,7 +5,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 import scala.reflect.ClassTag
 
@@ -18,12 +18,14 @@ object Covariance{
   /**
    *  Estimator of the instantaneous covariance of the process E[X_t transpose(X_t)].
    */
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
-      mean: Option[DenseVector[Double]] = None)
-    (implicit config: TSConfig): DenseMatrix[Double] ={
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
+      mean: Option[DenseVector[Double]] = None): DenseMatrix[Double] ={
 
-    val estimator = new Covariance[IndexT](timeSeries.context.broadcast(mean))
+    val estimator = new Covariance[IndexT](
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
+
     estimator.estimate(timeSeries)
 
   }
@@ -31,15 +33,15 @@ object Covariance{
 }
 
 
-class Covariance[IndexT <: Ordered[IndexT] : ClassTag](
+class Covariance[IndexT <: TSInstant[IndexT] : ClassTag](
+     config: VectTSConfig[IndexT],
      bcMean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (DenseMatrix[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseMatrix[Double]]{
 
-  val d = config.d
+  val d = config.dim
 
-  override def kernelWidth = IntervalSize(0, 0)
+  override def selection = config.selection
 
   override def modelOrder = ModelSize(0, 0)
 
@@ -58,7 +60,7 @@ class Covariance[IndexT <: Ordered[IndexT] : ClassTag](
     r._1.map(_ / r._2.toDouble)
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]):
     DenseMatrix[Double] ={
 
     normalize(

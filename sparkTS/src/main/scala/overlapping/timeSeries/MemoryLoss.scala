@@ -2,22 +2,23 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import main.scala.overlapping._
+import main.scala.overlapping.containers.{TSInstant, VectTSConfig, TSConfig}
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
-class MemoryLoss[IndexT <: Ordered[IndexT]](
+class MemoryLoss[IndexT <: TSInstant[IndexT]](
   q: Int,
   lossFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])], Array[DenseVector[Double]]) => (Double, Array[DenseVector[Double]]),
+  config: VectTSConfig[IndexT],
   dim: Option[Int] = None)
-  (implicit config: TSConfig)
 extends SecondOrderEssStatMemory[IndexT, DenseVector[Double], Double, Array[DenseVector[Double]]]
 {
 
-  val d = dim.getOrElse(config.d)
+  val d = dim.getOrElse(config.dim)
   val x = Array.fill(q){DenseMatrix.zeros[Double](d, d)}
 
-  def kernelWidth = IntervalSize(1 * config.deltaT, 0)
+  def selection =
 
   def modelOrder = ModelSize(1, 0)
 

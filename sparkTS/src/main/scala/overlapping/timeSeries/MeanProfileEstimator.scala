@@ -2,7 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 import scala.collection.mutable
 
@@ -13,12 +13,12 @@ import scala.collection.mutable
 
 object MeanProfileEstimator{
 
-  def apply[IndexT <: Ordered[IndexT]](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT]](
+      timeSeries: VectTimeSeries[IndexT],
       hashFct: IndexT => Int)
      (implicit config: TSConfig): mutable.HashMap[Int, DenseVector[Double]] = {
 
-    val meanProfileEstimator = new MeanProfileEstimator[IndexT](hashFct)
+    val meanProfileEstimator = new MeanProfileEstimator[IndexT](timeSeries.config, hashFct)
 
     meanProfileEstimator.estimate(timeSeries)
 
@@ -37,9 +37,9 @@ object MeanProfileEstimator{
 }
 
 
-class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
+class MeanProfileEstimator[IndexT <: TSInstant[IndexT]](
+    config: VectTSConfig[IndexT],
     hashFct: IndexT => Int)
-    (implicit config: TSConfig)
   extends FirstOrderEssStat[IndexT, DenseVector[Double], mutable.HashMap[Int, (DenseVector[Double], Long)]]
   with Estimator[IndexT, DenseVector[Double], mutable.HashMap[Int, DenseVector[Double]]]{
 
@@ -58,7 +58,7 @@ class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
   mutable.HashMap[Int, (DenseVector[Double], Long)] = {
 
     for(k <- map2.keySet){
-        map1(k) = merge(map2(k), map1.getOrElse(k, (DenseVector.zeros[Double](config.d), 0L)))
+        map1(k) = merge(map2(k), map1.getOrElse(k, (DenseVector.zeros[Double](config.dim), 0L)))
     }
 
     map1
@@ -69,7 +69,7 @@ class MeanProfileEstimator[IndexT <: Ordered[IndexT]](
     map.map({case (k, (v1, v2)) => (k, v1 / v2.toDouble)})
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): mutable.HashMap[Int, DenseVector[Double]] = {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): mutable.HashMap[Int, DenseVector[Double]] = {
     normalize(timeSeriesStats(timeSeries))
   }
 

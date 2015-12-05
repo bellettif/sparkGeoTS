@@ -2,6 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg._
 import breeze.stats.distributions.Rand
+import main.scala.overlapping.containers.{JodaTSInstant, TSInstant}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
@@ -18,9 +19,9 @@ object Surrogate {
                          noiseGen: Rand[Double],
                          magnitudes: DenseVector[Double],
                          sc: SparkContext):
-  RDD[(TSInstant, DenseVector[Double])] = {
+  RDD[(JodaTSInstant, DenseVector[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)),
+      .map(x => (new JodaTSInstant(new DateTime(x * deltaTMillis)),
                  magnitudes :* DenseVector(noiseGen.sample(nColumns).toArray)))
     sc.parallelize(rawData)
   }
@@ -29,9 +30,9 @@ object Surrogate {
                    nSamples: Int,
                    deltaTMillis: Long,
                    sc: SparkContext):
-  RDD[(TSInstant, DenseVector[Double])] = {
+  RDD[(JodaTSInstant, DenseVector[Double])] = {
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)),
+      .map(x => (new JodaTSInstant(new DateTime(x * deltaTMillis)),
                  DenseVector.ones[Double](nColumns)))
     sc.parallelize(rawData)
   }
@@ -42,7 +43,7 @@ object Surrogate {
                  deltaTMillis: Long,
                  noiseGen: Rand[Double],
                  magnitudes: DenseVector[Double],
-                 sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+                 sc: SparkContext): RDD[(JodaTSInstant, DenseVector[Double])] = {
 
     val d = phis.length
     val p = phis(0).length
@@ -65,7 +66,7 @@ object Surrogate {
                  deltaTMillis: Long,
                  noiseGen: Rand[Double],
                  magnitudes: DenseVector[Double],
-                 sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+                 sc: SparkContext): RDD[(JodaTSInstant, DenseVector[Double])] = {
 
     val d = thetas.length
     val p = thetas(0).length
@@ -89,7 +90,7 @@ object Surrogate {
                    deltaTMillis: Long,
                    noiseGen: Rand[Double],
                    magnitudes: DenseVector[Double],
-                   sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+                   sc: SparkContext): RDD[(JodaTSInstant, DenseVector[Double])] = {
 
 
     val d = thetas.length
@@ -122,7 +123,7 @@ object Surrogate {
                   noiseGen: Rand[Double],
                   magnitudes: DenseVector[Double],
                   sc: SparkContext):
-  RDD[(TSInstant, DenseVector[Double])] = {
+  RDD[(JodaTSInstant, DenseVector[Double])] = {
 
     val p = phis.length
 
@@ -135,7 +136,7 @@ object Surrogate {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
+      .map(x => (new JodaTSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
 
     sc.parallelize(rawData)
   }
@@ -147,7 +148,7 @@ object Surrogate {
                   noiseGen: Rand[Double],
                   magnitudes: DenseVector[Double],
                   sc: SparkContext):
-  RDD[(TSInstant, DenseVector[Double])] = {
+  RDD[(JodaTSInstant, DenseVector[Double])] = {
 
     val q = thetas.length
 
@@ -159,7 +160,7 @@ object Surrogate {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
+      .map(x => (new JodaTSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
 
     sc.parallelize(rawData)
 
@@ -172,7 +173,7 @@ object Surrogate {
                     deltaTMillis: Long,
                     noiseGen: Rand[Double],
                     magnitudes: DenseVector[Double],
-                    sc: SparkContext): RDD[(TSInstant, DenseVector[Double])] = {
+                    sc: SparkContext): RDD[(JodaTSInstant, DenseVector[Double])] = {
 
     val q = thetas.length
     val p = phis.length
@@ -191,7 +192,7 @@ object Surrogate {
     }
 
     val rawData = (0 until nSamples)
-      .map(x => (TSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
+      .map(x => (new JodaTSInstant(new DateTime(x * deltaTMillis)), noiseMatrix(::, x).copy))
 
     sc.parallelize(rawData)
 

@@ -4,7 +4,7 @@ import breeze.linalg._
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.{InnovationAlgoMulti, ToeplitzMulti}
 
 import scala.reflect.ClassTag
@@ -14,14 +14,13 @@ import scala.reflect.ClassTag
  */
 object VARMAModel{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       p: Int,
       q: Int,
-      mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+      mean: Option[DenseVector[Double]] = None): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    val estimator = new VARMAModel[IndexT](p, q, timeSeries.context.broadcast(mean))
+    val estimator = new VARMAModel[IndexT](p, q, timeSeries.config, timeSeries.content.context.broadcast(mean))
     estimator.estimate(timeSeries)
 
   }
@@ -29,16 +28,13 @@ object VARMAModel{
 }
 
 
-class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
+class VARMAModel[IndexT <: TSInstant[IndexT] : ClassTag](
     p: Int,
     q: Int,
+    config: VectTSConfig[IndexT],
     mean: Broadcast[Option[DenseVector[Double]]])
-  (implicit config: TSConfig)
-  extends CrossCovariance[IndexT](p + q, mean){
+  extends CrossCovariance[IndexT](p + q, config, mean){
 
-  /*
-  Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
-   */
   def getMACoefs(psiCoeffs: Array[DenseMatrix[Double]], coeffsAR: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] ={
 
     val d = psiCoeffs(0).rows
@@ -80,7 +76,7 @@ class VARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
     computeARMACoeffs(super.estimate(timeSeries)._1)
 

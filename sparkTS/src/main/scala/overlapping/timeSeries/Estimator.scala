@@ -1,8 +1,6 @@
 package main.scala.overlapping.timeSeries
 
-import breeze.linalg.DenseVector
-import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers.TimeSeries
 
 /**
  * Created by Francois Belletti on 9/24/15.
@@ -10,6 +8,6 @@ import main.scala.overlapping.containers.SingleAxisBlock
 trait Estimator[IndexT <: Ordered[IndexT], ValueT, EstimateT]
   extends Serializable{
 
-  def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): EstimateT
+  def estimate(timeSeries: TimeSeries[IndexT, ValueT]): EstimateT
 
 }

@@ -1,13 +1,13 @@
 package main.scala.overlapping.timeSeries.secondOrder.multivariate.lossFunctions
 
 import breeze.linalg.{diag, DenseVector, DenseMatrix}
+import main.scala.overlapping.containers.TSInstant
 import org.apache.spark.broadcast.Broadcast
-import main.scala.overlapping.timeSeries.TSInstant
 
 /**
  * Created by Francois Belletti on 9/28/15.
  */
-class DiagonalNoiseARLoss[IndexT <: Ordered[IndexT]](
+class DiagonalNoiseARLoss[IndexT <: TSInstant[IndexT]](
    val sigmaEps: DenseVector[Double],
    val nSamples: Long,
    val mean: Broadcast[DenseVector[Double]])

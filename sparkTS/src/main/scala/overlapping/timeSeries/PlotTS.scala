@@ -3,15 +3,15 @@ package main.scala.overlapping.timeSeries
 import breeze.linalg.{DenseMatrix, min, DenseVector}
 import breeze.plot._
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers.{TSInstant, TSConfig, SingleAxisBlock}
 
 /**
  * Created by Francois Belletti on 10/28/15.
  */
 object PlotTS {
 
-  def apply(
-      timeSeries: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])],
+  def apply[DistanceT](
+      timeSeries: RDD[(Int, SingleAxisBlock[DistanceT, TSInstant, DenseVector[Double]])],
       title: Option[String] = None,
       selectSensors: Option[Array[Int]] = None,
       saveToFile: Option[String] = None)

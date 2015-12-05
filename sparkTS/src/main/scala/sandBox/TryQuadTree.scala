@@ -7,11 +7,13 @@ package main.scala.sandBox
 import breeze.linalg._
 import breeze.plot._
 import main.scala.ioTools.ReadCsv
+import main.scala.overlapping.containers.TSInstant
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import main.scala.overlapping._
 import main.scala.overlapping.spatial.QuadTree
 import main.scala.overlapping.timeSeries._
+import org.apache.spark.SparkContext._
 
 object TryQuadTree {
 

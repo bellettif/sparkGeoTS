@@ -5,7 +5,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 import scala.reflect.ClassTag
 
@@ -14,33 +14,36 @@ import scala.reflect.ClassTag
  */
 object ARPredictor{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       matrices: Array[DenseVector[Double]],
-      mean: Option[DenseVector[Double]])
-      (implicit config: TSConfig): RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])] = {
+      mean: Option[DenseVector[Double]]): TimeSeries[IndexT, DenseVector[Double]] = {
 
-    val predictor = new ARPredictor[IndexT](timeSeries.context.broadcast(matrices), timeSeries.context.broadcast(mean))
+    val predictor = new ARPredictor[IndexT](
+      timeSeries.config,
+      timeSeries.content.context.broadcast(matrices),
+      timeSeries.content.context.broadcast(mean))
+
     predictor.estimateResiduals(timeSeries)
 
   }
 
 }
 
-class ARPredictor[IndexT <: Ordered[IndexT] : ClassTag](
+class ARPredictor[IndexT <: TSInstant[IndexT] : ClassTag](
+    config: VectTSConfig[IndexT],
     bcMatrices: Broadcast[Array[DenseVector[Double]]],
     bcMean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
   extends Predictor[IndexT]{
 
   val p = bcMatrices.value(0).length
-  val deltaT = config.deltaT
+
   val d = bcMatrices.value.length
-  if(d != config.d){
+  if(d != config.dim){
     throw new IndexOutOfBoundsException("AR matrix dimensions and time series dimension not compatible.")
   }
 
-  def size: Array[IntervalSize] = Array(IntervalSize(p * deltaT, 0))
+  def selection = config.selection
 
   override def predictKernel(data: Array[(IndexT, DenseVector[Double])]): DenseVector[Double] = {
 

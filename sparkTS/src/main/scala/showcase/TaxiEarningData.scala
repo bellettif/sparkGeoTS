@@ -11,6 +11,7 @@ import main.scala.ioTools.ReadCsv
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkContext._
 
 import main.scala.overlapping._
 import containers._

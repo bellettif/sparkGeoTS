@@ -1,19 +1,16 @@
 package main.scala.overlapping.timeSeries
 
-import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
-import main.scala.overlapping.{IntervalSize, _}
-
+import main.scala.overlapping.containers.{TSInstant, TimeSeries}
 import scala.reflect.ClassTag
 
 
 /**
  * Created by Francois Belletti on 7/10/15.
  */
-abstract class SecondOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: ClassTag]
+abstract class SecondOrderEssStat[IndexT <: TSInstant[IndexT], ValueT, ResultT: ClassTag]
   extends Serializable{
 
-  def kernelWidth: IntervalSize
+  def selection: (IndexT, IndexT) => Boolean
 
   def modelOrder: ModelSize
 
@@ -25,10 +22,10 @@ abstract class SecondOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: Cl
 
   def reducer(r1: ResultT, r2: ResultT): ResultT
 
-  def timeSeriesStats(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]): ResultT = {
+  def timeSeriesStats(timeSeries: TimeSeries[IndexT, ValueT]): ResultT = {
 
-    timeSeries
-      .mapValues(_.slidingFold(Array(kernelWidth))(kernel, zero, reducer))
+    timeSeries.content
+      .mapValues(_.slidingFold(selection)(kernel, zero, reducer))
       .map(_._2)
       .fold(zero)(reducer)
 

@@ -2,8 +2,8 @@ package main.scala.overlapping
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
-import main.scala.overlapping.timeSeries.TSInstant
+import main.scala.overlapping.containers.{TSInstant, SingleAxisBlock}
+import org.apache.spark.SparkContext._
 
 import scala.reflect.ClassTag
 
@@ -63,6 +63,7 @@ object Utils {
     )
 
   }
+
 
 }
 

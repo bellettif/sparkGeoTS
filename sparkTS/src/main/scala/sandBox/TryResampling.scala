@@ -6,6 +6,7 @@ package main.scala.sandBox
 
 import breeze.linalg._
 import breeze.stats.distributions.Gaussian
+import main.scala.overlapping.containers.{TSInstant, TSConfig}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 

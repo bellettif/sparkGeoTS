@@ -2,7 +2,7 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 /**
  * Created by Francois Belletti on 9/23/15.
@@ -18,11 +18,11 @@ object MeanEstimator{
    * @tparam IndexT Timestamp type.
    * @return Dimension-wise mean.
    */
-  def apply[IndexT <: Ordered[IndexT]](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])])
+  def apply[IndexT <: TSInstant[IndexT]](
+      timeSeries: VectTimeSeries[IndexT])
       (implicit config: TSConfig): DenseVector[Double] ={
 
-    val estimator = new MeanEstimator[IndexT]()
+    val estimator = new MeanEstimator[IndexT](timeSeries.config)
     estimator.estimate(timeSeries)
 
   }
@@ -35,11 +35,11 @@ object MeanEstimator{
  * @param config Configuration of the data.
  * @tparam IndexT Timestamp type.
  */
-class MeanEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
+class MeanEstimator[IndexT <: TSInstant[IndexT]](config: VectTSConfig[IndexT])
   extends FirstOrderEssStat[IndexT, DenseVector[Double], (DenseVector[Double], Long)]
   with Estimator[IndexT, DenseVector[Double], DenseVector[Double]]{
 
-  override def zero = (DenseVector.zeros[Double](config.d), 0L)
+  override def zero = (DenseVector.zeros[Double](config.dim), 0L)
 
   override def kernel(datum: (IndexT,  DenseVector[Double])):  (DenseVector[Double], Long) = {
     (datum._2, 1L)
@@ -53,7 +53,7 @@ class MeanEstimator[IndexT <: Ordered[IndexT]](implicit config: TSConfig)
     x._1 / x._2.toDouble
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): DenseVector[Double] = {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): DenseVector[Double] = {
     normalize(timeSeriesStats(timeSeries))
   }
 

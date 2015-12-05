@@ -1,11 +1,8 @@
 package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseVector, reverse}
-import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
-import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 
 import scala.reflect.ClassTag
 
@@ -14,13 +11,16 @@ import scala.reflect.ClassTag
  */
 object AutoCovariances {
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       maxLag: Int,
-      mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig): Array[SecondOrderSignature] = {
+      mean: Option[DenseVector[Double]] = None): Array[SecondOrderSignature] = {
 
-    val estimator  = new AutoCovariances[IndexT](maxLag, timeSeries.context.broadcast(mean))
+    val estimator = new AutoCovariances[IndexT](
+      maxLag,
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
+
     estimator.estimate(timeSeries)
 
   }
@@ -28,27 +28,27 @@ object AutoCovariances {
 }
 
 
-class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
+class AutoCovariances[IndexT <: TSInstant[IndexT] : ClassTag](
     maxLag: Int,
+    config: VectTSConfig[IndexT],
     bcMean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
   extends SecondOrderEssStat[IndexT, DenseVector[Double], (Array[SecondOrderSignature], Long)]
   with Estimator[IndexT, DenseVector[Double], Array[SecondOrderSignature]]
 {
 
+  val d = config.dim
+
   val deltaT = config.deltaT
 
-  if(deltaT * maxLag > config.padding){
+  if(deltaT * maxLag > config.bckPadding){
     throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
   }
 
-  val d = config.d
+  override def selection = config.selection
 
-  def kernelWidth = IntervalSize(deltaT * maxLag, 0)
+  override def modelOrder = ModelSize(maxLag, 0)
 
-  def modelOrder = ModelSize(maxLag, 0)
-
-  def zero = (Array.fill(d){SecondOrderSignature(DenseVector.zeros[Double](modelWidth), 0.0)}, 0L)
+  override def zero = (Array.fill(d){SecondOrderSignature(DenseVector.zeros[Double](modelWidth), 0.0)}, 0L)
 
   override def kernel(slice: Array[(IndexT, DenseVector[Double])]): (Array[SecondOrderSignature], Long) = {
 
@@ -58,7 +58,7 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
     val meanValue = bcMean.value.getOrElse(DenseVector.zeros[Double](d))
 
     /*
-    The slice is not full size, it shall not be considered in order to avoid redundant computations
+    The slice is not full size, this can happen at the very beginning of the data set.
      */
     if(slice.length != modelWidth){
       return (Array.fill(d){SecondOrderSignature(DenseVector.zeros[Double](modelWidth), 0.0)}, 0L)
@@ -82,12 +82,13 @@ class AutoCovariances[IndexT <: Ordered[IndexT] : ClassTag](
   override def reducer(x: (Array[SecondOrderSignature], Long), y: (Array[SecondOrderSignature], Long)):
     (Array[SecondOrderSignature], Long) = {
 
-    (x._1.zip(y._1).map({case (SecondOrderSignature(cov1, v1), SecondOrderSignature(cov2, v2)) => SecondOrderSignature(cov1 + cov2, v1 + v2)}), x._2 + y._2)
+    (x._1.zip(y._1).map({case (SecondOrderSignature(cov1, v1), SecondOrderSignature(cov2, v2)) =>
+      SecondOrderSignature(cov1 + cov2, v1 + v2)}), x._2 + y._2)
 
   }
 
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]):
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]):
     Array[SecondOrderSignature] = {
 
     val (covSigns: Array[SecondOrderSignature], nSamples: Long) = timeSeriesStats(timeSeries)

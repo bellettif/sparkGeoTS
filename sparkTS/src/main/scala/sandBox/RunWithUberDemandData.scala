@@ -12,7 +12,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import main.scala.overlapping._
-import main.scala.overlapping.timeSeries.TSInstant
+import main.scala.overlapping.containers.TSInstant
 
 import scala.math.Ordering
 

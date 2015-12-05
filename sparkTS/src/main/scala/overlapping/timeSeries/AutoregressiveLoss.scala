@@ -1,23 +1,25 @@
 package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
-import main.scala.overlapping._
+import main.scala.overlapping.containers.{TSInstant, VectTSConfig}
+
+import scala.reflect.ClassTag
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
-class AutoregressiveLoss[IndexT <: Ordered[IndexT]](
+class AutoregressiveLoss[IndexT <: TSInstant[IndexT] : ClassTag](
   p: Int,
   lossFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])]) => Double,
+  config: VectTSConfig[IndexT],
   dim: Option[Int] = None)
-  (implicit config: TSConfig)
 extends SecondOrderEssStat[IndexT, DenseVector[Double], Double]
 {
 
-  val d = dim.getOrElse(config.d)
+  val d = dim.getOrElse(config.dim)
   val x = Array.fill(p){DenseMatrix.zeros[Double](d, d)}
 
-  def kernelWidth = IntervalSize(p * config.deltaT, 0)
+  override def selection = config.selection
 
   def modelOrder = ModelSize(p, 0)
 

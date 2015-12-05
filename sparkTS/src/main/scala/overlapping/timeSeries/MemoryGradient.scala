@@ -2,28 +2,29 @@ package main.scala.overlapping.timeSeries
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import main.scala.overlapping._
+import main.scala.overlapping.containers.{VectTSConfig, TSInstant, TSConfig}
 
 /**
  * Created by Francois Belletti on 9/24/15.
  */
-class MemoryGradient[IndexT <: Ordered[IndexT]](
+class MemoryGradient[IndexT <: TSInstant[IndexT]](
     q: Int,
     gradientFunction: (Array[DenseMatrix[Double]], Array[(IndexT, DenseVector[Double])], Array[DenseVector[Double]]) => (Array[DenseMatrix[Double]], Array[DenseVector[Double]]),
+    config: VectTSConfig[IndexT],
     dim: Option[Int] = None)
-    (implicit config: TSConfig)
 extends SecondOrderEssStatMemory[IndexT, DenseVector[Double], Array[DenseMatrix[Double]], Array[DenseVector[Double]]]
 {
 
-  val d = dim.getOrElse(config.d)
+  val d = dim.getOrElse(config.dim)
   val x = Array.fill(q){DenseMatrix.zeros[Double](d, d)}
 
   val gradientSizes = x.map(y => (y.rows, y.cols))
 
-  def kernelWidth = IntervalSize(0, 0)
+  override def selection = config.selection
 
-  def modelOrder = ModelSize(0, 0)
+  override def modelOrder = ModelSize(0, 0)
 
-  def zero = gradientSizes.map({case (nRows, nCols) => DenseMatrix.zeros[Double](nRows, nCols)})
+  override def zero = gradientSizes.map({case (nRows, nCols) => DenseMatrix.zeros[Double](nRows, nCols)})
 
   def init = Array.fill(q){DenseVector.zeros[Double](d)}
 

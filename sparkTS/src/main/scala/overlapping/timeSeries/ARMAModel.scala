@@ -1,10 +1,8 @@
 package main.scala.overlapping.timeSeries
 
 import breeze.linalg._
-import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers.{TimeSeries, VectTSConfig, TSInstant, VectTimeSeries}
 import main.scala.overlapping.timeSeries.secondOrder.univariate.Procedures.{InnovationAlgo, Toeplitz}
 
 import scala.reflect.ClassTag
@@ -15,30 +13,30 @@ import scala.reflect.ClassTag
  */
 object ARMAModel{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       p: Int,
       q: Int,
-      mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig): Array[SecondOrderSignature] = {
+      mean: Option[DenseVector[Double]] = None): Array[SecondOrderSignature] = {
 
-    val estimator = new ARMAModel[IndexT](p, q, timeSeries.context.broadcast(mean))
+    val estimator = new ARMAModel[IndexT](
+      p, q,
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
+
     estimator.estimate(timeSeries)
 
   }
 
 }
 
-class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
+class ARMAModel[IndexT <: TSInstant[IndexT] : ClassTag](
     p: Int,
     q: Int,
+    config: VectTSConfig[IndexT],
     mean: Broadcast[Option[DenseVector[Double]]])
-   (implicit config: TSConfig)
-  extends AutoCovariances[IndexT](p + q, mean){
+  extends AutoCovariances[IndexT](p + q, config, mean){
 
-  /*
-  Check out Brockwell, Davis, Time Series: Theory and Methods, 1987 (p 243)
-   */
   def getMACoefs(psiCoeffs: DenseVector[Double], aCoeffs: DenseVector[Double]): DenseVector[Double] ={
 
     val MACoefs = DenseVector.zeros[Double](q)
@@ -76,9 +74,9 @@ class ARMAModel[IndexT <: Ordered[IndexT] : ClassTag](
 
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): Array[SecondOrderSignature]= {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): Array[SecondOrderSignature]= {
 
-    super
+      super
       .estimate(timeSeries)
       .map(computeARMACoeffs)
 

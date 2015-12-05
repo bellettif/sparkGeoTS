@@ -3,7 +3,7 @@ package test.scala
 import breeze.linalg._
 import breeze.numerics._
 import breeze.stats.distributions.Gaussian
-import main.scala.overlapping.containers.{SingleAxisBlock, SingleAxisBlockRDD}
+import main.scala.overlapping.containers.{TSInstant, TSConfig, SingleAxisBlock, SingleAxisBlockRDD}
 import main.scala.overlapping.timeSeries._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}

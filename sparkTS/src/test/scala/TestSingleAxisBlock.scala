@@ -6,10 +6,10 @@ package test.scala
 
 import breeze.linalg.{DenseVector, sum}
 import breeze.stats.distributions.Uniform
-import main.scala.overlapping.IntervalSize
 import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries._
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkContext._
 import org.joda.time.DateTime
 import org.scalatest.{FlatSpec, Matchers}
 

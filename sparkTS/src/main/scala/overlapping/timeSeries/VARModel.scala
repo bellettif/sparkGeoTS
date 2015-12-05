@@ -4,7 +4,7 @@ import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping.containers.SingleAxisBlock
+import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries.secondOrder.multivariate.frequentistEstimators.procedures.ToeplitzMulti
 
 import scala.reflect.ClassTag
@@ -14,24 +14,27 @@ import scala.reflect.ClassTag
  */
 object VARModel{
 
-  def apply[IndexT <: Ordered[IndexT] : ClassTag](
-      timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])],
+  def apply[IndexT <: TSInstant[IndexT] : ClassTag](
+      timeSeries: VectTimeSeries[IndexT],
       p: Int,
-      mean: Option[DenseVector[Double]] = None)
-      (implicit config: TSConfig): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
+      mean: Option[DenseVector[Double]] = None): (Array[DenseMatrix[Double]], DenseMatrix[Double]) = {
 
-    val estimator = new VARModel[IndexT](p, timeSeries.context.broadcast(mean))
+    val estimator = new VARModel[IndexT](
+      p,
+      timeSeries.config,
+      timeSeries.content.context.broadcast(mean))
+
     estimator.estimate(timeSeries)
 
   }
 
 }
 
-class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
+class VARModel[IndexT <: TSInstant[IndexT] : ClassTag](
     p: Int,
+    config: VectTSConfig[IndexT],
     mean: Broadcast[Option[DenseVector[Double]]])
-    (implicit config: TSConfig)
-  extends CrossCovariance[IndexT](p, mean){
+  extends CrossCovariance[IndexT](p, config, mean){
 
   def estimateVARMatrices(crossCovMatrices: Array[DenseMatrix[Double]], covMatrix: DenseMatrix[Double]): (Array[DenseMatrix[Double]], DenseMatrix[Double]) ={
     val nCols = covMatrix.rows
@@ -50,7 +53,7 @@ class VARModel[IndexT <: Ordered[IndexT] : ClassTag](
     (coeffMatrices, noiseVariance)
   }
 
-  override def estimate(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, DenseVector[Double]])]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {
+  override def estimate(timeSeries: TimeSeries[IndexT, DenseVector[Double]]): (Array[DenseMatrix[Double]], DenseMatrix[Double])= {
 
     val (crossCovMatrices, covMatrix) = super.estimate(timeSeries)
     estimateVARMatrices(crossCovMatrices, covMatrix)

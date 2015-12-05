@@ -1,8 +1,8 @@
 package main.scala.overlapping.timeSeries
 
 import org.apache.spark.rdd.RDD
-import main.scala.overlapping._
-import main.scala.overlapping.containers.SingleAxisBlock
+import org.apache.spark.SparkContext._
+import main.scala.overlapping.containers.{TimeSeries, SingleAxisBlock}
 
 import scala.reflect.ClassTag
 
@@ -19,9 +19,9 @@ abstract class FirstOrderEssStat[IndexT <: Ordered[IndexT], ValueT, ResultT: Cla
 
   def reducer(r1: ResultT, r2: ResultT): ResultT
 
-  def timeSeriesStats(timeSeries: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]): ResultT = {
+  def timeSeriesStats(timeSeries: TimeSeries[IndexT, ValueT]): ResultT = {
 
-    timeSeries
+    timeSeries.content
       .mapValues(_.fold(zero)({case (x, y) => kernel(x, y)}, reducer))
       .map(_._2)
       .fold(zero)(reducer)
