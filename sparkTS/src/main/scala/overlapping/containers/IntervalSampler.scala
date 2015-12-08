@@ -27,7 +27,7 @@ object IntervalSampler{
    * @param withReplacement Sample with or without replacement
    * @return An array of intervals (begin, end)
    */
-  def sampleAndComputeIntervals[IndexT <: Ordered[IndexT]: ClassTag, ValueT: ClassTag](
+  def apply[IndexT : Ordering : ClassTag, ValueT: ClassTag](
       nIntervals: Int,
       sampleSize: Int,
       sourceRDD: RDD[(IndexT, ValueT)],
@@ -38,16 +38,17 @@ object IntervalSampler{
 
     val stride = sampleSize / nIntervals
 
-    val sortedKeys: Array[IndexT]  = sourceRDD
+    val sortedKeys = sourceRDD
       .sample(withReplacement, fraction)
       .map(_._1)
-      .sortBy(x => x)
+      .sortBy({case x : IndexT => x})
       .collect()
       .sliding(1, stride)
       .map(_.head)
       .toArray
 
     sortedKeys.zip(sortedKeys.drop(1))
+
   }
 
 }

@@ -6,19 +6,14 @@ package main.scala.sandBox
 
 import breeze.linalg._
 import breeze.numerics.abs
-import breeze.plot.{Figure, image}
 import breeze.stats.distributions.Gaussian
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import main.scala.overlapping._
 import main.scala.overlapping.containers._
 import main.scala.overlapping.timeSeries._
+import org.joda.time.DateTime
 
 object BayesianARp {
-
-  implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
-
-  implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
   def main(args: Array[String]): Unit = {
 
@@ -28,7 +23,11 @@ object BayesianARp {
     val deltaTMillis = 1L
     val nPartitions = 8
 
-    implicit val config = TSConfig(deltaTMillis, d, N, paddingMillis.toDouble)
+    val config = new TSConfig(
+      N,
+      new JodaTSInstant(new DateTime(deltaTMillis)),
+      new JodaTSInstant(new DateTime(paddingMillis)),
+      new JodaTSInstant(new DateTime(0L)))
 
     val conf = new SparkConf().setAppName("Counter").setMaster("local[*]")
     implicit val sc = new SparkContext(conf)
@@ -60,7 +59,7 @@ object BayesianARp {
 
     val noiseMagnitudes = DenseVector.ones[Double](d)
 
-    val rawTS = Surrogate.generateVAR(
+    val rawTS: RDD[(JodaTSInstant, DenseVector[Double])] = Surrogate.generateVAR(
       ARCoeffs,
       d,
       N.toInt,
@@ -69,8 +68,7 @@ object BayesianARp {
       noiseMagnitudes,
       sc)
 
-    val (overlappingRDD: RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])], _) =
-      SingleAxisBlockRDD((paddingMillis, paddingMillis), nPartitions, rawTS)
+    val (timeSeries: VectTimeSeries[DateTime], _) = TimeSeries(config, nPartitions, rawTS)
 
     overlappingRDD.persist()
 

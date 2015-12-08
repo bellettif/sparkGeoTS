@@ -3,7 +3,6 @@ package main.scala.overlapping.containers
 import main.scala.overlapping.CompleteLocation
 
 import scala.reflect.ClassTag
-import scala.util.Random
 
 
 object SingleAxisBlock{
@@ -17,13 +16,13 @@ object SingleAxisBlock{
    * @tparam ValueT Type of values in the overlapping block.
    * @return A single axis overlapping block.
    */
-  def apply[IndexT <: Ordered[IndexT], ValueT: ClassTag]
+  def apply[IndexT : TSInstant : ClassTag, ValueT: ClassTag]
     (rawData: Array[((Int, Int, IndexT), ValueT)]): SingleAxisBlock[IndexT, ValueT] ={
 
-    val sortedData: Array[((Int, Int, IndexT), ValueT)] = rawData
+    val sortedData = rawData
       .sortBy(_._1._3)
 
-    val data: Array[(IndexT, ValueT)] = sortedData
+    val data = sortedData
       .map({case (k, v) => (k._3, v)})
 
     val locations: Array[CompleteLocation[IndexT]] = sortedData
@@ -36,7 +35,7 @@ object SingleAxisBlock{
 }
 
 
-class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
+class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
     val data: Array[(IndexT, ValueT)],
     val locations: Array[CompleteLocation[IndexT]])
   extends OverlappingBlock[IndexT, ValueT]{
@@ -345,9 +344,16 @@ class SingleAxisBlock[IndexT <: Ordered[IndexT], ValueT: ClassTag](
    * @param f Reduction operator.
    * @return Result of the overall reduction.
    */
-  override def reduce(f: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT)): (IndexT, ValueT) = {
+  override def reduce(
+      f: ((IndexT, ValueT), (IndexT, ValueT)) => (IndexT, ValueT),
+      filter: Option[(IndexT, ValueT) => Boolean] = None): (IndexT, ValueT) = {
 
-    data.slice(firstValidIndex, lastValidIndex + 1).reduce(f)
+    if(filter.isEmpty) {
+      data.slice(firstValidIndex, lastValidIndex + 1).reduce(f)
+    }else{
+      val filter_ = filter.get.tupled
+      data.slice(firstValidIndex, lastValidIndex + 1).filter(filter_).reduce(f)
+    }
 
   }
 

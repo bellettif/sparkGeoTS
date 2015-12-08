@@ -13,24 +13,43 @@ import scala.reflect.ClassTag
 
 object Utils {
 
-  def resample[T: ClassTag, V: ClassTag](
-      in: RDD[(TSInstant, V)],
-      hasher: TSInstant => TSInstant,
-      preMap: ((TSInstant, V)) => (TSInstant, T),
+  /**
+   * Generic quantization with post-processing operation. Buckets are determined by a hash function.
+   *
+   * @param in Input data.
+   * @param hasher Function that designs the buckets.
+   * @param reducer Reducing function to aggregate elements belonging in the same hash bucket.
+   * @param postReduce Function to apply to reduced results.
+   * @tparam IndexT Type of timestamps.
+   * @return Another (k, v) RDD where keys are timestamps.
+   */
+  def resample[IndexT: ClassTag, T: ClassTag, V: ClassTag](
+      in: RDD[(IndexT, V)],
+      hasher: IndexT => IndexT,
+      preMap: ((IndexT, V)) => (IndexT, T),
       reducer: (T, T) => T,
-      postReduce: ((TSInstant, T)) => (TSInstant, V)): RDD[(TSInstant, V)] = {
+      postReduce: ((IndexT, T)) => (IndexT, V)): RDD[(IndexT, V)] = {
 
     in
-      .map({case (t, v) => preMap(hasher(t), v)})
+      .map({case (t: IndexT, v) => preMap(hasher(t), v)})
       .reduceByKey(reducer)
       .map(postReduce)
 
   }
 
-  def resample[V: ClassTag](
-      in: RDD[(TSInstant, V)],
-      hasher: TSInstant => TSInstant,
-      reducer: (V, V) => V): RDD[(TSInstant, V)] = {
+  /**
+   * Generic quantization. Buckets are determined by a hash function.
+   *
+   * @param in Input data.
+   * @param hasher Function that designs the buckets.
+   * @param reducer Reducing function to aggregate elements belonging in the same hash bucket.
+   * @tparam IndexT Type of timestamps.
+   * @return Another (k, v) RDD where keys are timestamps.
+   */
+  def resample[IndexT: ClassTag, V: ClassTag](
+      in: RDD[(IndexT, V)],
+      hasher: IndexT => IndexT,
+      reducer: (V, V) => V): RDD[(IndexT, V)] = {
 
     in
       .map({case (t, v) => (hasher(t), v)})
@@ -38,11 +57,19 @@ object Utils {
 
   }
 
-  def sumResample(
-      in: RDD[(TSInstant, DenseVector[Double])],
-      hasher: TSInstant => TSInstant): RDD[(TSInstant, DenseVector[Double])] = {
+  /**
+   * Summation based quantization. Buckets are determined by a hash function.
+   *
+   * @param in Input data.
+   * @param hasher Function that designs the buckets.
+   * @tparam IndexT Type of timestamps.
+   * @return Another (k, v) RDD where keys are timestamps.
+   */
+  def sumResample[IndexT: ClassTag](
+      in: RDD[(IndexT, DenseVector[Double])],
+      hasher: IndexT => IndexT): RDD[(IndexT, DenseVector[Double])] = {
 
-    resample[DenseVector[Double]](
+    resample[IndexT, DenseVector[Double]](
       in,
       hasher,
       _ + _
@@ -50,32 +77,27 @@ object Utils {
 
   }
 
-  def meanResample(
-      in: RDD[(TSInstant, DenseVector[Double])],
-      hasher: TSInstant => TSInstant): RDD[(TSInstant, DenseVector[Double])] = {
+  /**
+   * Average based quantization. Buckets are determined by a hash function.
+   *
+   * @param in Input data.
+   * @param hasher Function that designs the buckets.
+   * @tparam IndexT Type of timestamps.
+   * @return Another (k, v) RDD where keys are timestamps.
+   */
+  def meanResample[IndexT: ClassTag](
+      in: RDD[(IndexT, DenseVector[Double])],
+      hasher: IndexT => IndexT): RDD[(IndexT, DenseVector[Double])] = {
 
-    resample[(DenseVector[Double], Long), DenseVector[Double]](
+    resample[IndexT, (DenseVector[Double], Long), DenseVector[Double]](
       in,
       hasher,
-      {case (t: TSInstant, v: DenseVector[Double]) => (t, (v, 1L))},
+      {case (t: IndexT, v: DenseVector[Double]) => (t, (v, 1L))},
       {case ((v1: DenseVector[Double], c1: Long), (v2: DenseVector[Double], c2: Long)) => (v1 + v2, c1 + c2)},
-      {case (t: TSInstant, (v: DenseVector[Double], c: Long)) => (t, v / c.toDouble)}
+      {case (t: IndexT, (v: DenseVector[Double], c: Long)) => (t, v / c.toDouble)}
     )
 
   }
 
-
-}
-
-
-class Utils {
-
-  type RawTS = RDD[(TSInstant, DenseVector[Double])]
-
-  type OverlappingTS = RDD[(Int, SingleAxisBlock[TSInstant, DenseVector[Double]])]
-
-  implicit def signedDistMillis = (t1: TSInstant, t2: TSInstant) => (t2.timestamp.getMillis - t1.timestamp.getMillis).toDouble
-
-  implicit def signedDistLong = (t1: Long, t2: Long) => (t2 - t1).toDouble
 
 }

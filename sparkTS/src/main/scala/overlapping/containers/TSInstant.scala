@@ -2,55 +2,35 @@ package main.scala.overlapping.containers
 
 import org.joda.time.DateTime
 
-/**
- * Ordered timestamps.
- */
-abstract class TSInstant[IndexT](val timestamp: IndexT) extends Ordered[TSInstant[IndexT]]{
 
-  def millisTo(that: TSInstant[IndexT]): Long
+abstract class TSInstant[T] extends Ordering[T] with Serializable{
 
-  def -(that: TSInstant[IndexT]): TSInstant[IndexT]
+  def timeBtw(start: T, end: T): T
 
-  def *(that: Int): TSInstant[IndexT]
+  def times(x: T, m: Int): T
 
 }
 
-class LongTSInstant(override val timestamp: Long) extends TSInstant[Long](timestamp){
+object TSInstant{
 
-  override def compare(that: TSInstant[Long]): Int = {
-    this.timestamp.compareTo(that.timestamp)
+  implicit object LongTSInstant extends TSInstant[Long] {
+
+    def compare(x: Long, y: Long): Int = x.compareTo(y)
+
+    def timeBtw(start: Long, end: Long): Long = end - start
+
+    def times(x: Long, m: Int): Long = x * m
+
   }
 
-  def millisTo(that: TSInstant[Long]): Long = {
-    that.timestamp - timestamp
-  }
+  implicit object JodaTSInstant extends TSInstant[DateTime] {
 
-  def-(that: TSInstant[Long]): TSInstant[Long] = {
-    new LongTSInstant(timestamp - that.timestamp)
-  }
+    def compare(x: DateTime, y: DateTime): Int = x.compareTo(y)
 
-  def*(that: Int): TSInstant[Long] = {
-    new LongTSInstant(timestamp * that)
-  }
+    def timeBtw(start: DateTime, end: DateTime): DateTime = new DateTime(end.getMillis - start.getMillis)
 
-}
+    def times(x: DateTime, m: Int): DateTime = new DateTime(x.getMillis * m)
 
-class JodaTSInstant(override val timestamp: DateTime) extends TSInstant[DateTime](timestamp){
-
-  override def compare(that: TSInstant[DateTime]): Int = {
-    this.timestamp.compareTo(that.timestamp)
-  }
-
-  def millisTo(that: TSInstant[DateTime]): Long = {
-    that.timestamp.getMillis - timestamp.getMillis
-  }
-
-  def-(that: TSInstant[DateTime]): TSInstant[DateTime] = {
-    new JodaTSInstant(new DateTime(timestamp.getMillis - that.timestamp.getMillis))
-  }
-
-  def*(that: Int): TSInstant[DateTime] = {
-    new JodaTSInstant(new DateTime(timestamp.getMillis * that))
   }
 
 }

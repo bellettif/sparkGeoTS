@@ -9,7 +9,7 @@ import scala.reflect.ClassTag
  *  The distributed representation of data will be based on a key, value RDD of
  *  (int, OverlappingBlock) where the key is the index of the partition.
  */
-trait OverlappingBlock[KeyT <: Ordered[KeyT], ValueT] extends Serializable{
+abstract class OverlappingBlock[KeyT : Ordering, ValueT] extends Serializable{
 
   /**
    * Raw data.
@@ -92,7 +92,9 @@ trait OverlappingBlock[KeyT <: Ordered[KeyT], ValueT] extends Serializable{
    * @param f Reduction operator.
    * @return Result of the overall reduction.
    */
-  def reduce(f: ((KeyT, ValueT), (KeyT, ValueT)) => (KeyT, ValueT)): (KeyT, ValueT)
+  def reduce(
+      f: ((KeyT, ValueT), (KeyT, ValueT)) => (KeyT, ValueT),
+      filter: Option[(KeyT, ValueT) => Boolean] = None): (KeyT, ValueT)
 
   /**
    * Fold the overlapping block with the results of a pre-mapped function on each key/value pair.

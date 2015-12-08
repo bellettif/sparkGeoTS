@@ -1,14 +1,11 @@
 package main.scala.ioTools
 
 import breeze.linalg.DenseVector
-import main.scala.overlapping.containers.TSInstant
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import main.scala.overlapping.timeSeries._
 
-import scala.io
 import scala.util.Try
 
 /**
@@ -30,7 +27,7 @@ object ReadCsv {
       indexCol: Int,
       sep: String,
       dateTimeFormat: String,
-      replaceNA: Double = 0.0): Option[(TSInstant, DenseVector[Double])] ={
+      replaceNA: Double = 0.0): Option[(DateTime, DenseVector[Double])] ={
 
     val splitRow = row.split(sep).map(_.trim)
     val dataColumns = splitRow.indices.filter(i => i != indexCol).toArray
@@ -40,9 +37,9 @@ object ReadCsv {
     }
 
     Try {
-      val timestamp = DateTime.parse(splitRow(indexCol), DateTimeFormat.forPattern(dateTimeFormat))
+      val timestamp: DateTime = DateTime.parse(splitRow(indexCol), DateTimeFormat.forPattern(dateTimeFormat))
       val rowData = DenseVector(dataColumns.map(i => converToDouble(splitRow(i))))
-      return Some((new TSInstant(timestamp), rowData))
+      return Some(timestamp, rowData)
     }.toOption
 
   }
@@ -66,7 +63,7 @@ object ReadCsv {
       header: Boolean = true,
       sep: String = ",",
       replaceNA : Double = 0.0)
-      (implicit sc: SparkContext): (RDD[(TSInstant, DenseVector[Double])], Int, Long) = {
+      (implicit sc: SparkContext): (RDD[(DateTime, DenseVector[Double])], Int, Long) = {
 
     val data = sc.textFile(filePath)
 
@@ -100,17 +97,17 @@ object ReadCsv {
       lonIndexCol: Int,
       latIndexCol: Int,
       sep: String,
-      dateTimeFormat: String): Option[((TSInstant, Double, Double), DenseVector[Double])] ={
+      dateTimeFormat: String): Option[((DateTime, Double, Double), DenseVector[Double])] ={
 
     val splitRow = row.split(sep).map(_.trim)
     val dataColumns = splitRow.indices.filter(i => (i != timeIndexCol) && (i != lonIndexCol) && (i != latIndexCol)).toArray
 
     Try {
-      val timestamp = DateTime.parse(splitRow(timeIndexCol), DateTimeFormat.forPattern(dateTimeFormat))
+      val timestamp: DateTime = DateTime.parse(splitRow(timeIndexCol), DateTimeFormat.forPattern(dateTimeFormat))
       val lon = splitRow(lonIndexCol).toDouble
       val lat = splitRow(latIndexCol).toDouble
       val rowData = DenseVector(dataColumns.map(i => splitRow(i).toDouble))
-      return Some(((new TSInstant(timestamp), lon, lat), rowData))
+      return Some(((timestamp, lon, lat), rowData))
     }.toOption
 
   }
@@ -135,7 +132,7 @@ object ReadCsv {
       dateTimeFormat: String = "yyyy-MM-dd HH:mm:ss",
       header: Boolean = true,
       sep: String = ",")
-      (implicit sc: SparkContext): (RDD[((TSInstant, Double, Double), DenseVector[Double])], Int, Long) = {
+      (implicit sc: SparkContext): (RDD[((DateTime, Double, Double), DenseVector[Double])], Int, Long) = {
 
     val data = sc.textFile(filePath)
 

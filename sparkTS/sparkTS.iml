@@ -6,6 +6,11 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/src/dataFrame" />
       <excludeFolder url="file://$MODULE_DIR$/src/indexedrdd" />
+      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/overlapping/spatial" />
+      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/overlapping/timeSeriesOld" />
+      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/sandBox" />
+      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/showcase" />
+      <excludeFolder url="file://$MODULE_DIR$/src/test/scala/old" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -18,6 +23,6 @@
     <orderEntry type="library" name="org.scalanlp:breeze_2.10:0.11-M0" level="project" />
     <orderEntry type="library" name="org.scalaz:scalaz-full_2.9.2:6.0.4" level="project" />
     <orderEntry type="library" name="edu.berkeley.cs.amplab:keystoneml_2.10:0.2" level="project" />
-    <orderEntry type="library" name="org.apache.spark:spark-core_2.10:1.0.1" level="project" />
+    <orderEntry type="library" name="org.apache.spark:spark-core_2.10:1.5.2" level="project" />
   </component>
 </module>

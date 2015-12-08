@@ -7,13 +7,9 @@ import scala.reflect.ClassTag
 /**
  * Implementation of the replicator in the case of an ordered index as in time series.
  */
-class
-SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
-  (
+class SingleAxisReplicator[IndexT : Ordering : ClassTag, ValueT: ClassTag](
     val intervals: Array[(IndexT, IndexT)],
-    val selection: (IndexT, IndexT) => Boolean
-  )
-  extends Replicator[IndexT, ValueT]{
+    val selection: (IndexT, IndexT) => Boolean) extends Replicator[IndexT, ValueT]{
 
   /**
    * Get the index of the interval the timestamp belongs to.
@@ -24,12 +20,13 @@ SingleAxisReplicator[IndexT <: Ordered[IndexT], ValueT: ClassTag]
   def getIntervalIdx(t: IndexT): Int ={
 
     val firstIdx = intervals.apply(0)._1
-    if (t.compareTo(firstIdx) < 0) {
+    if (implicitly[Ordering[IndexT]].compare(t, firstIdx) < 0) {
       return 0
     }
 
     for(((intervalStart, intervalEnd), intervalIdx)  <- intervals.zipWithIndex) {
-      if ((t.compareTo(intervalStart) >= 0) && (t.compareTo(intervalEnd) <= 0)) {
+      if ((implicitly[Ordering[IndexT]].compare(t, intervalStart) >= 0) &&
+        (implicitly[Ordering[IndexT]].compare(t, intervalEnd) <= 0)) {
         return intervalIdx
       }
     }
