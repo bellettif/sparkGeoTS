@@ -41,7 +41,7 @@ object IntervalSampler{
     val sortedKeys = sourceRDD
       .sample(withReplacement, fraction)
       .map(_._1)
-      .sortBy({case x : IndexT => x})
+      .sortBy(x => x)
       .collect()
       .sliding(1, stride)
       .map(_.head)

@@ -8,6 +8,7 @@ import breeze.linalg.{DenseVector, sum}
 import breeze.stats.distributions.Uniform
 import main.scala.overlapping.containers._
 import main.scala.overlapping.analytics._
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.SparkContext._
 import org.joda.time.DateTime
@@ -31,6 +32,39 @@ class TestSingleAxisTS extends FlatSpec with Matchers{
     val config = new SingleAxisConfig(nSamples, deltaT, padding, padding)
 
     val rawTS = Surrogate.generateWhiteNoise(
+      nColumns,
+      nSamples.toInt,
+      deltaT,
+      Uniform(-0.5, 0.5),
+      DenseVector.ones[Double](nColumns),
+      sc)
+
+    val (timeSeries, _) = SingleAxisTS(nPartitions, config, rawTS)
+
+    val nonOverlappingSeqs = timeSeries.toArray()
+
+    val originalData = rawTS.collect()
+
+    for(((ts1, data1), (ts2, data2)) <- nonOverlappingSeqs.zip(originalData)){
+      ts1 should be (ts2)
+      for(j <- 0 until data1.size){
+        data1(j) should be (data2(j))
+      }
+    }
+
+  }
+
+  it should " properly give an array based representation with Long timestamps" in {
+
+    val nColumns      = 10
+    val nSamples      = 80000L
+    val padding       = 20L
+    val deltaT        = 4L
+    val nPartitions   = 8
+
+    val config = new SingleAxisConfig(nSamples, deltaT, padding, padding)
+
+    val rawTS: RDD[(Long, DenseVector[Double])] = Surrogate.generateWhiteNoise(
       nColumns,
       nSamples.toInt,
       deltaT,
