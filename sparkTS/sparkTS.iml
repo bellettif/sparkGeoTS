@@ -9,7 +9,7 @@
       <excludeFolder url="file://$MODULE_DIR$/src/main/scala/overlapping/spatial" />
       <excludeFolder url="file://$MODULE_DIR$/src/main/scala/overlapping/timeSeriesOld" />
       <excludeFolder url="file://$MODULE_DIR$/src/main/scala/sandBox" />
-      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/showcase" />
+      <excludeFolder url="file://$MODULE_DIR$/src/main/scala/showcaseOld" />
       <excludeFolder url="file://$MODULE_DIR$/src/test/scala/old" />
     </content>
     <orderEntry type="inheritedJdk" />

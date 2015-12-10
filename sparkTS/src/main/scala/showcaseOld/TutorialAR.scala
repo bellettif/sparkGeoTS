@@ -1,4 +1,4 @@
-package main.scala.showcase
+package main.scala.showcaseOld
 
 /**
  * Created by cusgadmin on 6/9/15.
@@ -7,12 +7,10 @@ package main.scala.showcase
 import breeze.linalg._
 import breeze.numerics.sqrt
 import breeze.stats.distributions.Gaussian
+import main.scala.overlapping._
+import main.scala.overlapping.containers._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-
-import main.scala.overlapping._
-import containers._
-import timeSeries._
 
 object TutorialAR {
 

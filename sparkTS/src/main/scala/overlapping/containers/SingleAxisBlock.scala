@@ -1,7 +1,5 @@
 package main.scala.overlapping.containers
 
-import main.scala.overlapping.CompleteLocation
-
 import scala.reflect.ClassTag
 
 
@@ -98,14 +96,14 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
     val filterTargets = targetFilter.isDefined
     val filterWindows = windowFilter.isDefined
 
-    if(! filterTargets){
+    if(filterTargets){
       val targetFilter_ = targetFilter.get
       if(! targetFilter_(targetIdx)){
         return None
       }
     }
 
-    if(! filterWindows){
+    if(filterWindows){
       val windowFilter_ = windowFilter.get
       if(! windowFilter_(data.slice(beginIndex, endIndex + 1))){
         return None

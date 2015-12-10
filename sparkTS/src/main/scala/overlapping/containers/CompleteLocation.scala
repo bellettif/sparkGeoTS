@@ -1,4 +1,4 @@
-package main.scala.overlapping
+package main.scala.overlapping.containers
 
 /**
  * Fundamental data structure when doing main.scala.overlapping result reductions

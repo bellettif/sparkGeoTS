@@ -9,4 +9,4 @@ class SingleAxisVectTSConfig[IndexT : TSInstant](
     override val deltaT: IndexT,
     override val bckPadding: IndexT,
     override val fwdPadding: IndexT,
-    val dim: Int) extends SingleAxisConfig[IndexT](nSamples, deltaT, bckPadding, fwdPadding)
+    val dim: Int) extends TSConfig[IndexT](nSamples, deltaT, bckPadding, fwdPadding)

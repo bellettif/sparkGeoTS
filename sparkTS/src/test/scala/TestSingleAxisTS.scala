@@ -29,7 +29,7 @@ class TestSingleAxisTS extends FlatSpec with Matchers{
     val deltaT        = new DateTime(4L)
     val nPartitions   = 8
 
-    val config = new SingleAxisConfig(nSamples, deltaT, padding, padding)
+    val config = new TSConfig(nSamples, deltaT, padding, padding)
 
     val rawTS = Surrogate.generateWhiteNoise(
       nColumns,
@@ -62,7 +62,7 @@ class TestSingleAxisTS extends FlatSpec with Matchers{
     val deltaT        = 4L
     val nPartitions   = 8
 
-    val config = new SingleAxisConfig(nSamples, deltaT, padding, padding)
+    val config = new TSConfig(nSamples, deltaT, padding, padding)
 
     val rawTS: RDD[(Long, DenseVector[Double])] = Surrogate.generateWhiteNoise(
       nColumns,

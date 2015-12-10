@@ -3,7 +3,7 @@ package main.scala.overlapping.containers
 /**
  * Created by Francois Belletti on 10/14/15.
  */
-class SingleAxisConfig[IndexT : TSInstant](
+class TSConfig[IndexT : TSInstant](
     val nSamples: Long,
     val deltaT: IndexT,
     val bckPadding: IndexT,

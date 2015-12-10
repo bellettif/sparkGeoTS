@@ -12,7 +12,8 @@ import scala.reflect.ClassTag
  * @tparam IndexT Type of time stamp.
  * @tparam ValueT Type of value.
  */
-abstract class KernelizedTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag]{
+abstract class KernelizedTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
+    val config: TSConfig[IndexT]){
 
   def sliding[ResultT: ClassTag](
       selection: (IndexT, IndexT) => Boolean,

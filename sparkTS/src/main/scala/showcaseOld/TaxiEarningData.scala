@@ -1,21 +1,15 @@
-package main.scala.showcase
+package main.scala.showcaseOld
 
 /**
  * Created by cusgadmin on 6/9/15.
  */
 
 import breeze.linalg._
-import breeze.plot._
-
 import main.scala.ioTools.ReadCsv
-
+import main.scala.overlapping._
+import main.scala.overlapping.containers._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.SparkContext._
-
-import main.scala.overlapping._
-import containers._
-import timeSeries._
 
 object TaxiEarningData {
 

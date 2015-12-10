@@ -1,7 +1,5 @@
 package main.scala.overlapping.containers
 
-import main.scala.overlapping.CompleteLocation
-
 import scala.reflect.ClassTag
 
 /**

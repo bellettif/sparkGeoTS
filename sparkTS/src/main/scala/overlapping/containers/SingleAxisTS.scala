@@ -10,7 +10,7 @@ object SingleAxisTS{
 
   def apply[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
       nPartitions: Int,
-      config: SingleAxisConfig[IndexT],
+      config: TSConfig[IndexT],
       rawData: RDD[(IndexT, ValueT)]): (SingleAxisTS[IndexT, ValueT], Array[(IndexT, IndexT)]) = {
 
     val nSamples = rawData.count()
@@ -22,6 +22,7 @@ object SingleAxisTS{
         Some(nSamples))
 
     val replicator = new SingleAxisReplicator[IndexT, ValueT](intervals, config.selection)
+
     val partitioner = new BlockIndexPartitioner(intervals.length)
 
     val content = rawData
@@ -42,8 +43,8 @@ object SingleAxisTS{
  * Created by Francois Belletti on 12/8/15.
  */
 class SingleAxisTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
-      val config: SingleAxisConfig[IndexT],
-      val content: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]) extends KernelizedTS[IndexT, ValueT]{
+      override val config: TSConfig[IndexT],
+      val content: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]) extends KernelizedTS[IndexT, ValueT](config){
 
   def sliding[ResultT: ClassTag](
       selection: (IndexT, IndexT) => Boolean,
