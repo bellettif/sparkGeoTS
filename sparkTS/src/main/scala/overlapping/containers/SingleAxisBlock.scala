@@ -58,8 +58,8 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
     beginIndex_ = locations.indexWhere(x => selection(t, x.k),
       beginIndex)
 
-    endIndex_ = locations.indexWhere(x => selection(t, x.k),
-      endIndex)
+    endIndex_ = locations.indexWhere(x => !selection(t, x.k),
+      beginIndex_)
 
     if (endIndex_ == -1) {
       endIndex_ = data.length - 1
