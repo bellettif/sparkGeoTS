@@ -21,21 +21,69 @@ The autocovoriance is ordered as follows
 
 object CrossCovariance{
 
+  def normalize(maxLag: Int, d: Int, N: Long)(
+    cov: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] = {
+
+    var i, c1, c2 = 0
+
+    while(i <= maxLag){
+
+      c1 = 0
+      while(c1 < d){
+        c2 = 0
+        while(c2 < c1) {
+          cov(i)(c1, c2) = cov(i)(c2, c1)
+          c2 += 1
+        }
+        c1 += 1
+      }
+      i += 1
+    }
+
+    val result = Array.fill(2 * maxLag + 1)(DenseMatrix.zeros[Double](d, d))
+
+    // Lag zero
+    result(maxLag) = cov.head
+
+    // Backward lags
+    i = 1
+    while(i <= maxLag){
+      result(i) = cov(i) / N.toDouble
+      i += 1
+    }
+
+    // Forward lags
+    i = 1
+    while(i <= maxLag){
+      result(maxLag + i) = cov(i).t / N.toDouble
+      i += 1
+    }
+
+    cov
+
+  }
+
   def selection[IndexT : TSInstant](bckPadding: IndexT)(
     target: IndexT, aux: IndexT): Boolean = {
 
-    implicitly[TSInstant[IndexT]].compare(implicitly[TSInstant[IndexT]].timeBtw(aux, target), bckPadding) >= 0
+    if(implicitly[TSInstant[IndexT]].compare(aux, target) == 1){
+      false
+    }else{
+      val timeBtw = implicitly[TSInstant[IndexT]].timeBtw(aux, target)
+      implicitly[TSInstant[IndexT]].compare(timeBtw, bckPadding) <= 0
+    }
 
   }
 
   def kernel[IndexT : TSInstant](maxLag: Int, d: Int, mean: Option[DenseVector[Double]] = None)(
     slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
 
-    val modelWidth = 2 * maxLag + 1
+    val modelWidth = maxLag + 1
 
-    val result = Array.fill(modelWidth)(DenseMatrix.zeros[Double](d, d))
+    val result = Array.fill(maxLag + 1)(DenseMatrix.zeros[Double](d, d))
 
-    // The slice is not full size, it shall not be considered in order to avoid redundant computations
+    // The slice is not full size, it shall not be considered
+    // so that the normalizing constant is similar for all autocov(h).
     if(slice.length != modelWidth){
       return result
     }
@@ -59,6 +107,8 @@ object CrossCovariance{
 
       i += 1
     }
+
+    // Result(h) = autocov(-h)
 
     result
 
@@ -89,11 +139,13 @@ object CrossCovariance{
 
     def zero: Array[DenseMatrix[Double]] = Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}
 
-    timeSeries.slidingFold(
-      selection(bckPadding),
-      kernel(maxLag, d, mean),
-      zero,
-      reduce)
+    normalize(maxLag, d, config.nSamples)(
+      timeSeries.slidingFold(
+        selection(bckPadding),
+        kernel(maxLag, d, mean),
+        zero,
+        reduce)
+    )
 
   }
 

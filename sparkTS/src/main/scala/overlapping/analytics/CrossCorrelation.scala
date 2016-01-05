@@ -26,14 +26,14 @@ object CrossCorrelation{
 
     var i, c1, c2 = 0
 
-    val covCpy: DenseMatrix[Double] = cov(maxLag).copy
+    val covCpy = diag(cov(maxLag)).copy
 
     while(i < cov.length) {
       c1 = 0
       while (c1 < d) {
         c2 = c1
         while (c2 < d) {
-          cov(i)(c1, c2) /= sqrt(covCpy(c1, c1) * covCpy(c2, c2))
+          cov(i)(c1, c2) /= sqrt(covCpy(c1) * covCpy(c2))
           c2 += 1
         }
         c1 += 1
@@ -41,30 +41,7 @@ object CrossCorrelation{
       i += 1
     }
 
-    i = 0
-    c1 = 0
-    c2 = 0
-
-    while(i <= maxLag){
-      c1 = 0
-      while(c1 < d){
-        c2 = 0
-        while(c2 < c1) {
-          cov(i)(c1, c2) = cov(i)(c2, c1)
-          c2 += 1
-        }
-        c1 += 1
-      }
-      i += 1
-    }
-
-    i = 1
-    while(i <= maxLag){
-      cov(maxLag + i) = cov(maxLag - i).t
-      i += 1
-    }
-
-    cov
+    CrossCovariance.normalize(maxLag, d, 1L)(cov)
 
   }
 
