@@ -139,14 +139,14 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
     val filterTargets = targetFilter.isDefined
     val filterWindows = windowFilter.isDefined
 
-    if(! filterTargets){
+    if(filterTargets){
       val targetFilter_ = targetFilter.get
       if(! targetFilter_(targetIdx)){
         return (None, memState)
       }
     }
 
-    if(! filterWindows){
+    if(filterWindows){
       val windowFilter_ = windowFilter.get
       if(! windowFilter_(data.slice(beginIndex, endIndex + 1))){
         return (None, memState)
@@ -216,7 +216,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     new SingleAxisBlock[IndexT, ResultT](
       validResults.map(i => result(i._2)).map({case (x, y) => (x, y.get)}),
-      validResults.map(i => targets.get(i._2)))
+      validResults.map(i => targets_(i._2)))
 
   }
 
@@ -288,7 +288,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     new SingleAxisBlock[IndexT, ResultT](
       validResults.map(i => result(i._2)).map({case (x, y) => (x, y.get)}),
-      validResults.map(i => targets.get(i._2)))
+      validResults.map(i => targets_(i._2)))
 
   }
 
@@ -339,7 +339,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
   /**
    * Reduce the data of the overlapping block.
    *
-   * @param f Reduction operator.
+   * @param f Reduction operator (just needs to be associative, commutativity is not required here).
    * @return Result of the overall reduction.
    */
   override def reduce(

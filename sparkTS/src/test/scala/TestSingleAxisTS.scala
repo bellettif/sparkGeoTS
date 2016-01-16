@@ -20,8 +20,7 @@ class TestSingleAxisTS extends FlatSpec with Matchers{
   val conf  = new SparkConf().setAppName("Counter").setMaster("local[*]")
   val sc    = new SparkContext(conf)
 
-
-  "A SingleAxisBlocks" should " properly give an array based representation" in {
+  " A SingleAxisTS should " should " properly give an array based representation" in {
 
     val nColumns      = 10
     val nSamples      = 80000L
