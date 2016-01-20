@@ -16,14 +16,14 @@ abstract class KernelizedTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
     val config: TSConfig[IndexT]){
 
   def sliding[ResultT: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: Array[(IndexT, ValueT)] => ResultT,
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
       targetFilter: Option[IndexT => Boolean] = None,
       windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): KernelizedTS[IndexT, ResultT]
 
   def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
       init: MemType,
       targetFilter: Option[IndexT => Boolean] = None,
       windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): KernelizedTS[IndexT, ResultT]
@@ -44,16 +44,16 @@ abstract class KernelizedTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
       filter: Option[(IndexT, ValueT) => Boolean] = None): ResultT
 
   def slidingFold[ResultT: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: Array[(IndexT, ValueT)] => ResultT,
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
       zero: ResultT,
       op: (ResultT, ResultT) => ResultT,
       targetFilter: Option[IndexT => Boolean] = None,
       windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): ResultT
 
   def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
       zero: ResultT,
       op: (ResultT, ResultT) => ResultT,
       init: MemType,

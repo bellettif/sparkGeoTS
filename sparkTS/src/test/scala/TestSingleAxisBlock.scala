@@ -6,11 +6,7 @@ package test.scala
 
 import breeze.linalg.{DenseVector, sum}
 import breeze.numerics.{sqrt, abs}
-import breeze.stats.distributions.Uniform
-import main.scala.overlapping.analytics._
 import main.scala.overlapping.containers._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -225,8 +221,8 @@ class TestSingleAxisBlock extends FlatSpec with Matchers{
       sum(input.map(_._2).reduce(_ + _))
     }
 
-    val result = singleAxisBlock.sliding(selection)(kernel)
 
+    val result = singleAxisBlock.sliding(selection)(kernel)
     for(i <- 0 until nSamples){
 
       result.locations(i) should be (CompleteLocation(rawData(i)._1._1, rawData(i)._1._2, rawData(i)._1._3))

@@ -108,8 +108,6 @@ object CrossCovariance{
       i += 1
     }
 
-    // Result(h) = autocov(-h)
-
     result
 
   }
@@ -140,8 +138,7 @@ object CrossCovariance{
     def zero: Array[DenseMatrix[Double]] = Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}
 
     normalize(maxLag, d, config.nSamples)(
-      timeSeries.slidingFold(
-        selection(bckPadding),
+      timeSeries.slidingFold(selection(bckPadding))(
         kernel(maxLag, d, mean),
         zero,
         reduce)

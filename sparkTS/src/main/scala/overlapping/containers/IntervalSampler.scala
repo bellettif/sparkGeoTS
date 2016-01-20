@@ -38,6 +38,10 @@ object IntervalSampler{
 
     val stride = sampleSize / nIntervals
 
+    if(stride >= sampleSize){
+      return Array((sourceRDD.map(_._1).min(), sourceRDD.map(_._1).max()))
+    }
+
     val sortedKeys = sourceRDD
       .sample(withReplacement, fraction)
       .map(_._1)

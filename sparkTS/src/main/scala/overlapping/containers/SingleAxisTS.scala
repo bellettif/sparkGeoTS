@@ -47,8 +47,8 @@ class SingleAxisTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
       val content: RDD[(Int, SingleAxisBlock[IndexT, ValueT])]) extends KernelizedTS[IndexT, ValueT](config){
 
   def sliding[ResultT: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: Array[(IndexT, ValueT)] => ResultT,
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
       targetFilter: Option[IndexT => Boolean] = None,
       windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): SingleAxisTS[IndexT, ResultT] = {
 
@@ -59,8 +59,8 @@ class SingleAxisTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
   }
 
   def slidingWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
       init: MemType,
       targetFilter: Option[IndexT => Boolean] = None,
       windowFilter: Option[Array[(IndexT, ValueT)] => Boolean] = None): SingleAxisTS[IndexT, ResultT] = {
@@ -115,8 +115,8 @@ class SingleAxisTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
   }
 
   def slidingFold[ResultT: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: Array[(IndexT, ValueT)] => ResultT,
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: Array[(IndexT, ValueT)] => ResultT,
       zero: ResultT,
       op: (ResultT, ResultT) => ResultT,
       targetFilter: Option[IndexT => Boolean] = None,
@@ -130,8 +130,8 @@ class SingleAxisTS[IndexT : TSInstant : ClassTag, ValueT : ClassTag](
   }
 
   def slidingFoldWithMemory[ResultT: ClassTag, MemType: ClassTag](
-      selection: (IndexT, IndexT) => Boolean,
-      kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
+      selection: (IndexT, IndexT) => Boolean)
+      (kernel: (Array[(IndexT, ValueT)], MemType) => (ResultT, MemType),
       zero: ResultT,
       op: (ResultT, ResultT) => ResultT,
       init: MemType,
