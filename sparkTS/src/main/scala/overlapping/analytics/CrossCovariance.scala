@@ -22,28 +22,31 @@ The autocovoriance is ordered as follows
 object CrossCovariance{
 
   def normalize(maxLag: Int, d: Int, N: Long, mean: DenseVector[Double])(
-    cov: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] = {
+    covAndCount: (Array[DenseMatrix[Double]], Long)): Array[DenseMatrix[Double]] = {
 
     var i, c1, c2 = 0
+
+    val cov = covAndCount._1
+    val count = covAndCount._2
 
     val meanAdjustment = mean * mean.t
 
     val result = Array.fill(2 * maxLag + 1)(DenseMatrix.zeros[Double](d, d))
 
     // Lag zero
-    result(maxLag) = (cov(maxLag) / (N - maxLag).toDouble) - meanAdjustment
+    result(maxLag) = (cov(maxLag) / count.toDouble) - meanAdjustment
 
     // Backward lags
     i = 0
     while(i < maxLag){
-      result(i) = (cov(i) / (N - maxLag).toDouble) - meanAdjustment
+      result(i) = (cov(i) / count.toDouble) - meanAdjustment
       i += 1
     }
 
     // Forward lags
     i = 1
     while(i <= maxLag){
-      result(maxLag + i) = (cov(maxLag - i).t / (N - maxLag).toDouble) - meanAdjustment.t
+      result(maxLag + i) = (cov(maxLag - i).t / count.toDouble) - meanAdjustment.t
       i += 1
     }
 
@@ -73,7 +76,7 @@ object CrossCovariance{
    * @return
    */
   def kernel[IndexT : TSInstant](maxLag: Int, d: Int)(
-    slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
+    slice: Array[(IndexT, DenseVector[Double])]): (Array[DenseMatrix[Double]], Long) = {
 
     val modelWidth = maxLag + 1
 
@@ -82,7 +85,7 @@ object CrossCovariance{
     // The slice is not full size, it shall not be considered
     // so that the normalizing constant is similar for all autocov(h).
     if(slice.length != modelWidth){
-      return result
+      return (result, 0L)
     }
 
     val centerTarget  = slice(maxLag)._2
@@ -104,15 +107,15 @@ object CrossCovariance{
       i += 1
     }
 
-    result
+    (result, 1L)
 
   }
 
   def reduce(
-      x: Array[DenseMatrix[Double]],
-      y: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] ={
+      x: (Array[DenseMatrix[Double]], Long),
+      y: (Array[DenseMatrix[Double]], Long)): (Array[DenseMatrix[Double]], Long) ={
 
-    x.zip(y).map({case (u, v) => u + v})
+    (x._1.zip(y._1).map({case (u, v) => u + v}), x._2 + y._2)
 
   }
 
@@ -131,7 +134,7 @@ object CrossCovariance{
       throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
     }
 
-    def zero: Array[DenseMatrix[Double]] = Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}
+    def zero: (Array[DenseMatrix[Double]], Long) = (Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}, 0L)
 
     normalize(maxLag, d, config.nSamples, mean.getOrElse(Average(timeSeries)))(
       timeSeries.slidingFold(selection(bckPadding))(
