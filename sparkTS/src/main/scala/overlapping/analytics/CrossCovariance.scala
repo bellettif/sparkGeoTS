@@ -21,45 +21,33 @@ The autocovoriance is ordered as follows
 
 object CrossCovariance{
 
-  def normalize(maxLag: Int, d: Int, N: Long)(
+  def normalize(maxLag: Int, d: Int, N: Long, mean: DenseVector[Double])(
     cov: Array[DenseMatrix[Double]]): Array[DenseMatrix[Double]] = {
 
     var i, c1, c2 = 0
 
-    while(i <= maxLag){
-
-      c1 = 0
-      while(c1 < d){
-        c2 = 0
-        while(c2 < c1) {
-          cov(i)(c1, c2) = cov(i)(c2, c1)
-          c2 += 1
-        }
-        c1 += 1
-      }
-      i += 1
-    }
+    val meanAdjustment = mean * mean.t
 
     val result = Array.fill(2 * maxLag + 1)(DenseMatrix.zeros[Double](d, d))
 
     // Lag zero
-    result(maxLag) = cov.head
+    result(maxLag) = (cov(maxLag) / (N - maxLag).toDouble) - meanAdjustment
 
     // Backward lags
-    i = 1
-    while(i <= maxLag){
-      result(i) = cov(i) / N.toDouble
+    i = 0
+    while(i < maxLag){
+      result(i) = (cov(i) / (N - maxLag).toDouble) - meanAdjustment
       i += 1
     }
 
     // Forward lags
     i = 1
     while(i <= maxLag){
-      result(maxLag + i) = cov(i).t / N.toDouble
+      result(maxLag + i) = (cov(maxLag - i).t / (N - maxLag).toDouble) - meanAdjustment.t
       i += 1
     }
 
-    cov
+    result
 
   }
 
@@ -75,7 +63,16 @@ object CrossCovariance{
 
   }
 
-  def kernel[IndexT : TSInstant](maxLag: Int, d: Int, mean: Option[DenseVector[Double]] = None)(
+  /**
+   *  The kernel computes a contribution to the covariance estimator with the convention
+   *  result(...) = cov(- (maxLag - 1), ..., 0)
+   * @param maxLag
+   * @param d
+   * @param slice
+   * @tparam IndexT
+   * @return
+   */
+  def kernel[IndexT : TSInstant](maxLag: Int, d: Int)(
     slice: Array[(IndexT, DenseVector[Double])]): Array[DenseMatrix[Double]] = {
 
     val modelWidth = maxLag + 1
@@ -88,16 +85,15 @@ object CrossCovariance{
       return result
     }
 
-    val meanValue = mean.getOrElse(DenseVector.zeros[Double](d))
-    val centerTarget  = slice(maxLag)._2 - meanValue
+    val centerTarget  = slice(maxLag)._2
 
     var i, c1, c2 = 0
     while(i <= maxLag){
 
-      val currentTarget = slice(i)._2 - meanValue
+      val currentTarget = slice(i)._2
       c1 = 0
       while(c1 < d){
-        c2 = c1
+        c2 = 0
         while(c2 < d){
           result(i)(c1, c2) += centerTarget(c1) * currentTarget(c2)
           c2 += 1
@@ -137,9 +133,9 @@ object CrossCovariance{
 
     def zero: Array[DenseMatrix[Double]] = Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}
 
-    normalize(maxLag, d, config.nSamples)(
+    normalize(maxLag, d, config.nSamples, mean.getOrElse(Average(timeSeries)))(
       timeSeries.slidingFold(selection(bckPadding))(
-        kernel(maxLag, d, mean),
+        kernel(maxLag, d),
         zero,
         reduce)
     )

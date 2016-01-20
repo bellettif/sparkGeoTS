@@ -6,8 +6,7 @@ package main.scala.showcase
 
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.Gaussian
-import main.scala.ioTools.ReadCsv
-import main.scala.overlapping.analytics.{CrossCorrelation, Surrogate, CrossCovariance}
+import main.scala.overlapping.analytics.{CrossCorrelation, CrossCovariance, Surrogate}
 import main.scala.overlapping.containers._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
@@ -28,7 +27,7 @@ object Covariance {
      implicit val sc = new SparkContext(conf)
 
      val nSamples = 8000L
-     val d = 60
+     val d = 3
      val deltaTMillis = 1L
      val deltaT = new DateTime(deltaTMillis) // 5 minutes
      val paddingMillis = new DateTime(deltaTMillis * 10)
@@ -39,7 +38,7 @@ object Covariance {
        d,
        nSamples.toInt,
        deltaT,
-       Gaussian(0.0, 1.0), DenseVector.ones[Double](d),
+       Gaussian(0.0, 4.0), DenseVector.ones[Double](d),
        sc)
 
      println(nSamples + " samples")
@@ -48,13 +47,14 @@ object Covariance {
 
      val (timeSeries, _) = SingleAxisVectTS(nPartitions, config, inSampleData)
 
-     val covariances = CrossCovariance(timeSeries, 6)
-
+     println("Covariance estimate")
+     val covariances = CrossCovariance(timeSeries, 3)
      covariances.foreach(x => {println(x); println()})
 
-     val correlations = CrossCorrelation(timeSeries, 6)
-
+     println("Correlation estimate")
+     val correlations = CrossCorrelation(timeSeries, 3)
      correlations.foreach(x => {println(x); println()})
+
 
    }
  }

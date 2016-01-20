@@ -63,10 +63,9 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     if (endIndex_ == -1) {
       endIndex_ = data.length - 1
+    }else{
+      endIndex_ = endIndex_ - 1
     }
-
-    endIndex_ = locations.lastIndexWhere(x => selection(t, x.k),
-      endIndex_)
 
     (beginIndex_, endIndex_)
 
@@ -187,7 +186,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     while(i < targets_.length){
 
-      if(endIndex != 1) {
+      if(endIndex != -1) {
 
         val centerLocation = targets_(i)
 
@@ -254,7 +253,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     while(i < targets_.length){
 
-      if(endIndex != 1) {
+      if(endIndex != -1) {
 
         val centerLocation = targets_(i)
 
@@ -431,7 +430,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     while(i < targets_.length){
 
-      if(endIndex != 1) {
+      if(endIndex != -1) {
 
         val centerLocation = targets_(i)
 
@@ -485,7 +484,7 @@ class SingleAxisBlock[IndexT : TSInstant : ClassTag, ValueT: ClassTag](
 
     while(i < targets_.length){
 
-      if(endIndex != 1) {
+      if(endIndex != -1) {
 
         val centerLocation = targets_(i)
 

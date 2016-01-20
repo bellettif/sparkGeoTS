@@ -31,7 +31,7 @@ object CrossCorrelation{
     while(i < cov.length) {
       c1 = 0
       while (c1 < d) {
-        c2 = c1
+        c2 = 0
         while (c2 < d) {
           cov(i)(c1, c2) /= sqrt(covCpy(c1) * covCpy(c2))
           c2 += 1
@@ -41,7 +41,7 @@ object CrossCorrelation{
       i += 1
     }
 
-    CrossCovariance.normalize(maxLag, d, 1L)(cov)
+    cov
 
   }
 
@@ -62,7 +62,9 @@ object CrossCorrelation{
 
     def zero = (Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}, DenseVector.zeros[Double](d))
 
-    normalize(maxLag, d)(CrossCovariance(timeSeries, maxLag, mean))
+    val meanVal = Some(mean.getOrElse(Average(timeSeries)))
+
+    normalize(maxLag, d)(CrossCovariance(timeSeries, maxLag, meanVal))
 
   }
 

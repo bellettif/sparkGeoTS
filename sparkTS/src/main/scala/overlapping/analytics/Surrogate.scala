@@ -66,6 +66,21 @@ object Surrogate {
 
   }
 
+  /**
+   * Generate independent Moving Average(q) time series.
+   * The parameters are organized as an array of vector
+   * (one vector per dimension, all must be of length q).
+   *
+   * @param thetas
+   * @param nColumns
+   * @param nSamples
+   * @param deltaT
+   * @param noiseGen
+   * @param magnitudes
+   * @param sc
+   * @tparam IndexT
+   * @return
+   */
   def generateMA[IndexT : TSInstant](
       thetas: Array[DenseVector[Double]],
       nColumns: Int,
