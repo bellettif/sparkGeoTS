@@ -4,16 +4,17 @@ package main.scala.showcase
  * Created by cusgadmin on 6/9/15.
  */
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.numerics.{atan, abs}
 import breeze.stats.distributions.Gaussian
-import main.scala.overlapping.analytics.{CrossCorrelation, CrossCovariance}
+import main.scala.overlapping.analytics.{CrossSpectrum, CrossCorrelation, CrossCovariance}
 import main.scala.overlapping.containers._
 import main.scala.overlapping.dataGenerators.Surrogate
 import main.scala.plotting.PlotCross._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 
-object CovarianceSurrogate {
+object CrossSpectrumSurrogate {
 
    def main(args: Array[String]): Unit = {
 
@@ -32,15 +33,21 @@ object CovarianceSurrogate {
      val d = 3
      val deltaTMillis = 1L
      val deltaT = new DateTime(deltaTMillis) // 5 minutes
-     val paddingMillis = new DateTime(deltaTMillis * 100)
+     val paddingMillis = new DateTime(deltaTMillis * 1000)
      val nPartitions   = 8
      val config = new SingleAxisVectTSConfig(nSamples, deltaT, paddingMillis, paddingMillis, d)
 
-     val inSampleData = Surrogate.generateWhiteNoise(
+     val p = 4
+
+     val actualParams: Array[DenseMatrix[Double]] = Array.fill(p){DenseMatrix.rand[Double](d, d) * 0.4 - (DenseMatrix.ones[Double](d, d) * 0.20)}
+
+     val inSampleData = Surrogate.generateVAR(
+       actualParams,
        d,
        nSamples.toInt,
        deltaT,
-       Gaussian(0.0, 4.0), DenseVector.ones[Double](d),
+       Gaussian(0.0, 0.5),
+       DenseVector.ones[Double](d),
        sc)
 
      println(nSamples + " samples")
@@ -49,13 +56,15 @@ object CovarianceSurrogate {
 
      val (timeSeries, _) = SingleAxisVectTS(nPartitions, config, inSampleData)
 
-     println("Covariance estimate")
-     val covariances = CrossCovariance(timeSeries, 10)
-     showCrossCorrelation(covariances, Some("Covariances"))
+     println("Cross spectrum estimate")
+     val crossSpectra = CrossSpectrum(timeSeries, 500)
 
-     println("Correlation estimate")
-     val correlations = CrossCorrelation(timeSeries, 10)
-     showCrossCorrelation(correlations, Some("Correlations"))
+     println("Cross spectrum magnitude estimate")
+     val crossSpectraMagn = crossSpectra.map(x => x.map(abs(_)))
+     val crossSpectraPhases = crossSpectra.map(_.map(_.map(x => atan(x.imag / x.real))))
+
+     showCrossSpectrum(crossSpectraMagn, Some("Power spectrum"))
+     showCrossSpectrum(crossSpectraPhases, Some("Phase"))
 
 
    }
