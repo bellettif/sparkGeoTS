@@ -6,14 +6,14 @@ package main.scala.showcase
 
 import breeze.linalg._
 import main.scala.ioTools.ReadCsv
-import main.scala.overlapping.analytics.CrossCovariance
+import main.scala.overlapping.analytics.{CrossCorrelation, CrossCovariance}
 import main.scala.overlapping.containers._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 
-object TaxiCovariance {
+object CovarianceTaxiData {
 
    def main(args: Array[String]): Unit = {
 
@@ -49,8 +49,10 @@ object TaxiCovariance {
      val (timeSeries, _) = SingleAxisVectTS(nPartitions, config, inSampleData)
 
      val covariances = CrossCovariance(timeSeries, 6)
-
      covariances.foreach(x => {println(x); println()})
+
+     val correlations = CrossCorrelation(timeSeries, 6)
+     correlations.foreach(x => {println(x); println()})
 
    }
  }

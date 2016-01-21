@@ -1,7 +1,7 @@
-package main.scala.overlapping.timeSeriesOld
+package main.scala.procedures
 
 import breeze.linalg
-import breeze.linalg.DenseMatrix
+import breeze.linalg.{max, DenseMatrix}
 import breeze.numerics._
 
 /**

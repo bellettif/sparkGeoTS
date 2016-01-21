@@ -1,4 +1,4 @@
-package main.scala.overlapping.timeSeriesOld.secondOrder.multivariate.frequentistEstimators.procedures
+package main.scala.procedures
 
 import breeze.linalg._
 
@@ -6,7 +6,7 @@ import breeze.linalg._
  * Created by Francois Belletti on 7/14/15.
  */
 
-object InnovationAlgoMulti extends Serializable{
+object InnovationAlgoMulti{
 
   /*
 

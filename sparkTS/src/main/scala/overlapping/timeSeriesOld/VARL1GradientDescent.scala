@@ -1,10 +1,6 @@
 package main.scala.overlapping.timeSeriesOld
 
 import breeze.linalg._
-import main.scala.overlapping.timeSeries._
-import main.scala.overlapping.timeSeriesOld.secondOrder.multivariate.bayesianEstimators.gradients.DiagonalNoiseARGrad
-import main.scala.overlapping.timeSeriesOld.secondOrder.multivariate.bayesianEstimators.procedures.L1ClippedGradientDescent
-import main.scala.overlapping.timeSeriesOld.secondOrder.multivariate.lossFunctions.DiagonalNoiseARLoss
 
 import scala.reflect.ClassTag
 

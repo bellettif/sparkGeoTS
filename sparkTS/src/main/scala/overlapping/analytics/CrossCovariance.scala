@@ -129,9 +129,8 @@ object CrossCovariance{
     val deltaT = config.deltaT
 
     val bckPadding = implicitly[TSInstant[IndexT]].times(deltaT, maxLag)
-
     if (implicitly[TSInstant[IndexT]].compare(bckPadding, config.bckPadding) > 0) {
-      throw new IndexOutOfBoundsException("Not enough padding to support model estimation.")
+      throw new IndexOutOfBoundsException("Not enough padding to support cross covariance estimation. At least deltaT * maxLag is necessary.")
     }
 
     def zero: (Array[DenseMatrix[Double]], Long) = (Array.fill(2 * maxLag + 1){DenseMatrix.zeros[Double](d, d)}, 0L)

@@ -2,7 +2,6 @@ package main.scala.overlapping.timeSeriesOld
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import main.scala.overlapping.containers._
-import main.scala.overlapping.timeSeriesOld.Predictor
 import org.apache.spark.broadcast.Broadcast
 
 import scala.reflect.ClassTag
