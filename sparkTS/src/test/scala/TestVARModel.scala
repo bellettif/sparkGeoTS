@@ -9,6 +9,7 @@ import breeze.numerics._
 import breeze.stats.distributions.Gaussian
 import main.scala.overlapping.analytics._
 import main.scala.overlapping.containers.{SingleAxisVectTS, SingleAxisVectTSConfig}
+import main.scala.overlapping.dataGenerators.Surrogate
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
 import org.scalatest.{FlatSpec, Matchers}

@@ -1,4 +1,4 @@
-package main.scala.overlapping.analytics
+package main.scala.overlapping.dataGenerators
 
 import breeze.linalg._
 import breeze.stats.distributions.Rand

@@ -6,8 +6,9 @@ package main.scala.showcase
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.stats.distributions.Gaussian
-import main.scala.overlapping.analytics.{VARModel, CrossCorrelation, CrossCovariance, Surrogate}
+import main.scala.overlapping.analytics.{VARModel, CrossCorrelation, CrossCovariance}
 import main.scala.overlapping.containers._
+import main.scala.overlapping.dataGenerators.Surrogate
 import main.scala.procedures.Stability
 import org.apache.spark.{SparkConf, SparkContext}
 import org.joda.time.DateTime
