@@ -13,13 +13,13 @@ class TestQuadTree extends FlatSpec with Matchers {
 
   def randDouble(rMin: Double, rMax: Double) = rMin + ((rMax - rMin) * Random.nextDouble())
 
-  def generateRandomQuadTree(nSamples: Int, xMin: Double, yMin: Double, xMax: Double, yMax: Double, bucketSize: Int): QuadTreeRoot = {
-    val q = QuadTree(bucketSize, xMin, yMin, xMax, yMax)
-    Seq.fill(nSamples)(DataPoint(Location(randDouble(xMin, xMax), randDouble(yMin, yMax)), Random.nextDouble())).map(q.add)
+  def generateRandomQuadTree(nSamples: Int, xMin: Double, yMin: Double, xMax: Double, yMax: Double, bucketSize: Int): QuadTreeRoot[Double] = {
+    val q = QuadTree[Double](bucketSize, xMin, yMin, xMax, yMax)
+    Seq.fill(nSamples)((randDouble(xMin, xMax), randDouble(yMin, yMax), Random.nextDouble())).foreach(q.add)
     q
   }
 
-  def computeDepth(q: QuadTreeStructure): Int = {
+  def computeDepth(q: QuadTreeStructure[Double]): Int = {
     if (q.isLeaf) {
       1
     } else {
@@ -48,9 +48,9 @@ class TestQuadTree extends FlatSpec with Matchers {
 
   "getNeighbors" should "return all equal sized neighbors" in {
     val nq = generateRandomQuadTree(0, -2, -2, 2, 2, 1)
-    val pts = List((-1, -1, 0), (1, -1, 1), (-1, 1, 2), (1, 1, 3)).map(t => DataPoint(Location(t._1, t._2), t._3))
+    val pts = List((-1, -1, 0), (1, -1, 1), (-1, 1, 2), (1, 1, 3)).map(t => (t._1.toDouble, t._2.toDouble, t._3.toDouble))
     pts.foreach(nq.add)
-    nq.getNeighbors(Location(-1, 1)).length should be (4)
+    nq.getNeighbors(-1, 1).length should be (4)
   }
 
   "getNeighbors" should "return proper neighbors in case of differing depths" in {
@@ -60,9 +60,8 @@ class TestQuadTree extends FlatSpec with Matchers {
       (0.5, 1.5, 7), (1.5, 1.5, 8), (0.5, 0.5, 9), (1.5, 0.5, 10), (3.0, 1.0, 11),
       (-2.0, -2.0, 12), (0.25, -0.25, 13), (0.75, -0.25, 14), (0.25, -0.75, 15), (0.75, -0.75, 16),
       (1.5, -0.5, 17), (0.5, -1.5, 18), (1.5, -1.5, 19), (3.0, -1.0, 20), (1.0, -3.0, 21), (3.0, -3.0, 22)
-    ).map(t => DataPoint(Location(t._1, t._2), t._3))
+    ).map(t => (t._1.toDouble, t._2.toDouble, t._3.toDouble))
     pts.foreach(nq.add)
-    nq.getNeighbors(Location(-1, 1)).length should be (9)
+    nq.getNeighbors(-1, 1).length should be (9)
   }
-
 }
