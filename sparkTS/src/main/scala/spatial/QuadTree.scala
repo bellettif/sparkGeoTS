@@ -19,6 +19,34 @@ case class Boundary(centerX: Double, centerY: Double, delX: Double, delY: Double
 
 }
 
+case class kBoundary(dim: Int, centerVec: Seq[Double], delVec: Seq[Double]) {
+  assert(centerVec.length == delVec.length)
+  assert(dim == centerVec.length)
+  assert(dim > 0)
+
+  def contains(vec: Seq[Double]): Boolean = {
+    assert(vec.length == dim)
+    (0 until dim).forall(i => ((centerVec(i) - delVec(i)) <= vec(i)) && (vec(i) < (centerVec(i) + delVec(i))))
+  }
+
+  def generatePlusMinusOnes(n: Int) = generateHelper(n - 1, List(List(1.0), List(-1.0)))
+
+  def generateHelper(n: Int, soFar: List[List[Double]]): Array[Array[Double]] = {
+    if (n < 1) {
+      soFar.map(_.toArray).toArray
+    } else {
+      generateHelper(n - 1, soFar.map(_ :+ 1.0) ++ soFar.map(_ :+ -1.0))
+    }
+  }
+
+  def split(): Array[kBoundary] = {
+    val newDelVector = delVec.map(_ / 2.0)
+    val newCenterVectors = generatePlusMinusOnes(dim).map(pmOnes => pmOnes.zip(centerVec).map(t => t._1 * t._2))
+    newCenterVectors.map(kBoundary(dim, _, newDelVector))
+  }
+
+}
+
 object QuadTree {
 
   def apply[DataT: ClassTag](bucketSize: Int, xMin: Double, yMin: Double, xMax: Double, yMax: Double): QuadTreeRoot[DataT] = {
@@ -31,9 +59,6 @@ object QuadTree {
 
 abstract class QuadTreeStructure[DataT : ClassTag](val boundary: Boundary, val depth: Int) {
 
-  /*
-  0 -> SW, 1 -> SE, 2 -> NW, 3 -> NE
-   */
   var children: Option[Array[QuadTreeNode[DataT]]] = None
 
   def isLeaf = children.isEmpty
@@ -44,21 +69,23 @@ abstract class QuadTreeStructure[DataT : ClassTag](val boundary: Boundary, val d
     if (isLeaf && boundary.contains(x, y)) {
       Some(this)
     } else {
-      val candidate = children.get.find(_.boundary.contains(x, y))
-      if (candidate.isEmpty) {
-        None
+      if (children.isDefined) {
+        children.get.find(_.boundary.contains(x, y)) match {
+          case None => None
+          case Some(leaf) => leaf.getLeafNode(x, y)
+        }
       } else {
-        candidate.get.getLeafNode(x, y)
+        None
       }
     }
   }
 
   def split(): Array[QuadTreeNode[DataT]] = {
     val newChildren = Array(
-      Boundary(boundary.centerX - (boundary.delX / 2.0), boundary.centerY - (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0), // SW
-      Boundary(boundary.centerX + (boundary.delX / 2.0), boundary.centerY - (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0), // SE
-      Boundary(boundary.centerX - (boundary.delX / 2.0), boundary.centerY + (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0), // NW
-      Boundary(boundary.centerX + (boundary.delX / 2.0), boundary.centerY + (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0) // NE
+      Boundary(boundary.centerX - (boundary.delX / 2.0), boundary.centerY - (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0),
+      Boundary(boundary.centerX + (boundary.delX / 2.0), boundary.centerY - (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0),
+      Boundary(boundary.centerX - (boundary.delX / 2.0), boundary.centerY + (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0),
+      Boundary(boundary.centerX + (boundary.delX / 2.0), boundary.centerY + (boundary.delY / 2.0), boundary.delX / 2.0, boundary.delY / 2.0)
     ).map(bnd => new QuadTreeNode[DataT](bnd, depth + 1, nodeData.filter(pt => bnd.contains(pt._1, pt._2))))
     nodeData.clear()
     children = Some(newChildren)

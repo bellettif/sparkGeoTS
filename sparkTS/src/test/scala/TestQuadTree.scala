@@ -4,6 +4,7 @@ package test.scala
  * Created by Praagya on 2/10/16.
  */
 
+import breeze.numerics.{pow, log}
 import main.scala.spatial._
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -51,6 +52,14 @@ class TestQuadTree extends FlatSpec with Matchers {
     val pts = List((-1, -1, 0), (1, -1, 1), (-1, 1, 2), (1, 1, 3)).map(t => (t._1.toDouble, t._2.toDouble, t._3.toDouble))
     pts.foreach(nq.add)
     nq.getNeighbors(-1, 1).length should be (4)
+  }
+
+  "Points outside Quadtree Boundary" should "not be added" in {
+    val numNewPoints = pow(10, ((log(numSamples)/log(10))/2).toInt)
+    val newSampleWidth = sampleWidth * 2
+    val newRandomPoints = Seq.fill(numNewPoints)((randDouble(-newSampleWidth, newSampleWidth), randDouble(-newSampleWidth, newSampleWidth), Random.nextDouble()))
+    newRandomPoints.foreach(q.add)
+    q.leaves.map(_.nodeData.length).sum should be (numSamples + newRandomPoints.count(pt => q.boundary.contains(pt._1, pt._2)))
   }
 
   "getNeighbors" should "return proper neighbors in case of differing depths" in {
