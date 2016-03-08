@@ -1,6 +1,8 @@
 package main.scala.spatial
 
 
+import breeze.linalg.DenseMatrix
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.math.pow
@@ -135,6 +137,22 @@ class QuadTreeRoot[DataT: ClassTag](boundary: Boundary, bucketSize: Int, depth: 
       ret ++= neighborCoordinates.flatMap(loc => getLeafNode(loc._1, loc._2))
     }
     ret.toArray
+  }
+
+  // currently treats each bucket as square
+  // add generic (numeric) output type for reduceBucket function?
+  def toMatrix(reduceBucket: ArrayBuffer[(Double, Double, DataT)] => Double): DenseMatrix[Double] = {
+    val imageWidth = pow(2, maxDepth).toInt
+    val ret = DenseMatrix.zeros[Double](imageWidth, imageWidth)
+    val xRange = (boundary.centerX - boundary.delX) to (boundary.centerX + boundary.delX) by ((boundary.delX * 2) / (imageWidth + 1)) drop 1 dropRight 1
+    val yRange = (boundary.centerY - boundary.delY) to (boundary.centerY + boundary.delY) by ((boundary.delY * 2) / (imageWidth + 1)) drop 1 dropRight 1
+    for ((x, i) <- xRange.zipWithIndex; (y, j) <- yRange.zipWithIndex) {
+      ret(i, j) = getLeafNode(x, y) match {
+        case None => 0.0
+        case Some(leafNode) => reduceBucket(leafNode.nodeData)
+      }
+    }
+    ret
   }
 
 }
