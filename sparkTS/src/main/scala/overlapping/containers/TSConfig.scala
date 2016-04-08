@@ -22,7 +22,7 @@ class TSConfig[IndexT : TSInstant](
         }else{ // Use forward padding
 
             implicitly[TSInstant[IndexT]].compare(
-                bckPadding,
+                fwdPadding,
                 implicitly[TSInstant[IndexT]].timeBtw(t1, t2)) >= 0
 
         }
