@@ -33,4 +33,14 @@ object TSInstant{
 
   }
 
+  implicit object DoubleTSInstant extends TSInstant[Double] {
+
+    def compare(x: Double, y: Double): Int = x.compareTo(y)
+
+    def timeBtw(start: Double, end: Double): Double = end - start
+
+    def times(x: Double, m: Int): Double = x * m
+
+  }
+
 }
